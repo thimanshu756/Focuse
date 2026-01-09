@@ -1,0 +1,377 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+}
+
+
+/// User account - supports email, Google, and Apple OAuth
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  name      String
+  avatar    String?  // Optional profile picture URL
+  passwordHash String? // Null for OAuth users
+  emailVerified Boolean @default(false)
+  verificationToken String? @unique
+  // OAuth providers
+  googleId  String? @unique
+  appleId   String? @unique
+  
+  // Subscription & billing
+  subscriptionTier SubscriptionTier @default(FREE)
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  subscriptionStartDate DateTime?
+  subscriptionEndDate DateTime?
+  stripeCustomerId String? @unique
+  stripeSubscriptionId String? @unique
+  
+  // User preferences
+  timezone String @default("UTC")
+
+  defaultSessionDuration Int @default(25) // minutes
+  notificationsEnabled Boolean @default(true)
+  
+  // Gamification & stats (denormalized for performance)
+  totalFocusTime Int @default(0) // in seconds
+  totalSessions Int @default(0)
+  completedSessions Int @default(0)
+  failedSessions Int @default(0)
+  currentStreak Int @default(0)
+  longestStreak Int @default(0)
+  lastSessionDate DateTime?
+
+  // Calendar integration
+  googleCalendarToken String?
+  googleCalendarRefreshToken String?
+  outlookCalendarToken String?
+  outlookCalendarRefreshToken String?
+  
+  // AI usage tracking (for rate limiting)
+  aiRequestsThisMonth Int @default(0)
+  aiRequestsResetDate DateTime @default(now())
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLoginAt DateTime?
+  deletedAt DateTime? // Soft delete
+  
+  // Relations
+  tasks Task[]
+  sessions FocusSession[]
+  aiRequests AIRequest[]
+  achievements UserAchievement[]
+  
+  // Indexes for common queries
+  @@index([subscriptionTier, subscriptionStatus])
+  @@index([createdAt])
+  @@index([deletedAt]) // For soft delete queries
+  @@map("users")
+}
+
+/// Task - User's to-do items with AI breakdown support
+model Task {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  
+  // Task details
+  title String
+  description String?
+  status TaskStatus @default(TODO)
+  priority TaskPriority @default(MEDIUM)
+  
+  // Time management
+  dueDate DateTime?
+  estimatedMinutes Int? // User or AI estimated time
+  actualMinutes Int @default(0) // Tracked from sessions
+  
+  // Organization
+  tagIds String[] // Array of tag names (simple strings, no relation)
+  
+  // AI-generated breakdown
+  isAIGenerated Boolean @default(false)
+  aiPrompt String? // Original user prompt
+  parentTaskId String? @db.ObjectId // For subtasks
+  
+  // Scheduling (AI auto-schedule feature)
+  scheduledStartTime DateTime?
+  scheduledEndTime DateTime?
+  
+  // Completion tracking
+  completedAt DateTime?
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // Soft delete
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions FocusSession[]
+  parentTask Task? @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subTasks Task[] @relation("SubTasks")
+  
+  // Indexes for performance
+  @@index([userId, status]) // List tasks by user and status
+  @@index([userId, dueDate]) // Sort by due date
+  @@index([userId, priority, status]) // Filter by priority
+  @@index([parentTaskId]) // Query subtasks
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("tasks")
+}
+
+/// FocusSession - Core focus timer sessions with tree growth tracking
+model FocusSession {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  taskId String? @db.ObjectId // Optional: link to a task
+  
+  // Session configuration
+  duration Int // Total planned duration in seconds  
+  // Session timing
+  startTime DateTime @default(now())
+  endTime DateTime // Calculated: startTime + duration
+  completedAt DateTime? // When user actually completed
+  pausedAt DateTime? // When paused (if paused)
+  failedAt DateTime? // When failed (if failed)
+  
+  // Session progress
+  status SessionStatus @default(RUNNING)
+  progress Int @default(0) // 0-100 percentage
+  timeElapsed Int @default(0) // Actual seconds focused (excluding pauses)
+  pauseDuration Int @default(0) // Total seconds paused
+  
+  // Session outcome
+  reason SessionFailReason? // Why it failed (if failed)
+  actualDuration Int? // Final duration when completed
+  
+  // Break management
+  breakDuration Int @default(300) // 5 min default break in seconds
+  breakTaken Boolean @default(false)
+  
+  // Device & platform tracking
+  platform String? // "web", "ios", "android"
+  deviceId String? // For cross-device detection
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  
+  // Indexes for queries and analytics
+  @@index([userId, status]) // Active sessions
+  @@index([userId, createdAt]) // Session history
+  @@index([userId, status, startTime]) // Timeline view
+  @@index([taskId]) // Sessions per task
+  @@index([startTime, endTime]) // Date range queries
+  @@index([status, updatedAt]) // Cleanup failed/stuck sessions
+  @@map("focus_sessions")
+}
+
+
+
+
+// ============================================================================
+// AI & INTELLIGENCE
+// ============================================================================
+
+/// AIRequest - Track all AI API calls for analytics and rate limiting
+model AIRequest {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  
+  // Request details
+  requestType AIRequestType // TASK_BREAKDOWN, SCHEDULE_SUGGEST, etc.
+  prompt String // User's input
+  response String // AI's output (can be large)
+  
+  // AI provider details
+  provider String @default("gemini") // "gemini", "openai", "claude"
+  model String @default("gemini-2.0-flash") // Specific model used
+  tokensUsed Int? // For cost tracking
+  
+  // Performance tracking
+  latencyMs Int? // Response time in milliseconds
+  
+  // Status
+  status AIRequestStatus @default(SUCCESS)
+  errorMessage String?
+  
+  // Audit
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes for analytics and rate limiting
+  @@index([userId, createdAt]) // User's AI history
+  @@index([userId, requestType, createdAt]) // Rate limiting by type
+  @@index([status, createdAt]) // Monitor failures
+  @@map("ai_requests")
+}
+
+// ============================================================================
+// GAMIFICATION & ACHIEVEMENTS
+// ============================================================================
+
+/// UserAchievement - Tracks user's unlocked achievements
+model UserAchievement {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  
+  // Achievement details
+  achievementId String // Reference to achievement definition
+  category AchievementCategory
+  tier AchievementTier
+  
+  // Progress tracking
+  progress Int @default(0) // 0-100
+  unlockedAt DateTime?
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([userId, category])
+  @@index([userId, unlockedAt])
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+// ============================================================================
+// NOTIFICATIONS & COMMUNICATION
+// ============================================================================
+
+
+// ============================================================================
+// ANALYTICS & INSIGHTS (Aggregated Data)
+// ============================================================================
+
+/// DailyStats - Pre-aggregated daily statistics for performance
+model DailyStats {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  date DateTime // Just the date (no time) - MongoDB uses DateTime
+  
+  // Daily metrics
+  totalFocusTime Int @default(0) // in seconds
+  totalSessions Int @default(0)
+  completedSessions Int @default(0)
+  failedSessions Int @default(0)
+  tasksCompleted Int @default(0)
+  
+  // Breakdown by time of day (optional, for insights)
+  morningFocusTime Int @default(0) // 6-11 AM
+  afternoonFocusTime Int @default(0) // 12-5 PM
+  eveningFocusTime Int @default(0) // 6-11 PM
+  nightFocusTime Int @default(0) // 12-5 AM
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Prevent duplicate daily records (unique constraint creates index automatically)
+  @@unique([userId, date])
+  @@map("daily_stats")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  TRIAL
+  CANCELLED
+  PAST_DUE
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum SessionStatus {
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+enum SessionFailReason {
+  USER_GAVE_UP      // User clicked "Give Up"
+  APP_BACKGROUNDED  // User left app >30s
+  APP_CRASHED       // Technical failure
+  DISTRACTION_OPENED // Opened blocked app (strict mode)
+  TIMEOUT           // Session expired without action
+}
+
+enum AIRequestType {
+  TASK_BREAKDOWN    // Break task into subtasks
+  SCHEDULE_SUGGEST  // Suggest focus blocks
+  POMODORO_OPTIMIZE // Personalized Pomodoro timing
+  INSIGHT_GENERATE  // Weekly/monthly insights
+  TASK_ESTIMATE     // Estimate task duration
+}
+
+enum AIRequestStatus {
+  SUCCESS
+  FAILED
+  RATE_LIMITED
+  TIMEOUT
+}
+
+enum AchievementCategory {
+  SESSIONS       // Session milestones
+  STREAK         // Streak milestones
+  FOREST         // Tree collection
+  FOCUS_TIME     // Total time milestones
+  TASKS          // Task completion
+  SPECIAL        // Seasonal/limited events
+}
+
+enum AchievementTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
+}
+
+enum NotificationType {
+  SESSION_REMINDER  // "Time to focus!"
+  BREAK_REMINDER    // "Take a break"
+  STREAK_ALERT      // "Don't break your streak!"
+  ACHIEVEMENT       // "Achievement unlocked!"
+  SUBSCRIPTION      // Billing/subscription updates
+  SYSTEM            // App updates, maintenance
+}

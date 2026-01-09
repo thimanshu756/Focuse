@@ -7,7 +7,8 @@ A beautiful focus timer app with tree growing animations, built with Next.js, Ty
 ```
 my-monorepo/
 ├── apps/
-│   └── web/          # Next.js focus timer application
+│   ├── web/          # Next.js focus timer application
+│   └── server/       # Express.js API server
 ├── packages/
 │   └── ui/          # Shared UI components and utilities
 ├── pnpm-workspace.yaml
@@ -34,11 +35,18 @@ pnpm install
 ### Development
 
 ```bash
-# Start the development server
+# Start the web app
 pnpm dev
 
-# Or run from the web app directly
+# Start the API server
+pnpm dev:server
+
+# Start both web and server
+pnpm dev:all
+
+# Or run from specific apps
 pnpm --filter web dev
+pnpm --filter server dev
 ```
 
 ### Build
@@ -61,6 +69,16 @@ The main Next.js application featuring:
 - 3-tier tree system (Basic, Premium, Elite)
 - Focus timer with customizable durations
 - Modern, iOS-inspired UI design
+
+### `apps/server`
+
+Express.js API server featuring:
+
+- RESTful API endpoints
+- TypeScript support
+- CORS enabled
+- Health check endpoint
+- Environment-based configuration
 
 ### `packages/ui`
 
@@ -86,10 +104,23 @@ Shared UI components and utilities (to be expanded).
 
 ## 📝 Scripts
 
-- `pnpm dev` - Start development server
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server
-- `pnpm lint` - Run linter
+### Web App
+
+- `pnpm dev` - Start web development server
+- `pnpm build` - Build web app for production
+- `pnpm start` - Start web production server
+- `pnpm lint` - Run web app linter
+
+### Server
+
+- `pnpm dev:server` - Start API server in development mode
+- `pnpm build:server` - Build server for production
+- `pnpm start:server` - Start server in production mode
+- `pnpm lint:server` - Run server linter
+
+### All Apps
+
+- `pnpm dev:all` - Start both web and server in parallel
 
 ## 🔒 Git Hooks (Husky)
 
