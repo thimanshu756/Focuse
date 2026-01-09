@@ -8,6 +8,10 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32),
   REDIS_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  // Email configuration (Gmail)
+  GMAIL_USER: z.string().email('Invalid Gmail user email'),
+  GMAIL_APP_PASSWORD: z.string().min(1, 'Gmail app password is required'),
+  FRONTEND_URL: z.string().url('Invalid frontend URL').default('http://localhost:3000'),
 });
 
 export const env = envSchema.parse(process.env);
