@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run lint-staged for formatting
+pnpm exec lint-staged
+
+# Run Next.js lint check if web app files are staged
+# Note: This will prompt to configure ESLint on first run
+if git diff --cached --name-only | grep -q 'apps/web/'; then
+  # Skip linting if ESLint is not configured yet
+  if [ -f "apps/web/.eslintrc.json" ] || [ -f "apps/web/eslint.config.js" ] || [ -f "apps/web/eslint.config.mjs" ]; then
+    pnpm --filter web lint || exit 1
+  fi
+fi
