@@ -62,3 +62,31 @@ export const resetPasswordSchema = z.object({
   }),
 });
 
+// Helper to validate IANA timezone
+const timezoneSchema = z.string().refine(
+  (tz) => {
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: tz });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  { message: 'Invalid IANA timezone' }
+);
+
+export const updateProfileSchema = z.object({
+  body: z.object({
+    name: z.string().min(1, 'Name is required').max(100).optional(),
+    timezone: timezoneSchema.optional(),
+    avatar: z.string().url('Invalid avatar URL').optional().nullable(),
+  }),
+});
+
+export const changePasswordSchema = z.object({
+  body: z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: passwordSchema,
+  }),
+});
+

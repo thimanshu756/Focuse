@@ -7,8 +7,8 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Prisma 7: Connection URL is configured in prisma.config.ts
-// The PrismaClient reads from DATABASE_URL environment variable automatically
+// Prisma 6: Connection URL is read from DATABASE_URL environment variable
+// Prisma 6 has stable MongoDB support (Prisma 7 has known compatibility issues)
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({

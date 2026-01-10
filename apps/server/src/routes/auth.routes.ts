@@ -12,6 +12,8 @@ import {
   resendVerificationSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  updateProfileSchema,
+  changePasswordSchema,
 } from '../validators/auth.validator.js';
 
 const router: Router = Router();
@@ -84,6 +86,24 @@ router.post(
 
 // GET /api/auth/me
 router.get('/me', authenticate, rateLimiters.standard, controller.getMe);
+
+// PATCH /api/auth/update-profile
+router.patch(
+  '/update-profile',
+  authenticate,
+  rateLimiters.standard,
+  validateRequest(updateProfileSchema),
+  controller.updateProfile 
+);
+
+// POST /api/auth/change-password
+router.post(
+  '/change-password',
+  authenticate,
+  rateLimiters.standard,
+  validateRequest(changePasswordSchema),
+  controller.changePassword
+);
 
 export default router;
 

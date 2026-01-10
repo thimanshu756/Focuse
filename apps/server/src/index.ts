@@ -5,6 +5,7 @@ import { prisma } from './lib/prisma.js';
 import { env } from './config/env.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import authRoutes from './routes/auth.routes.js';
+import taskRoutes from './routes/task.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +47,7 @@ app.get('/health', async (req: Request, res: Response) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -55,6 +57,7 @@ app.get('/', (req: Request, res: Response) => {
     endpoints: {
       health: '/health',
       auth: '/api/auth',
+      tasks: '/api/tasks',
     }
   });
 });

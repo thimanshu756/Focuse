@@ -56,3 +56,14 @@ export interface TokensResponse {
   expiresIn: number;
 }
 
+export interface UpdateProfileInput {
+  name?: string;
+  timezone?: string;
+  avatar?: string;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+

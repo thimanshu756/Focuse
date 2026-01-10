@@ -27,6 +27,8 @@ import {
   ResendVerificationInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  UpdateProfileInput,
+  ChangePasswordInput,
   UserResponse,
   TokensResponse,
 } from '../types/auth.types.js';
@@ -62,14 +64,14 @@ export class AuthService {
     // Hash password
     const passwordHash = await hashPassword(data.password);
 
-    // Generate verification token
-    const verificationToken = generateVerificationToken(data.email);
+    // Generate verification token with normalized email (already normalized above)
+    const verificationToken = generateVerificationToken(normalizedEmail);
 
     // Create user
     const user = await prisma.user.create({
       data: {
         name: data.name,
-        email: data.email.toLowerCase().trim(),
+        email: normalizedEmail,
         passwordHash,
         timezone: data.timezone || 'UTC',
         subscriptionTier: 'FREE',
@@ -222,13 +224,13 @@ export class AuthService {
     try {
       const decoded = verifyVerificationToken(data.token);
       const email = decoded.email;
-
+      console.log("Email: ", email);
+      
       // Find user by email (emails are normalized to lowercase)
       const normalizedEmail = email.toLowerCase().trim();
       const user = await prisma.user.findFirst({
         where: {
-          email: normalizedEmail,
-          deletedAt: null,
+          email: normalizedEmail
         },
       });
 
@@ -416,6 +418,146 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async updateProfile(
+    userId: string,
+    data: UpdateProfileInput
+  ): Promise<UserResponse> {
+    // Find user first to check if exists and not deleted
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, deletedAt: true },
+    });
+
+    if (!existingUser || existingUser.deletedAt) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    // Build update data (only include provided fields)
+    const updateData: {
+      name?: string;
+      timezone?: string;
+      avatar?: string | null;
+    } = {};
+
+    if (data.name !== undefined) {
+      updateData.name = data.name;
+    }
+
+    if (data.timezone !== undefined) {
+      // Validate timezone using Intl API
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone: data.timezone });
+        updateData.timezone = data.timezone;
+      } catch {
+        throw new AppError('Invalid IANA timezone', 400, 'INVALID_TIMEZONE');
+      }
+    }
+
+    if (data.avatar !== undefined) {
+      updateData.avatar = data.avatar || null;
+    }
+
+    // Update user
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        subscriptionTier: true,
+        subscriptionStatus: true,
+        emailVerified: true,
+        timezone: true,
+        currentStreak: true,
+        totalFocusTime: true,
+        totalSessions: true,
+        createdAt: true,
+      },
+    });
+
+    logger.info('Profile updated', { userId });
+
+    return user;
+  }
+
+  async changePassword(
+    userId: string,
+    data: ChangePasswordInput
+  ): Promise<void> {
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true, deletedAt: true },
+    });
+
+    if (!user || user.deletedAt) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    // Check if user has password (OAuth users don't)
+    if (!user.passwordHash) {
+      throw new AppError(
+        'Password change not available for OAuth accounts',
+        400,
+        'OAUTH_ACCOUNT'
+      );
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await comparePassword(
+      data.currentPassword,
+      user.passwordHash
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new AppError(
+        'Current password is incorrect',
+        401,
+        'INVALID_PASSWORD'
+      );
+    }
+
+    // Check if new password is different from old
+    const isSamePassword = await comparePassword(
+      data.newPassword,
+      user.passwordHash
+    );
+
+    if (isSamePassword) {
+      throw new AppError(
+        'New password must be different from current password',
+        400,
+        'SAME_PASSWORD'
+      );
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrength(data.newPassword);
+    if (!passwordValidation.valid) {
+      throw new AppError(
+        passwordValidation.message!,
+        400,
+        'VALIDATION_ERROR'
+      );
+    }
+
+    // Hash new password
+    const newPasswordHash = await hashPassword(data.newPassword);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    // TODO: Invalidate all existing refresh tokens (force re-login on other devices)
+    // This would require maintaining a token blacklist or user token version
+
+    logger.info('Password changed', { userId });
   }
 
   private generateTokens(userId: string, email: string): TokensResponse {

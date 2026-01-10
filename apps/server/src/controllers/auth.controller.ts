@@ -10,6 +10,8 @@ import {
   ResendVerificationInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  UpdateProfileInput,
+  ChangePasswordInput,
 } from '../types/auth.types.js';
 
 export class AuthController {
@@ -142,6 +144,41 @@ export class AuthController {
       res.json({
         success: true,
         data: { user },
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateProfile = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const data: UpdateProfileInput = req.body;
+      const user = await this.authService.updateProfile(req.user!.id, data);
+      res.json({
+        success: true,
+        data: { user },
+        message: 'Profile updated successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  changePassword = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const data: ChangePasswordInput = req.body;
+      await this.authService.changePassword(req.user!.id, data);
+      res.json({
+        success: true,
+        message: 'Password changed successfully. Please login again on all devices.',
       });
     } catch (error) {
       next(error);

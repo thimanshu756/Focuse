@@ -51,5 +51,25 @@ export const rateLimiters = {
     max: 100,
     windowMs: 60 * 1000, // 1 minute
   }),
+  taskCreate: createRateLimiter({
+    max: 100,
+    windowMs: 60 * 1000, // 1 minute
+    message: 'Too many task creation requests',
+  }),
+  taskList: createRateLimiter({
+    max: 200,
+    windowMs: 60 * 1000, // 1 minute
+    message: 'Too many task list requests',
+  }),
+  aiBreakdown: createRateLimiter({
+    max: 10,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    message: 'Too many AI breakdown requests',
+  }),
+  bulkOperations: createRateLimiter({
+    max: 20,
+    windowMs: 60 * 1000, // 1 minute
+    message: 'Too many bulk operation requests',
+  }),
 };
 
