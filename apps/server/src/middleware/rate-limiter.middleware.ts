@@ -71,5 +71,15 @@ export const rateLimiters = {
     windowMs: 60 * 1000, // 1 minute
     message: 'Too many bulk operation requests',
   }),
+  sessionPauseResume: createRateLimiter({
+    max: 100,
+    windowMs: 60 * 1000, // 1 minute
+    message: 'Too many pause/resume requests',
+  }),
+  sessionComplete: createRateLimiter({
+    max: 100,
+    windowMs: 60 * 1000, // 1 minute
+    message: 'Too many complete/fail requests',
+  }),
 };
 

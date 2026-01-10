@@ -6,6 +6,8 @@ import { env } from './config/env.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import authRoutes from './routes/auth.routes.js';
 import taskRoutes from './routes/task.routes.js';
+import sessionRoutes from './routes/session.routes.js';
+import syncRoutes from './routes/sync.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -48,6 +50,8 @@ app.get('/health', async (req: Request, res: Response) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/sync', syncRoutes);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -58,6 +62,8 @@ app.get('/', (req: Request, res: Response) => {
       health: '/health',
       auth: '/api/auth',
       tasks: '/api/tasks',
+      sessions: '/api/sessions',
+      sync: '/api/sync',
     }
   });
 });
