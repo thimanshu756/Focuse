@@ -39,6 +39,9 @@ model User {
   
   // User preferences
   timezone String @default("UTC")
+  userType String? // "student" | "professional" | "freelancer"
+  preferredFocusTime String? // "morning" | "afternoon" | "evening" | "night"
+  onboardingCompleted Boolean @default(false) // Track if user completed onboarding
 
   defaultSessionDuration Int @default(25) // minutes
   notificationsEnabled Boolean @default(true)

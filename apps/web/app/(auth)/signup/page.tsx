@@ -1,11 +1,67 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { SignUpForm } from '@/components/auth/SignUpForm';
+import { isAuthenticated } from '@/lib/auth';
+import { api } from '@/lib/api';
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check if already authenticated and redirect
+  useEffect(() => {
+    const checkAuthAndRedirect = async () => {
+      if (isAuthenticated()) {
+        try {
+          const response = await api.get('/auth/me');
+          if (response.data.success && response.data.data?.user) {
+            const user = response.data.data.user;
+
+            // Check email verification first
+            if (!user.emailVerified) {
+              router.push('/verify-email');
+              return;
+            }
+
+            // Check onboarding status
+            if (!user.onboardingCompleted) {
+              router.push('/onboarding');
+              return;
+            }
+
+            // User is verified and onboarded, go to dashboard
+            router.push('/dashboard');
+            return;
+          }
+        } catch (error) {
+          // If error fetching user, stay on signup page
+        }
+      }
+      setIsCheckingAuth(false);
+    };
+
+    checkAuthAndRedirect();
+  }, [router]);
+
+  // Show loading screen while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8] flex items-center justify-center px-5 py-8">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent mx-auto mb-4" />
+          <p className="text-sm text-text-secondary">
+            Checking authentication...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8] flex items-center justify-center px-5 py-8">
       <motion.div

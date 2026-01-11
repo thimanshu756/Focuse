@@ -121,6 +121,25 @@ export class AuthService {
       where: {
         email: normalizedEmail,
       },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        passwordHash: true,
+        deletedAt: true,
+        subscriptionTier: true,
+        subscriptionStatus: true,
+        emailVerified: true,
+        timezone: true,
+        userType: true,
+        preferredFocusTime: true,
+        onboardingCompleted: true,
+        currentStreak: true,
+        totalFocusTime: true,
+        totalSessions: true,
+        createdAt: true,
+      },
     });
 
     if (!user) {
@@ -168,6 +187,9 @@ export class AuthService {
         subscriptionStatus: user.subscriptionStatus,
         emailVerified: user.emailVerified,
         timezone: user.timezone,
+        userType: user.userType,
+        preferredFocusTime: user.preferredFocusTime,
+        onboardingCompleted: user.onboardingCompleted ?? false,
         currentStreak: user.currentStreak,
         totalFocusTime: user.totalFocusTime,
         totalSessions: user.totalSessions,
@@ -411,10 +433,14 @@ export class AuthService {
         subscriptionStatus: true,
         emailVerified: true,
         timezone: true,
+        userType: true,
+        preferredFocusTime: true,
+        onboardingCompleted: true,
         currentStreak: true,
         totalFocusTime: true,
         totalSessions: true,
         createdAt: true,
+        deletedAt: true,
       },
     });
 
@@ -422,7 +448,23 @@ export class AuthService {
       throw new AppError('User not found', 404, 'USER_NOT_FOUND');
     }
 
-    return user;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      subscriptionTier: user.subscriptionTier,
+      subscriptionStatus: user.subscriptionStatus,
+      emailVerified: user.emailVerified,
+      timezone: user.timezone,
+      userType: user.userType,
+      preferredFocusTime: user.preferredFocusTime,
+      onboardingCompleted: user.onboardingCompleted ?? false,
+      currentStreak: user.currentStreak,
+      totalFocusTime: user.totalFocusTime,
+      totalSessions: user.totalSessions,
+      createdAt: user.createdAt,
+    };
   }
 
   async updateProfile(
@@ -444,6 +486,9 @@ export class AuthService {
       name?: string;
       timezone?: string;
       avatar?: string | null;
+      userType?: string;
+      preferredFocusTime?: string;
+      onboardingCompleted?: boolean;
     } = {};
 
     if (data.name !== undefined) {
@@ -464,6 +509,26 @@ export class AuthService {
       updateData.avatar = data.avatar || null;
     }
 
+    if (data.userType !== undefined) {
+      const validUserTypes = ['student', 'professional', 'freelancer'];
+      if (!validUserTypes.includes(data.userType)) {
+        throw new AppError('Invalid user type', 400, 'INVALID_USER_TYPE');
+      }
+      updateData.userType = data.userType;
+    }
+
+    if (data.preferredFocusTime !== undefined) {
+      const validFocusTimes = ['morning', 'afternoon', 'evening', 'night'];
+      if (!validFocusTimes.includes(data.preferredFocusTime)) {
+        throw new AppError('Invalid preferred focus time', 400, 'INVALID_FOCUS_TIME');
+      }
+      updateData.preferredFocusTime = data.preferredFocusTime;
+    }
+
+    if (data.onboardingCompleted !== undefined) {
+      updateData.onboardingCompleted = data.onboardingCompleted;
+    }
+
     // Update user
     const user = await prisma.user.update({
       where: { id: userId },
@@ -477,6 +542,9 @@ export class AuthService {
         subscriptionStatus: true,
         emailVerified: true,
         timezone: true,
+        userType: true,
+        preferredFocusTime: true,
+        onboardingCompleted: true,
         currentStreak: true,
         totalFocusTime: true,
         totalSessions: true,

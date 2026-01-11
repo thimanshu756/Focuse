@@ -44,6 +44,9 @@ export interface UserResponse {
   subscriptionStatus: string;
   emailVerified: boolean;
   timezone: string;
+  userType?: string | null;
+  preferredFocusTime?: string | null;
+  onboardingCompleted?: boolean;
   currentStreak: number;
   totalFocusTime: number;
   totalSessions: number;
@@ -60,6 +63,9 @@ export interface UpdateProfileInput {
   name?: string;
   timezone?: string;
   avatar?: string;
+  userType?: 'student' | 'professional' | 'freelancer';
+  preferredFocusTime?: 'morning' | 'afternoon' | 'evening' | 'night';
+  onboardingCompleted?: boolean;
 }
 
 export interface ChangePasswordInput {
