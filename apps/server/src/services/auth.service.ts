@@ -50,10 +50,10 @@ export class AuthService {
 
     // Check if email already exists (emails are normalized to lowercase)
     const normalizedEmail = data.email.toLowerCase().trim();
+    console.log("Normalized email: ", normalizedEmail);
     const existingUser = await prisma.user.findFirst({
       where: {
         email: normalizedEmail,
-        deletedAt: null,
       },
     });
 
@@ -65,9 +65,12 @@ export class AuthService {
     const passwordHash = await hashPassword(data.password);
 
     // Generate verification token with normalized email (already normalized above)
+    // JWT tokens are cryptographically unique (include email + timestamp + signature)
     const verificationToken = generateVerificationToken(normalizedEmail);
 
     // Create user
+    // Note: Don't include googleId/appleId/stripeCustomerId/stripeSubscriptionId for email/password users
+    // MongoDB unique constraints only allow ONE null value, so omit the field entirely
     const user = await prisma.user.create({
       data: {
         name: data.name,
@@ -78,6 +81,8 @@ export class AuthService {
         subscriptionStatus: 'INACTIVE',
         emailVerified: false,
         verificationToken,
+        // Omit nullable unique fields: googleId, appleId, stripeCustomerId, stripeSubscriptionId
+        // MongoDB won't enforce unique on missing fields
       },
       select: {
         id: true,

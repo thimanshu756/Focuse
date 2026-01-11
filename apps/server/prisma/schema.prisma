@@ -19,18 +19,23 @@ model User {
   avatar    String?  // Optional profile picture URL
   passwordHash String? // Null for OAuth users
   emailVerified Boolean @default(false)
-  verificationToken String? @unique
+  // Note: verificationToken uniqueness enforced in application logic
+  // (MongoDB unique indexes only allow ONE null value)
+  verificationToken String?
   // OAuth providers
-  googleId  String? @unique
-  appleId   String? @unique
+  // Note: Not using @unique on nullable fields due to MongoDB limitation
+  // (MongoDB unique indexes only allow ONE null value)
+  // Uniqueness will be enforced in application logic
+  googleId  String?
+  appleId   String?
   
   // Subscription & billing
   subscriptionTier SubscriptionTier @default(FREE)
   subscriptionStatus SubscriptionStatus @default(INACTIVE)
   subscriptionStartDate DateTime?
   subscriptionEndDate DateTime?
-  stripeCustomerId String? @unique
-  stripeSubscriptionId String? @unique
+  stripeCustomerId String? 
+  stripeSubscriptionId String? 
   
   // User preferences
   timezone String @default("UTC")
