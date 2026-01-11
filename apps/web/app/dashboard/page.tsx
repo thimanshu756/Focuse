@@ -11,9 +11,11 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { TaskCard } from '@/components/dashboard/TaskCard';
 import { QuickStartSession } from '@/components/dashboard/QuickStartSession';
 import { WeeklyChart } from '@/components/dashboard/WeeklyChart';
+import { TaskModal } from '@/components/tasks/TaskModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useActiveSession } from '@/hooks/useActiveSession';
 import { useWeeklyStats } from '@/hooks/useWeeklyStats';
+import { useTasks } from '@/hooks/useTasks';
 import { isAuthenticated } from '@/lib/auth';
 import { Flame, Clock, TreePine, Plus, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -41,6 +43,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [greeting, setGreeting] = useState(getTimeBasedGreeting());
   const [mounted, setMounted] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
   const {
     user,
     tasks,
@@ -54,6 +57,7 @@ export default function DashboardPage() {
     isLoading: statsLoading,
     error: statsError,
   } = useWeeklyStats();
+  const { createTask } = useTasks();
 
   // Set mounted state after hydration
   useEffect(() => {
@@ -81,6 +85,23 @@ export default function DashboardPage() {
     ? formatHours(user.totalFocusTime)
     : '0.0';
   const treesGrown = user?.completedSessions || 0;
+
+  // Handle task creation
+  const handleCreateTask = async (data: any) => {
+    try {
+      await createTask({
+        ...data,
+        status: 'TODO',
+        dueDate: data.dueDate || undefined,
+      });
+      toast.success('Task created!');
+      setShowTaskModal(false);
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.error?.message || 'Failed to create task'
+      );
+    }
+  };
 
   // Show loading state during SSR and initial mount
   if (!mounted) {
@@ -171,7 +192,7 @@ export default function DashboardPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => router.push('/tasks/new')}
+                  onClick={() => setShowTaskModal(true)}
                   className="flex items-center gap-2"
                 >
                   <Plus size={16} />
@@ -208,7 +229,7 @@ export default function DashboardPage() {
                   </p>
                   <Button
                     variant="primary"
-                    onClick={() => router.push('/tasks/new')}
+                    onClick={() => setShowTaskModal(true)}
                   >
                     Add Your First Task
                   </Button>
@@ -307,6 +328,14 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
       </main>
+
+      {/* Task Modal */}
+      <TaskModal
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        onSubmit={handleCreateTask}
+        task={null}
+      />
     </div>
   );
 }

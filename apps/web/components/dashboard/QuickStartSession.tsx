@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Select } from '@/components/ui/Select';
 import { Play, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { Option } from '@/types/select.types';
 
 interface Task {
   id: string;
@@ -29,12 +31,23 @@ export function QuickStartSession({
   activeSession,
 }: QuickStartSessionProps) {
   const router = useRouter();
-  const [selectedTaskId, setSelectedTaskId] = useState<string>('');
+  const [selectedTask, setSelectedTask] = useState<Option | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [customDuration, setCustomDuration] = useState<string>('');
   const [isStarting, setIsStarting] = useState(false);
 
   const durations = [15, 25, 50];
+
+  // Convert tasks to select options
+  const taskOptions: Option[] = useMemo(() => {
+    return [
+      { value: '', label: 'No task' },
+      ...tasks.map((task) => ({
+        value: task.id,
+        label: task.title,
+      })),
+    ];
+  }, [tasks]);
 
   // If active session exists, show resume card
   if (activeSession) {
@@ -91,7 +104,7 @@ export function QuickStartSession({
 
     try {
       const response = await api.post('/sessions', {
-        taskId: selectedTaskId || null,
+        taskId: selectedTask?.value || null,
         duration,
       });
 
@@ -139,18 +152,14 @@ export function QuickStartSession({
           <label className="block text-sm font-medium text-text-primary mb-2">
             Select task (optional)
           </label>
-          <select
-            value={selectedTaskId}
-            onChange={(e) => setSelectedTaskId(e.target.value)}
-            className="w-full h-12 px-4 rounded-xl border-2 border-gray-200 bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-          >
-            <option value="">No task</option>
-            {tasks.map((task) => (
-              <option key={task.id} value={task.id}>
-                {task.title}
-              </option>
-            ))}
-          </select>
+          <Select
+            options={taskOptions}
+            value={selectedTask}
+            onChange={(option) => setSelectedTask(option)}
+            placeholder="Choose a task..."
+            isSearchable={tasks.length > 5}
+            isClearable
+          />
         </div>
 
         {/* Duration Selection */}

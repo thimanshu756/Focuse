@@ -48,6 +48,24 @@ export class SessionController {
     }
   };
 
+  /**
+   * Get forest sessions (completed and failed) in a single optimized query
+   * GET /api/sessions/forest
+   */
+  getForestSessions = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const limit = Number(req.query.limit) || 50;
+      const result = await this.sessionService.getForestSessions(req.user!.id, limit);
+      res.json({
+        success: true,
+        data: result.sessions,
+        meta: result.meta,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getSession = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const sessionId = req.params.id;

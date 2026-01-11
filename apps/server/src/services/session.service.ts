@@ -215,6 +215,46 @@ export class SessionService {
     };
   }
 
+  /**
+   * Get forest sessions (completed and failed) in a single query
+   * Optimized for forest page visualization
+   */
+  async getForestSessions(userId: string, limit: number = 50) {
+    // Fetch both completed and failed sessions in a single query
+    const sessions = await prisma.focusSession.findMany({
+      where: {
+        userId,
+        status: { in: ['COMPLETED', 'FAILED'] },
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            priority: true,
+          },
+        },
+      },
+      orderBy: { startTime: 'desc' },
+      take: limit,
+    });
+
+    // Separate and count by status
+    const completedSessions = sessions.filter((s: any) => s.status === 'COMPLETED');
+    const failedSessions = sessions.filter((s: any) => s.status === 'FAILED');
+
+    return {
+      sessions: sessions.map((s: any) => this.formatSessionResponse(s, s.task)),
+      meta: {
+        total: sessions.length,
+        completed: completedSessions.length,
+        failed: failedSessions.length,
+        limit,
+      },
+    };
+  }
+
   async getSessionById(userId: string, sessionId: string): Promise<SessionResponse> {
     const session = await prisma.focusSession.findFirst({
       where: {

@@ -136,8 +136,10 @@ export class AuthService {
         preferredFocusTime: true,
         onboardingCompleted: true,
         currentStreak: true,
+        longestStreak: true,
         totalFocusTime: true,
         totalSessions: true,
+        completedSessions: true,
         createdAt: true,
       },
     });
@@ -191,8 +193,10 @@ export class AuthService {
         preferredFocusTime: user.preferredFocusTime,
         onboardingCompleted: user.onboardingCompleted ?? false,
         currentStreak: user.currentStreak,
+        longestStreak: user.longestStreak,
         totalFocusTime: user.totalFocusTime,
         totalSessions: user.totalSessions,
+        completedSessions: user.completedSessions,
         createdAt: user.createdAt,
       },
       tokens,
@@ -437,8 +441,10 @@ export class AuthService {
         preferredFocusTime: true,
         onboardingCompleted: true,
         currentStreak: true,
+        longestStreak: true,
         totalFocusTime: true,
         totalSessions: true,
+        completedSessions: true,
         createdAt: true,
         deletedAt: true,
       },
@@ -461,8 +467,10 @@ export class AuthService {
       preferredFocusTime: user.preferredFocusTime,
       onboardingCompleted: user.onboardingCompleted ?? false,
       currentStreak: user.currentStreak,
+      longestStreak: user.longestStreak,
       totalFocusTime: user.totalFocusTime,
       totalSessions: user.totalSessions,
+      completedSessions: user.completedSessions,
       createdAt: user.createdAt,
     };
   }
@@ -546,15 +554,35 @@ export class AuthService {
         preferredFocusTime: true,
         onboardingCompleted: true,
         currentStreak: true,
+        longestStreak: true,
         totalFocusTime: true,
         totalSessions: true,
+        completedSessions: true,
         createdAt: true,
       },
     });
 
     logger.info('Profile updated', { userId });
 
-    return user;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      subscriptionTier: user.subscriptionTier,
+      subscriptionStatus: user.subscriptionStatus,
+      emailVerified: user.emailVerified,
+      timezone: user.timezone,
+      userType: user.userType,
+      preferredFocusTime: user.preferredFocusTime,
+      onboardingCompleted: user.onboardingCompleted ?? false,
+      currentStreak: user.currentStreak,
+      longestStreak: user.longestStreak,
+      totalFocusTime: user.totalFocusTime,
+      totalSessions: user.totalSessions,
+      completedSessions: user.completedSessions,
+      createdAt: user.createdAt,
+    };
   }
 
   async changePassword(

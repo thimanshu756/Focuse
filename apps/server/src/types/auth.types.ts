@@ -48,8 +48,10 @@ export interface UserResponse {
   preferredFocusTime?: string | null;
   onboardingCompleted?: boolean;
   currentStreak: number;
+  longestStreak: number;
   totalFocusTime: number;
   totalSessions: number;
+  completedSessions: number;
   createdAt: Date;
 }
 
