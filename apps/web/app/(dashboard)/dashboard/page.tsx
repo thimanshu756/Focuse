@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Header } from '@/components/shared/Header';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { TaskCard } from '@/components/dashboard/TaskCard';
 import { QuickStartSession } from '@/components/dashboard/QuickStartSession';
@@ -125,9 +124,7 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(' ')[0] || 'there';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
-      <Header userTier={user?.subscriptionTier} userName={firstName} />
-
+    <>
       <main className="max-w-7xl mx-auto px-5 md:px-10 py-8">
         {/* Greeting Section */}
         <motion.div
@@ -336,6 +333,6 @@ export default function DashboardPage() {
         onSubmit={handleCreateTask}
         task={null}
       />
-    </div>
+    </>
   );
 }

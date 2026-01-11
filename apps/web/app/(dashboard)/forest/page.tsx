@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { TreePine, Clock, Flame, AlertCircle } from 'lucide-react';
-import { Header } from '@/components/shared/Header';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
@@ -97,9 +96,7 @@ export default function ForestPage() {
   const hasFilteredSessions = sessions.length > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
-      <Header userTier={userProfile?.subscriptionTier} userName={firstName} />
-
+    <>
       <main className="max-w-7xl mx-auto px-5 md:px-10 py-8">
         {/* Page Header */}
         <motion.div
@@ -340,6 +337,6 @@ export default function ForestPage() {
 
       {/* Celebration Modal for Milestones */}
       <CelebrationModal sessionCount={allSessions.length} />
-    </div>
+    </>
   );
 }

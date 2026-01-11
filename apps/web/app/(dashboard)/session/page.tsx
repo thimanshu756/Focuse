@@ -156,24 +156,8 @@ export default function SessionPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ' ' && !showCompletionModal && !showGiveUpModal) {
-        e.preventDefault();
-        handlePauseResume();
-      } else if (e.key === 'Escape' && !showCompletionModal) {
-        e.preventDefault();
-        setShowGiveUpModal(true);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showCompletionModal, showGiveUpModal]);
-
   // Pause/Resume session
-  const handlePauseResume = async () => {
+  const handlePauseResume = useCallback(async () => {
     if (!session) return;
 
     try {
@@ -193,7 +177,23 @@ export default function SessionPage() {
         error.response?.data?.error?.message || 'Failed to update session'
       );
     }
-  };
+  }, [session, refetch]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === ' ' && !showCompletionModal && !showGiveUpModal) {
+        e.preventDefault();
+        handlePauseResume();
+      } else if (e.key === 'Escape' && !showCompletionModal) {
+        e.preventDefault();
+        setShowGiveUpModal(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCompletionModal, showGiveUpModal, handlePauseResume]);
 
   // Handle give up
   const handleGiveUp = async () => {

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Plus, Search, X, AlertCircle } from 'lucide-react';
-import { Header } from '@/components/shared/Header';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { TaskModal } from '@/components/tasks/TaskModal';
 import { AIBreakdownModal } from '@/components/tasks/AIBreakdownModal';
@@ -63,8 +62,9 @@ export default function TasksPage() {
     const fetchUser = async () => {
       try {
         const response = await api.get('/auth/me');
-        if (response.data.success && response.data.data?.user) {
-          setUserTier(response.data.data.user.subscriptionTier || 'FREE');
+        if (response.data.success && response.data.data) {
+          const user = response.data.data.user || response.data.data;
+          setUserTier(user.subscriptionTier || 'FREE');
         }
       } catch (error) {
         // Ignore error
@@ -180,9 +180,7 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
-      <Header userTier={userTier} />
-
+    <>
       <main className="max-w-7xl mx-auto px-5 md:px-10 py-8">
         {/* Page Header */}
         <div className="flex items-center justify-between mb-6">
@@ -424,6 +422,6 @@ export default function TasksPage() {
         }}
         userTier={userTier}
       />
-    </div>
+    </>
   );
 }
