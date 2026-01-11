@@ -49,6 +49,7 @@ export class TaskController {
       const filters: TaskListFilters = {
         status,
         priority: req.query.priority as any,
+        search: req.query.search as string,
         page: Number(req.query.page) || 1,
         limit: Number(req.query.limit) || 20,
       };

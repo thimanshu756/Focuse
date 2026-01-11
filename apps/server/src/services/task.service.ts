@@ -49,7 +49,6 @@ export class TaskService {
         where: {
           id: data.parentTaskId,
           userId,
-          deletedAt: null,
         },
       });
 
@@ -82,7 +81,7 @@ export class TaskService {
     tasks: TaskResponse[];
     meta: { total: number; page: number; limit: number };
   }> {
-    const { status, priority, page = 1, limit = 20 } = filters;
+    const { status, priority, search, page = 1, limit = 20 } = filters;
 
     const where: any = {
       userId,
@@ -99,6 +98,17 @@ export class TaskService {
 
     if (priority) {
       where.priority = priority;
+    }
+
+    // Search functionality - search in title and description
+    // Note: MongoDB's contains is case-sensitive, but we'll use it for now
+    // For case-insensitive search, consider using text indexes or client-side filtering
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      where.OR = [
+        { title: { contains: searchTerm } },
+        { description: { contains: searchTerm } },
+      ];
     }
 
     const [tasks, total] = await Promise.all([
@@ -133,9 +143,7 @@ export class TaskService {
       },
       include: {
         subTasks: {
-          where: {
-            deletedAt: null,
-          },
+       
           orderBy: { createdAt: 'asc' },
         },
       },
@@ -163,7 +171,6 @@ export class TaskService {
       where: {
         id: taskId,
         userId,
-        deletedAt: null,
       },
       include: {
         subTasks: {
@@ -254,9 +261,7 @@ export class TaskService {
           },
         },
         subTasks: {
-          where: {
-            deletedAt: null,
-          },
+       
         },
       },
     });
@@ -287,7 +292,6 @@ export class TaskService {
         await tx.task.updateMany({
           where: {
             parentTaskId: taskId,
-            deletedAt: null,
           },
           data: { deletedAt: new Date() },
         });
@@ -311,12 +315,10 @@ export class TaskService {
       where: {
         id: taskId,
         userId,
-        deletedAt: null,
       },
       include: {
         subTasks: {
           where: {
-            deletedAt: null,
             status: { not: 'COMPLETED' },
           },
         },
@@ -382,7 +384,6 @@ export class TaskService {
       where: {
         id: { in: data.taskIds },
         userId,
-        deletedAt: null,
       },
       include: {
         sessions: {
@@ -416,7 +417,6 @@ export class TaskService {
         where: {
           id: { in: data.taskIds },
           userId,
-          deletedAt: null,
         },
         data: { deletedAt: now },
       });
@@ -425,7 +425,6 @@ export class TaskService {
       await tx.task.updateMany({
         where: {
           parentTaskId: { in: data.taskIds },
-          deletedAt: null,
         },
         data: { deletedAt: now },
       });

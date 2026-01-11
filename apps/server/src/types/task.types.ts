@@ -21,6 +21,7 @@ export interface UpdateTaskInput {
 export interface TaskListFilters {
   status?: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED' | Array<'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED'>;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  search?: string;
   page?: number;
   limit?: number;
 }
