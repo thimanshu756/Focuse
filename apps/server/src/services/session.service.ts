@@ -84,7 +84,6 @@ export class SessionService {
         where: {
           id: data.taskId,
           userId,
-          deletedAt: null,
         },
       });
 
@@ -242,7 +241,9 @@ export class SessionService {
     let progress = session.progress;
     if (session.status === 'RUNNING') {
       const now = new Date();
-      const elapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+      // Calculate elapsed time minus any pause duration
+      const totalElapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+      const elapsed = totalElapsed - session.pauseDuration;
       progress = Math.min(100, Math.floor((elapsed / session.duration) * 100));
     }
 
@@ -280,7 +281,9 @@ export class SessionService {
     }
 
     const now = new Date();
-    const elapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+    // Calculate elapsed time minus any previous pause duration
+    const totalElapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+    const elapsed = totalElapsed - session.pauseDuration;
     const progress = Math.min(100, Math.floor((elapsed / session.duration) * 100));
 
     const updatedSession = await prisma.focusSession.update({
@@ -318,26 +321,34 @@ export class SessionService {
       throw new AppError('Session pause time not found', 400, 'INVALID_SESSION_STATE');
     }
 
-    // Check if session expired
-    if (session.endTime < new Date()) {
+    const now = new Date();
+    const currentPauseDuration = Math.floor((now.getTime() - session.pausedAt.getTime()) / 1000);
+    const totalPauseDuration = session.pauseDuration + currentPauseDuration;
+    
+    // Calculate how much actual focus time has elapsed (excluding all pause time)
+    const totalElapsed = Math.floor((session.pausedAt.getTime() - session.startTime.getTime()) / 1000);
+    const actualElapsed = totalElapsed - session.pauseDuration;
+    
+    // Check if the actual focus time has exceeded the duration (session truly expired)
+    if (actualElapsed >= session.duration) {
       throw new AppError('Session expired, start a new one', 400, 'SESSION_EXPIRED');
     }
 
-    const now = new Date();
-    const pauseDuration = Math.floor((now.getTime() - session.pausedAt.getTime()) / 1000);
-    const newEndTime = new Date(session.endTime.getTime() + pauseDuration * 1000);
+    // Calculate new end time: now + remaining time
+    const remainingTime = session.duration - actualElapsed;
+    const newEndTime = new Date(now.getTime() + remainingTime * 1000);
 
     const updatedSession = await prisma.focusSession.update({
       where: { id: sessionId },
       data: {
         status: 'RUNNING',
         pausedAt: null,
-        pauseDuration: session.pauseDuration + pauseDuration,
+        pauseDuration: totalPauseDuration,
         endTime: newEndTime,
       },
     });
 
-    logger.info('Session resumed', { userId, sessionId });
+    logger.info('Session resumed', { userId, sessionId, remainingTime });
 
     return this.formatSessionResponse(updatedSession);
   }
@@ -521,7 +532,9 @@ export class SessionService {
     }
 
     const now = new Date();
-    const elapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+    // Calculate elapsed time minus any pause duration
+    const totalElapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+    const elapsed = totalElapsed - session.pauseDuration;
     const progress = Math.min(100, Math.floor((elapsed / session.duration) * 100));
 
     // Fail session and update stats in transaction
@@ -622,7 +635,9 @@ export class SessionService {
     let progress = session.progress;
     if (session.status === 'RUNNING') {
       const now = new Date();
-      const elapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+      // Calculate elapsed time minus any pause duration
+      const totalElapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+      const elapsed = totalElapsed - session.pauseDuration;
       progress = Math.min(100, Math.floor((elapsed / session.duration) * 100));
     }
 

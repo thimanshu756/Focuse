@@ -95,9 +95,9 @@ export function QuickStartSession({
         duration,
       });
 
-      if (response.data.success) {
+      if (response.data.success && response.data.data?.session) {
         toast.success('Focus session started! 🌱');
-        router.push('/session');
+        router.push(`/session?sessionId=${response.data.data.session.id}`);
       }
     } catch (error: any) {
       const errorMessage =
