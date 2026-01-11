@@ -1,0 +1,130 @@
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../middleware/auth.middleware.js';
+import { TaskService } from '../services/task.service.js';
+import {
+  CreateTaskInput,
+  UpdateTaskInput,
+  TaskListFilters,
+  AIBreakdownInput,
+  BulkDeleteInput,
+} from '../types/task.types.js';
+
+export class TaskController {
+  private taskService = new TaskService();
+
+  createTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data: CreateTaskInput = req.body;
+      const task = await this.taskService.createTask(req.user!.id, data);
+      res.status(201).json({
+        success: true,
+        data: { task },
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  listTasks = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const filters: TaskListFilters = {
+        status: req.query.status as any,
+        priority: req.query.priority as any,
+        page: Number(req.query.page) || 1,
+        limit: Number(req.query.limit) || 20,
+      };
+
+      const result = await this.taskService.listTasks(req.user!.id, filters);
+      res.json({
+        success: true,
+        data: result.tasks,
+        meta: result.meta,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const taskId = req.params.id;
+      const task = await this.taskService.getTaskById(req.user!.id, taskId);
+      res.json({
+        success: true,
+        data: { task },
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const taskId = req.params.id;
+      const data: UpdateTaskInput = req.body;
+      const task = await this.taskService.updateTask(req.user!.id, taskId, data);
+      res.json({
+        success: true,
+        data: { task },
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const taskId = req.params.id;
+      await this.taskService.deleteTask(req.user!.id, taskId);
+      res.json({
+        success: true,
+        message: 'Task deleted successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  completeTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const taskId = req.params.id;
+      const task = await this.taskService.completeTask(req.user!.id, taskId);
+      res.json({
+        success: true,
+        data: { task },
+        message: 'Task marked as completed',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  bulkDelete = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data: BulkDeleteInput = req.body;
+      const result = await this.taskService.bulkDelete(req.user!.id, data);
+      res.json({
+        success: true,
+        data: result,
+        message: `${result.deletedCount} task(s) deleted successfully`,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  aiBreakdown = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data: AIBreakdownInput = req.body;
+      const result = await this.taskService.aiBreakdown(req.user!.id, data);
+      res.status(201).json({
+        success: true,
+        data: result,
+        message: 'Task breakdown created successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+

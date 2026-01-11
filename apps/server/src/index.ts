@@ -1,13 +1,27 @@
-import express, { Request, Response } from 'express';
+import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { prisma } from './lib/prisma.js';
+import { env } from './config/env.js';
+import { errorHandler } from './middleware/error.middleware.js';
+import authRoutes from './routes/auth.routes.js';
+import taskRoutes from './routes/task.routes.js';
+import sessionRoutes from './routes/session.routes.js';
+import syncRoutes from './routes/sync.routes.js';
 
 // Load environment variables
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+// Validate environment variables on startup
+try {
+  env;
+} catch (error) {
+  console.error('❌ Environment validation failed:', error);
+  process.exit(1);
+}
+
+const app: Express = express();
+const PORT = env.PORT;
 
 // Middleware
 app.use(cors());
@@ -33,6 +47,12 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/sync', syncRoutes);
+
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({ 
@@ -40,9 +60,16 @@ app.get('/', (req: Request, res: Response) => {
     version: '1.0.0',
     endpoints: {
       health: '/health',
+      auth: '/api/auth',
+      tasks: '/api/tasks',
+      sessions: '/api/sessions',
+      sync: '/api/sync',
     }
   });
 });
+
+// Error handler middleware (must be last)
+app.use(errorHandler);
 
 // Graceful shutdown
 process.on('beforeExit', async () => {
