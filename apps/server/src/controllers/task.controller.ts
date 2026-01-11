@@ -27,8 +27,27 @@ export class TaskController {
 
   listTasks = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+      // Handle status query param - can be string, array of strings, or undefined
+      // Express parses status[]=TODO&status[]=IN_PROGRESS as array
+      let status: TaskListFilters['status'] = undefined;
+      if (req.query.status) {
+        if (Array.isArray(req.query.status)) {
+          // Validate all items in array
+          const validStatuses = req.query.status.filter((s) =>
+            ['TODO', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'].includes(s as string)
+          ) as Array<'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED'>;
+          status = validStatuses.length > 0 ? validStatuses : undefined;
+        } else {
+          // Single status value
+          const statusStr = req.query.status as string;
+          if (['TODO', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'].includes(statusStr)) {
+            status = statusStr as 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED';
+          }
+        }
+      }
+
       const filters: TaskListFilters = {
-        status: req.query.status as any,
+        status,
         priority: req.query.priority as any,
         page: Number(req.query.page) || 1,
         limit: Number(req.query.limit) || 20,

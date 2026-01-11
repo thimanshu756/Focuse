@@ -89,7 +89,12 @@ export class TaskService {
     };
 
     if (status) {
-      where.status = status;
+      // Handle both single status and array of statuses
+      if (Array.isArray(status)) {
+        where.status = { in: status };
+      } else {
+        where.status = status;
+      }
     }
 
     if (priority) {

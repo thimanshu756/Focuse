@@ -55,7 +55,21 @@ export const updateTaskSchema = z.object({
 
 export const listTasksSchema = z.object({
   query: z.object({
-    status: taskStatusSchema.optional(),
+    // Accept string or array of strings (Express query params format)
+    status: z
+      .union([
+        taskStatusSchema,
+        z.array(taskStatusSchema),
+        z.string().refine(
+          (val) => ['TODO', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'].includes(val),
+          { message: 'Invalid status value' }
+        ),
+        z.array(z.string()).refine(
+          (arr) => arr.every((val) => ['TODO', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'].includes(val)),
+          { message: 'Invalid status value in array' }
+        ),
+      ])
+      .optional(),
     priority: taskPrioritySchema.optional(),
     page: z
       .string()
