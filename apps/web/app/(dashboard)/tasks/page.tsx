@@ -127,11 +127,17 @@ export default function TasksPage() {
     }
   };
 
-  const handleStartSession = async (taskId: string) => {
+  const handleStartSession = async (task: TaskResponse) => {
     try {
+      let currentestimatedminutes = 0;
+      if (task.estimatedMinutes && task.actualMinutes > 0) {
+        currentestimatedminutes = task.estimatedMinutes - task.actualMinutes;
+      } else {
+        currentestimatedminutes = task.estimatedMinutes || 25;
+      }
       const response = await api.post('/sessions', {
-        taskId,
-        duration: 25, // Default 25 minutes
+        taskId: task.id,
+        duration: currentestimatedminutes,
       });
 
       if (response.data.success && response.data.data?.session) {

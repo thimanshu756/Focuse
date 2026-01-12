@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Header } from '@/components/shared/Header';
 import { api } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
@@ -19,9 +19,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Hide navbar on session page
+  const isSessionPage = pathname === '/session';
 
   useEffect(() => {
     setMounted(true);
@@ -86,7 +90,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
-      <Header userTier={userTier} userName={firstName} />
+      {!isSessionPage && <Header userTier={userTier} userName={firstName} />}
       {children}
     </div>
   );

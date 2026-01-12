@@ -15,8 +15,8 @@ export default function SettingsPage() {
   const { user, isLoading, error, refetch, updateProfile } = useUserProfile();
   const [showAvatarModal, setShowAvatarModal] = useState(false);
 
-  const handleAvatarSave = async (avatarEmoji: string) => {
-    const result = await updateProfile({ avatarEmoji });
+  const handleAvatarSave = async (avatar: string) => {
+    const result = await updateProfile({ avatar });
     if (result.success) {
       toast.success('Avatar updated!');
       return { success: true };
@@ -107,7 +107,7 @@ export default function SettingsPage() {
       {/* Avatar Picker Modal */}
       <AvatarPickerModal
         isOpen={showAvatarModal}
-        currentAvatar={user?.avatarEmoji || null}
+        currentAvatar={user?.avatar || null}
         onSave={handleAvatarSave}
         onClose={() => setShowAvatarModal(false)}
       />

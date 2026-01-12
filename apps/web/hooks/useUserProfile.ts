@@ -10,7 +10,7 @@ export interface UserProfile {
   emailVerified: boolean;
   timezone: string;
   subscriptionTier: 'FREE' | 'PRO';
-  avatarEmoji?: string | null;
+  avatar?: string | null;
 }
 
 export function useUserProfile() {
@@ -33,7 +33,7 @@ export function useUserProfile() {
           emailVerified: userData.emailVerified || false,
           timezone: userData.timezone || 'America/New_York',
           subscriptionTier: userData.subscriptionTier || 'FREE',
-          avatarEmoji: userData.avatarEmoji || null,
+          avatar: userData.avatar || null,
         });
       }
     } catch (err: any) {
@@ -46,7 +46,7 @@ export function useUserProfile() {
   const updateProfile = async (data: {
     name?: string;
     timezone?: string;
-    avatarEmoji?: string;
+    avatar?: string;
   }) => {
     try {
       const response = await api.patch('/auth/update-profile', data);
@@ -59,7 +59,7 @@ export function useUserProfile() {
           emailVerified: userData.emailVerified || false,
           timezone: userData.timezone || 'America/New_York',
           subscriptionTier: userData.subscriptionTier || 'FREE',
-          avatarEmoji: userData.avatarEmoji || null,
+          avatar: userData.avatar || null,
         });
         return { success: true };
       }

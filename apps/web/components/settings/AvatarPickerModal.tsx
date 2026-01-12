@@ -12,19 +12,22 @@ interface AvatarPickerModalProps {
   onClose: () => void;
 }
 
-const avatars = [
-  '😊',
-  '🤓',
-  '😎',
-  '🥳',
-  '🤩',
-  '😇',
-  '🦸',
-  '🧑‍💻',
-  '👨‍🎓',
-  '👩‍🚀',
-  '🧙',
-  '🦊',
+const avatarUrls = [
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_1.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_2.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_3.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_4.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_5.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_6.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_7.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_8.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_9.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_10.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_11.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_12.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_13.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_14.png',
+  'https://cdn.jsdelivr.net/gh/alohe/avatars/png/vibrent_15.png',
 ];
 
 export function AvatarPickerModal({
@@ -120,22 +123,28 @@ export function AvatarPickerModal({
 
             {/* Avatar Grid */}
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-              {avatars.map((avatar) => {
-                const isSelected = selectedAvatar === avatar;
+              {avatarUrls.map((avatarUrl) => {
+                const isSelected = selectedAvatar === avatarUrl;
                 return (
                   <button
-                    key={avatar}
+                    key={avatarUrl}
                     type="button"
-                    onClick={() => setSelectedAvatar(avatar)}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-100 flex items-center justify-center text-3xl sm:text-4xl transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-accent ${
-                      isSelected
-                        ? 'ring-4 ring-accent bg-yellow-50'
-                        : 'hover:bg-gray-200'
+                    onClick={() => setSelectedAvatar(avatarUrl)}
+                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-accent ${
+                      isSelected ? 'ring-4 ring-accent' : 'hover:bg-gray-200'
                     }`}
-                    aria-label={`Select avatar ${avatar}`}
+                    aria-label={`Select avatar`}
                     disabled={isSaving}
                   >
-                    {avatar}
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to a placeholder if image fails to load
+                        e.currentTarget.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3C/svg%3E`;
+                      }}
+                    />
                     {isSelected && (
                       <motion.div
                         initial={{ scale: 0 }}

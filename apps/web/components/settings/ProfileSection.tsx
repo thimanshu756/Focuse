@@ -17,7 +17,7 @@ interface ProfileSectionProps {
   onUpdate: (data: {
     name?: string;
     timezone?: string;
-    avatarEmoji?: string;
+    avatar?: string;
   }) => Promise<{
     success: boolean;
     error?: string;
@@ -58,12 +58,14 @@ export function ProfileSection({
   const [nameError, setNameError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasTouchedName, setHasTouchedName] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   // Initialize form with user data
   useEffect(() => {
     if (user) {
       setName(user.name);
       setTimezone(user.timezone || 'America/New_York');
+      setAvatarError(false); // Reset avatar error when user changes
     }
   }, [user]);
 
@@ -148,7 +150,7 @@ export function ProfileSection({
 
   const avatarColor = getAvatarColor(user.id);
   const avatarInitial = user.name.charAt(0).toUpperCase();
-  const hasAvatarEmoji = user.avatarEmoji && user.avatarEmoji.trim() !== '';
+  const hasAvatar = user.avatar && user.avatar.trim() !== '';
 
   return (
     <Card className="p-6">
@@ -157,9 +159,14 @@ export function ProfileSection({
       <div className="space-y-6">
         {/* Avatar Section */}
         <div className="flex items-center gap-4">
-          {hasAvatarEmoji ? (
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-4xl flex-shrink-0">
-              {user.avatarEmoji}
+          {hasAvatar && !avatarError ? (
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+              <img
+                src={user.avatar!}
+                alt="Avatar"
+                className="w-full h-full object-cover"
+                onError={() => setAvatarError(true)}
+              />
             </div>
           ) : (
             <div

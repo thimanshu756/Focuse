@@ -107,11 +107,15 @@ export default function SessionPage() {
   }, [session, isCompleting]);
 
   // Session timer hook
+  // Map session status to timer status (only RUNNING or PAUSED are valid)
+  const timerStatus: 'RUNNING' | 'PAUSED' =
+    session?.status === 'RUNNING' ? 'RUNNING' : 'PAUSED';
+
   const { timeRemaining, progress, formattedTime, isUrgent } = useSessionTimer({
     duration: session?.duration || 0,
     startTime: session?.startTime || new Date(),
     endTime: session?.endTime || new Date(),
-    status: session?.status || 'PAUSED',
+    status: timerStatus,
     timeElapsed: session?.timeElapsed || 0,
     onComplete: handleComplete,
   });
@@ -222,10 +226,35 @@ export default function SessionPage() {
 
   // Handle back to dashboard
   const handleBack = () => {
-    if (session?.status === 'RUNNING') {
+    if (session?.status === 'RUNNING' || session?.status === 'PAUSED') {
       setShowBackButton(true);
     } else {
       router.push('/dashboard');
+    }
+  };
+
+  // Handle exit session confirmation
+  const handleExitSession = async () => {
+    if (!session) return;
+
+    setIsGivingUp(true);
+    try {
+      await api.put(`/sessions/${session.id}/fail`, {
+        reason: 'USER_GAVE_UP',
+      });
+
+      toast.error('Session ended - Your tree has died');
+      setShowBackButton(false);
+
+      // Wait 1 second then redirect
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1000);
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.error?.message || 'Failed to end session'
+      );
+      setIsGivingUp(false);
     }
   };
 
@@ -270,7 +299,7 @@ export default function SessionPage() {
   }
 
   const treeType = getTreeType();
-  const durationMinutes = Math.floor(session.duration / 60);
+  const durationMinutes = Math.floor((session?.duration || 0) / 60);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1A1A2E] to-[#16213E] overflow-hidden">
@@ -347,7 +376,7 @@ export default function SessionPage() {
           >
             <p className="text-sm text-white/50 mb-1">Focusing on:</p>
             <h2 className="text-xl font-semibold text-white">
-              {session.taskTitle || 'General Focus Session'}
+              {session?.taskTitle || 'General Focus Session'}
             </h2>
           </motion.div>
 
@@ -364,7 +393,7 @@ export default function SessionPage() {
               onClick={handlePauseResume}
               className="w-60 bg-white text-gray-900 hover:bg-gray-100 shadow-lg"
             >
-              {session.status === 'RUNNING'
+              {session?.status === 'RUNNING'
                 ? '⏸️ Pause Session'
                 : '▶️ Resume Session'}
             </Button>
@@ -413,29 +442,37 @@ export default function SessionPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-6"
           >
-            <h2 className="text-xl font-semibold text-text-primary">
-              Leave Session?
+            <div className="flex justify-center">
+              <div className="p-4 bg-red-50 rounded-full">
+                <Flag className="h-12 w-12 text-red-600" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-semibold text-text-primary">
+              Exit Session?
             </h2>
             <p className="text-text-secondary">
-              Your session will continue running in the background. Return to
-              dashboard?
+              Exiting the session will make your tree die and this session won't
+              count toward your streak.
             </p>
             <div className="flex gap-3">
               <Button
                 variant="ghost"
                 size="lg"
                 onClick={() => setShowBackButton(false)}
+                disabled={isGivingUp}
                 className="flex-1"
               >
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant="secondary"
                 size="lg"
-                onClick={() => router.push('/dashboard')}
-                className="flex-1"
+                onClick={handleExitSession}
+                disabled={isGivingUp}
+                isLoading={isGivingUp}
+                className="flex-1 bg-red-600 text-white hover:bg-red-700"
               >
-                Return to Dashboard
+                Exit Session
               </Button>
             </div>
           </motion.div>

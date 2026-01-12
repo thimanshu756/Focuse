@@ -18,7 +18,7 @@ import { TaskResponse } from '@/types/task.types';
 
 interface TaskCardProps {
   task: TaskResponse;
-  onStartSession?: (taskId: string) => void;
+  onStartSession?: (task: TaskResponse) => void;
   onEdit?: (task: TaskResponse) => void;
   onDelete?: (taskId: string) => void;
   onComplete?: (taskId: string) => void;
@@ -115,7 +115,7 @@ export function TaskCard({
               className="flex items-center gap-2 text-accent hover:bg-accent/10"
               onClick={(e) => {
                 e.stopPropagation();
-                onStartSession?.(task.id);
+                onStartSession?.(task);
               }}
             >
               <Play size={16} className="mr-1" />
