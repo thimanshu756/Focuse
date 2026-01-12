@@ -59,8 +59,9 @@ export function TaskCard({
       HIGH: 'bg-red-100 text-red-700',
       MEDIUM: 'bg-yellow-100 text-yellow-700',
       LOW: 'bg-blue-100 text-blue-700',
-    };
-    return colors[task.priority] || colors.MEDIUM;
+    } as const;
+    const priority = task.priority as keyof typeof colors;
+    return colors[priority] || colors.MEDIUM;
   };
 
   const getDueDateText = () => {
@@ -111,11 +112,11 @@ export function TaskCard({
             <Button
               variant="ghost"
               size="sm"
+              className="flex items-center gap-2 text-accent hover:bg-accent/10"
               onClick={(e) => {
                 e.stopPropagation();
                 onStartSession?.(task.id);
               }}
-              className="text-accent hover:bg-accent/10"
             >
               <Play size={16} className="mr-1" />
               Focus
@@ -186,6 +187,17 @@ export function TaskCard({
         </div>
       </div>
 
+      {/* Description */}
+      <p className="text-sm text-text-secondary mb-3 line-clamp-2">
+        {task.description ? (
+          task.description
+        ) : (
+          <span className="text-text-muted italic">
+            No description provided
+          </span>
+        )}
+      </p>
+
       {/* Metadata Row */}
       <div className="flex items-center gap-2 text-sm text-text-secondary mb-3 flex-wrap">
         {getDueDateText() && (
@@ -202,7 +214,7 @@ export function TaskCard({
         {task.estimatedMinutes && (
           <>
             <span>•</span>
-            <span>{Math.round(task.estimatedMinutes / 60)}h estimated</span>
+            <span>{task.estimatedMinutes}min estimated</span>
           </>
         )}
       </div>

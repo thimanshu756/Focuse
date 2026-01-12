@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
@@ -19,6 +19,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { Flame, Clock, TreePine, Plus, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { TaskResponse } from '@/types/task.types';
 
 function getTimeBasedGreeting(): { text: string; emoji: string } {
   const hour = new Date().getHours();
@@ -43,11 +44,14 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState(getTimeBasedGreeting());
   const [mounted, setMounted] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<TaskResponse | null>(null);
+  const [isLoadingTask, setIsLoadingTask] = useState(false);
   const {
     user,
     tasks,
     isLoading: dataLoading,
     error: dataError,
+    refetch: refetchDashboardData,
   } = useDashboardData();
   const { session: activeSession, isLoading: sessionLoading } =
     useActiveSession();
@@ -56,7 +60,17 @@ export default function DashboardPage() {
     isLoading: statsLoading,
     error: statsError,
   } = useWeeklyStats();
-  const { createTask } = useTasks();
+
+  // Memoize filters to prevent useTasks from refetching on every render
+  const taskFilters = useMemo(
+    () => ({
+      status: ['TODO', 'IN_PROGRESS'] as ('TODO' | 'IN_PROGRESS')[],
+      limit: 10,
+    }),
+    []
+  );
+
+  const { createTask, updateTask } = useTasks(taskFilters);
 
   // Set mounted state after hydration
   useEffect(() => {
@@ -79,6 +93,31 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Refetch dashboard data when page becomes visible after being hidden
+  // This ensures tasks are refreshed when user navigates back from task edit page
+  useEffect(() => {
+    let hiddenTime: number | null = null;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenTime = Date.now();
+      } else if (document.visibilityState === 'visible' && mounted) {
+        // Only refetch if page was hidden for more than 1 second
+        // This prevents unnecessary refetches when just switching tabs briefly
+        if (hiddenTime && Date.now() - hiddenTime > 1000) {
+          refetchDashboardData();
+        }
+        hiddenTime = null;
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [mounted, refetchDashboardData]);
+
   // Calculate weekly focus time from user data
   const weeklyFocusTime = user?.totalFocusTime
     ? formatHours(user.totalFocusTime)
@@ -93,14 +132,66 @@ export default function DashboardPage() {
         status: 'TODO',
         dueDate: data.dueDate || undefined,
       });
+      // Refetch dashboard data to show the new task
+      await refetchDashboardData();
       toast.success('Task created!');
       setShowTaskModal(false);
+      setEditingTask(null);
     } catch (error: any) {
       toast.error(
         error.response?.data?.error?.message || 'Failed to create task'
       );
     }
   };
+
+  // Handle task update
+  const handleUpdateTask = async (data: any) => {
+    if (!editingTask) return;
+
+    try {
+      await updateTask(editingTask.id, {
+        ...data,
+        dueDate: data.dueDate || undefined,
+      });
+      // Refetch dashboard data to show the updated task
+      await refetchDashboardData();
+      toast.success('Task updated!');
+      setShowTaskModal(false);
+      setEditingTask(null);
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.error?.message || 'Failed to update task'
+      );
+    }
+  };
+
+  // Handle edit button click - fetch full task data and open modal
+  const handleEditTask = async (taskId: string) => {
+    setIsLoadingTask(true);
+    try {
+      const response = await api.get(`/tasks/${taskId}`);
+      if (response.data.success && response.data.data) {
+        // Set the task first - the useEffect will open the modal
+        setEditingTask(response.data.data);
+      } else {
+        toast.error('Failed to load task details');
+        setIsLoadingTask(false);
+      }
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.error?.message || 'Failed to load task details'
+      );
+      setIsLoadingTask(false);
+    }
+  };
+
+  // Open modal when editingTask is set (ensures task data is available before opening)
+  useEffect(() => {
+    if (editingTask && !showTaskModal) {
+      setShowTaskModal(true);
+      setIsLoadingTask(false);
+    }
+  }, [editingTask, showTaskModal]);
 
   // Show loading state during SSR and initial mount
   if (!mounted) {
@@ -189,7 +280,10 @@ export default function DashboardPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowTaskModal(true)}
+                  onClick={() => {
+                    setEditingTask(null);
+                    setShowTaskModal(true);
+                  }}
                   className="flex items-center gap-2"
                 >
                   <Plus size={16} />
@@ -226,7 +320,10 @@ export default function DashboardPage() {
                   </p>
                   <Button
                     variant="primary"
-                    onClick={() => setShowTaskModal(true)}
+                    onClick={() => {
+                      setEditingTask(null);
+                      setShowTaskModal(true);
+                    }}
                   >
                     Add Your First Task
                   </Button>
@@ -243,12 +340,6 @@ export default function DashboardPage() {
                       dueDate={task.dueDate}
                       onStartSession={(taskId) => {
                         router.push(`/session?taskId=${taskId}`);
-                      }}
-                      onEdit={(taskId) => {
-                        router.push(`/tasks/${taskId}/edit`);
-                      }}
-                      onClick={(taskId) => {
-                        router.push(`/tasks/${taskId}`);
                       }}
                     />
                   ))}
@@ -329,9 +420,13 @@ export default function DashboardPage() {
       {/* Task Modal */}
       <TaskModal
         isOpen={showTaskModal}
-        onClose={() => setShowTaskModal(false)}
-        onSubmit={handleCreateTask}
-        task={null}
+        onClose={() => {
+          setShowTaskModal(false);
+          setEditingTask(null);
+        }}
+        onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
+        task={editingTask}
+        isLoading={isLoadingTask}
       />
     </>
   );

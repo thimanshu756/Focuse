@@ -75,20 +75,55 @@ export function TaskModal({
     [currentPriority, priorityOptions]
   );
 
+  // Reset and populate form when modal opens or task changes
   useEffect(() => {
-    if (task) {
-      setValue('title', task.title);
-      setValue('description', task.description || '');
-      setValue('priority', task.priority);
-      setValue(
-        'dueDate',
-        task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
-      );
-      setValue('estimatedMinutes', task.estimatedMinutes || undefined);
-    } else {
-      reset();
+    if (isOpen) {
+      if (task) {
+        // Format dueDate for date input (YYYY-MM-DD format)
+        let formattedDueDate = '';
+        if (task.dueDate) {
+          try {
+            const date =
+              task.dueDate instanceof Date
+                ? task.dueDate
+                : new Date(task.dueDate);
+            if (!isNaN(date.getTime())) {
+              formattedDueDate = date.toISOString().split('T')[0];
+            }
+          } catch (e) {
+            // Invalid date, leave empty
+            formattedDueDate = '';
+          }
+        }
+
+        // Reset form with task values - ensure this runs when task is set
+        reset(
+          {
+            title: task.title || '',
+            description: task.description || '',
+            priority:
+              (task.priority as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT') ||
+              'MEDIUM',
+            dueDate: formattedDueDate,
+            estimatedMinutes: task.estimatedMinutes ?? undefined,
+          },
+          {
+            keepDefaultValues: false,
+          }
+        );
+      } else if (!isLoading && !task) {
+        // Only reset to default values for new task if not loading and no task
+        // This prevents clearing the form while task data is being fetched
+        reset({
+          title: '',
+          description: '',
+          priority: 'MEDIUM',
+          dueDate: '',
+          estimatedMinutes: undefined,
+        });
+      }
     }
-  }, [task, setValue, reset]);
+  }, [isOpen, task, reset, isLoading]);
 
   if (!isOpen) return null;
 
@@ -102,7 +137,7 @@ export function TaskModal({
           : undefined,
     };
     await onSubmit(submitData);
-    reset();
+    // Form will be reset when modal reopens via useEffect
   };
 
   return (

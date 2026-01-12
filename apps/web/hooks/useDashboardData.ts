@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 
 interface User {
@@ -26,67 +26,70 @@ interface DashboardData {
   tasks: Task[];
   isLoading: boolean;
   error: string | null;
+  refetch: () => Promise<void>;
 }
 
 export function useDashboardData() {
-  const [data, setData] = useState<DashboardData>({
+  const [data, setData] = useState<Omit<DashboardData, 'refetch'>>({
     user: null,
     tasks: [],
     isLoading: true,
     error: null,
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setData((prev) => ({ ...prev, isLoading: true, error: null }));
+  const fetchData = useCallback(async () => {
+    try {
+      setData((prev) => ({ ...prev, isLoading: true, error: null }));
 
-        // Parallel API calls
-        const [userResponse, tasksResponse] = await Promise.all([
-          api.get('/auth/me'),
-          api.get('/tasks', {
-            params: {
-              status: ['TODO', 'IN_PROGRESS'],
-              limit: 10,
-            },
-          }),
-        ]);
+      // Parallel API calls
+      const [userResponse, tasksResponse] = await Promise.all([
+        api.get('/auth/me'),
+        api.get('/tasks', {
+          params: {
+            status: ['TODO', 'IN_PROGRESS'],
+            limit: 10,
+          },
+        }),
+      ]);
 
-        setData({
-          user: userResponse.data.success
-            ? {
-                id: userResponse.data.data.user.id,
-                name: userResponse.data.data.user.name,
-                email: userResponse.data.data.user.email,
-                currentStreak: userResponse.data.data.user.currentStreak || 0,
-                totalFocusTime: userResponse.data.data.user.totalFocusTime || 0,
-                completedSessions:
-                  userResponse.data.data.user.completedSessions || 0,
-                subscriptionTier:
-                  userResponse.data.data.user.subscriptionTier || 'FREE',
-              }
-            : null,
-          tasks: tasksResponse.data.success
-            ? Array.isArray(tasksResponse.data.data)
-              ? tasksResponse.data.data
-              : tasksResponse.data.data?.tasks || []
-            : [],
-          isLoading: false,
-          error: null,
-        });
-      } catch (error: any) {
-        setData({
-          user: null,
-          tasks: [],
-          isLoading: false,
-          error:
-            error.response?.data?.message || 'Failed to load dashboard data',
-        });
-      }
-    };
-
-    fetchData();
+      setData({
+        user: userResponse.data.success
+          ? {
+              id: userResponse.data.data.user.id,
+              name: userResponse.data.data.user.name,
+              email: userResponse.data.data.user.email,
+              currentStreak: userResponse.data.data.user.currentStreak || 0,
+              totalFocusTime: userResponse.data.data.user.totalFocusTime || 0,
+              completedSessions:
+                userResponse.data.data.user.completedSessions || 0,
+              subscriptionTier:
+                userResponse.data.data.user.subscriptionTier || 'FREE',
+            }
+          : null,
+        tasks: tasksResponse.data.success
+          ? Array.isArray(tasksResponse.data.data)
+            ? tasksResponse.data.data
+            : tasksResponse.data.data?.tasks || []
+          : [],
+        isLoading: false,
+        error: null,
+      });
+    } catch (error: any) {
+      setData({
+        user: null,
+        tasks: [],
+        isLoading: false,
+        error: error.response?.data?.message || 'Failed to load dashboard data',
+      });
+    }
   }, []);
 
-  return data;
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return {
+    ...data,
+    refetch: fetchData,
+  };
 }
