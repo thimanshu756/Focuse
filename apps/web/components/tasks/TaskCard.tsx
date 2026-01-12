@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { formatDistanceToNow, isPast, isThisWeek } from 'date-fns';
-import { TaskResponse } from '@/apps/server/src/types/task.types';
+import { TaskResponse } from '@/types/task.types';
 
 interface TaskCardProps {
   task: TaskResponse;

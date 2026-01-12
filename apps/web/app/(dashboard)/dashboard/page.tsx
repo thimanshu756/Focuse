@@ -178,7 +178,7 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.2 }}
-            className="lg:col-span-2"
+            className="lg:col-span-2 "
           >
             <Card className="p-6">
               <div className="flex items-center justify-between mb-6">

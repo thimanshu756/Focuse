@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import { TaskResponse } from '@/apps/server/src/types/task.types';
+import { TaskResponse } from '@/types/task.types';
 
 interface TaskFilters {
   status?: ('TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED')[];

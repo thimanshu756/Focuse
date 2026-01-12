@@ -345,8 +345,7 @@ export class AuthService {
     const normalizedEmail = data.email.toLowerCase().trim();
     const user = await prisma.user.findFirst({
       where: {
-        email: normalizedEmail,
-        deletedAt: null,
+        email: normalizedEmail
       },
     });
 

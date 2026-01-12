@@ -97,13 +97,7 @@ export function LoginForm() {
   const emailRegister = register('email');
   const passwordRegister = register('password');
 
-  const onSubmit = async (
-    data: LoginFormData,
-    e?: React.BaseSyntheticEvent
-  ) => {
-    // Prevent default form submission
-    e?.preventDefault();
-
+  const onSubmit = async (data: LoginFormData) => {
     setServerError(null);
 
     try {
@@ -136,9 +130,6 @@ export function LoginForm() {
         router.push('/dashboard');
       }
     } catch (error: any) {
-      // Prevent any default behavior
-      e?.preventDefault();
-
       // Handle network errors
       if (!error.response) {
         setServerError(
@@ -197,14 +188,7 @@ export function LoginForm() {
   }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleSubmit(onSubmit)(e);
-      }}
-      className="space-y-6"
-      noValidate
-    >
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
       {/* Server Error Display */}
       {serverError && (
         <motion.div

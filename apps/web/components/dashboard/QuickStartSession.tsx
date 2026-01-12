@@ -120,13 +120,25 @@ export function QuickStartSession({
 
       if (error.response?.status === 403) {
         // FREE tier limit
-        toast.error(errorMessage, {
-          duration: 5000,
-          action: {
-            label: 'Upgrade',
-            onClick: () => router.push('/upgrade'),
-          },
-        });
+        toast.error(
+          (t) => (
+            <div className="flex items-center justify-between gap-4">
+              <span>{errorMessage}</span>
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  router.push('/upgrade');
+                }}
+                className="px-3 py-1.5 text-sm font-semibold text-white bg-accent rounded-lg hover:bg-accent/90 transition-colors whitespace-nowrap"
+              >
+                Upgrade
+              </button>
+            </div>
+          ),
+          {
+            duration: 5000,
+          }
+        );
       } else {
         toast.error(errorMessage);
       }
@@ -218,9 +230,9 @@ export function QuickStartSession({
         <Button
           variant="primary"
           size="lg"
-          className="w-full"
           onClick={handleStartSession}
           isLoading={isStarting}
+          className="flex items-center gap-2 w-full"
           disabled={!selectedDuration && !customDuration}
         >
           <Play className="h-5 w-5 mr-2" />

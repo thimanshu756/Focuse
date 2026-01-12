@@ -1,10 +1,11 @@
 'use client';
 
+import { Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
-import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
 
-export default function ForgotPasswordPage() {
+function ResetPasswordContent() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8] flex items-center justify-center px-5 py-8">
       <motion.div
@@ -29,8 +30,7 @@ export default function ForgotPasswordPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-sm text-text-muted text-center"
           >
-            Enter your email address and we'll send you a link to reset your
-            password
+            Enter your new password below
           </motion.p>
 
           <motion.div
@@ -38,10 +38,27 @@ export default function ForgotPasswordPage() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <ForgotPasswordForm />
+            <ResetPasswordForm />
           </motion.div>
         </Card>
       </motion.div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen w-full bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8] flex items-center justify-center px-5 py-8">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent mx-auto mb-4" />
+            <p className="text-sm text-text-secondary">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

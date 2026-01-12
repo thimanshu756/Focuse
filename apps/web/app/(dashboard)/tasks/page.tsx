@@ -15,7 +15,7 @@ import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useDebounce } from '@/hooks/useDebounce';
 import { api } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
-import { TaskResponse } from '@/apps/server/src/types/task.types';
+import { TaskResponse } from '@/types/task.types';
 import toast from 'react-hot-toast';
 
 export default function TasksPage() {
@@ -188,6 +188,7 @@ export default function TasksPage() {
           <Button
             variant="primary"
             size="md"
+            className="flex items-center gap-2"
             onClick={() => {
               setEditingTask(null);
               setShowTaskModal(true);
@@ -318,6 +319,7 @@ export default function TasksPage() {
                   setEditingTask(null);
                   setShowTaskModal(true);
                 }}
+                className="flex items-center gap-2"
               >
                 <Plus size={20} className="mr-2" />
                 Add Task

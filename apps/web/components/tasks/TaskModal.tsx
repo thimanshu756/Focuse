@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +9,9 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
-import { TaskResponse } from '@/apps/server/src/types/task.types';
+import { Select } from '@/components/ui/Select';
+import { TaskResponse } from '@/types/task.types';
+import { Option } from '@/types/select.types';
 
 const taskSchema = z.object({
   title: z
@@ -45,6 +47,7 @@ export function TaskModal({
     formState: { errors },
     reset,
     setValue,
+    watch,
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
@@ -55,6 +58,22 @@ export function TaskModal({
       estimatedMinutes: undefined,
     },
   });
+
+  const priorityOptions: Option[] = useMemo(
+    () => [
+      { value: 'LOW', label: 'Low' },
+      { value: 'MEDIUM', label: 'Medium' },
+      { value: 'HIGH', label: 'High' },
+      { value: 'URGENT', label: 'Urgent' },
+    ],
+    []
+  );
+
+  const currentPriority = watch('priority');
+  const selectedPriority = useMemo(
+    () => priorityOptions.find((opt) => opt.value === currentPriority) || null,
+    [currentPriority, priorityOptions]
+  );
 
   useEffect(() => {
     if (task) {
@@ -74,7 +93,15 @@ export function TaskModal({
   if (!isOpen) return null;
 
   const handleFormSubmit = async (data: TaskFormData) => {
-    await onSubmit(data);
+    // Convert date-only string to ISO datetime string if dueDate is provided
+    const submitData = {
+      ...data,
+      dueDate:
+        data.dueDate && data.dueDate.trim()
+          ? new Date(`${data.dueDate}T23:59:59`).toISOString()
+          : undefined,
+    };
+    await onSubmit(submitData);
     reset();
   };
 
@@ -128,15 +155,20 @@ export function TaskModal({
               <label className="block text-sm font-medium text-text-secondary mb-2">
                 Priority
               </label>
-              <select
-                {...register('priority')}
-                className="w-full p-3 border border-gray-300 rounded-xl bg-white text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-              >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </select>
+              <Select
+                options={priorityOptions}
+                value={selectedPriority}
+                onChange={(option) => {
+                  if (option) {
+                    setValue(
+                      'priority',
+                      option.value as TaskFormData['priority']
+                    );
+                  }
+                }}
+                placeholder="Select priority"
+                error={errors.priority?.message}
+              />
             </div>
 
             <div>
