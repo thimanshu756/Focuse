@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { TreePanel } from '@/components/session/TreePanel';
+import { TreePanel, TreePanelRef } from '@/components/session/TreePanel';
 import { InfoPanel } from '@/components/session/InfoPanel';
 import { AmbientAnimations } from '@/components/session/AmbientAnimations';
 import { SessionHeader } from '@/components/session/SessionHeader';
@@ -11,10 +11,15 @@ import { TimerPanel } from '@/components/session/TimerPanel';
 import { CompletionModal } from '@/components/session/CompletionModal';
 import { GiveUpModal } from '@/components/session/GiveUpModal';
 import { BackgroundWarning } from '@/components/session/BackgroundWarning';
+import { SessionNotesDrawer } from '@/components/session/SessionNotesDrawer';
 import { Button } from '@/components/ui/Button';
 import { useSessionSync } from '@/hooks/useSessionSync';
 import { useActiveSession } from '@/hooks/useActiveSession';
 import { useTimeOfDay } from '@/hooks/useTimeOfDay';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useMilestoneCelebrations } from '@/hooks/useMilestoneCelebrations';
+import { useSessionNotes } from '@/hooks/useSessionNotes';
+import { useAmbientSound } from '@/hooks/useAmbientSound';
 import { getGradientForTime } from '@/utils/time-gradients';
 import { isAuthenticated } from '@/lib/auth';
 import { api } from '@/lib/api';
@@ -33,11 +38,16 @@ export default function SessionPage() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [treeProgress, setTreeProgress] = useState(0);
+  const [isGivingUpState, setIsGivingUpState] = useState(false);
+  const [isCompletingState, setIsCompletingState] = useState(false);
 
   const tabHiddenTimeRef = useRef<number | null>(null);
+  const treePanelRef = useRef<TreePanelRef>(null);
   const { session: activeSession, isLoading: loadingActive } =
     useActiveSession();
   const { timeOfDay } = useTimeOfDay();
+  const { user } = useUserProfile();
+  const isPro = user?.subscriptionTier === 'PRO';
 
   // Check for reduced motion preference and screen size
   useEffect(() => {
@@ -95,25 +105,71 @@ export default function SessionPage() {
     10000
   );
 
+  // Get notes count for completion/give up modals (only if sessionId exists)
+  const { notes: sessionNotes, clearNotes: clearSessionNotes } =
+    useSessionNotes({
+      sessionId: sessionId || '',
+      isPro: isPro || false,
+    });
+
+  // Ambient sound hook for fade out on completion/give up
+  const ambientSound = useAmbientSound(isPro || false);
+  const fadeOutSound = ambientSound.fadeOut;
+  const soundEnabled = ambientSound.soundEnabled;
+
   // Handle session completion
   const handleComplete = useCallback(async () => {
-    if (isCompleting || !session) return;
+    if (isCompleting || !session || isCompletingState) return;
 
+    setIsCompletingState(true);
     setIsCompleting(true);
+
+    // Fade out ambient sound
+    if (soundEnabled && fadeOutSound) {
+      try {
+        await fadeOutSound();
+      } catch (error) {
+        // Ignore errors - sound fade is not critical
+      }
+    }
+
+    // Trigger tree glow animation
+    treePanelRef.current?.glow();
+
     try {
       await api.put(`/sessions/${session.id}/complete`, {
         actualDuration: session.duration,
       });
 
       setShowCompletionModal(true);
+
+      // Clear notes after session completes (notes are session-specific)
+      // Delay cleanup to allow modal to show notes count
+      setTimeout(() => {
+        clearSessionNotes();
+      }, 1000);
     } catch (error: any) {
       toast.error(
         error.response?.data?.error?.message || 'Failed to complete session'
       );
+      // Still show modal optimistically
+      setShowCompletionModal(true);
+
+      // Clear notes even on error
+      setTimeout(() => {
+        clearSessionNotes();
+      }, 1000);
     } finally {
       setIsCompleting(false);
     }
-  }, [session, isCompleting]);
+  }, [
+    session,
+    isCompleting,
+    isCompletingState,
+    soundEnabled,
+    fadeOutSound,
+    clearSessionNotes,
+  ]);
 
   // Handle session update from timer (pause/resume)
   const handleSessionUpdate = useCallback(
@@ -189,9 +245,23 @@ export default function SessionPage() {
 
   // Handle give up
   const handleGiveUp = async () => {
-    if (!session) return;
+    if (!session || isGivingUpState) return;
 
+    setIsGivingUpState(true);
     setIsGivingUp(true);
+
+    // Fade out ambient sound
+    if (soundEnabled && fadeOutSound) {
+      try {
+        await fadeOutSound();
+      } catch (error) {
+        // Ignore errors - sound fade is not critical
+      }
+    }
+
+    // Trigger tree wither animation
+    treePanelRef.current?.wither();
+
     try {
       await api.put(`/sessions/${session.id}/fail`, {
         reason: 'USER_GAVE_UP',
@@ -199,6 +269,9 @@ export default function SessionPage() {
 
       toast.error('Session abandoned');
       setShowGiveUpModal(false);
+
+      // Clear notes when session is given up
+      clearSessionNotes();
 
       setTimeout(() => {
         router.push('/dashboard');
@@ -208,8 +281,43 @@ export default function SessionPage() {
         error.response?.data?.error?.message || 'Failed to abandon session'
       );
       setIsGivingUp(false);
+      setIsGivingUpState(false);
+
+      // Clear notes even on error
+      clearSessionNotes();
     }
   };
+
+  // Calculate elapsed minutes and progress for milestones and give up modal
+  const elapsedMinutes = session
+    ? Math.floor((session.timeElapsed || 0) / 60)
+    : 0;
+  const progressPercent = session
+    ? Math.min(
+        100,
+        Math.round(((session.timeElapsed || 0) / session.duration) * 100)
+      )
+    : 0;
+
+  // Milestone celebrations
+  useMilestoneCelebrations({
+    elapsedMinutes,
+    durationMinutes: Math.floor((session?.duration || 0) / 60),
+    onTreePulse: () => {
+      treePanelRef.current?.pulse();
+    },
+    reducedMotion,
+  });
+
+  // Check if session is already completed on load
+  useEffect(() => {
+    if (session && session.status === 'COMPLETED' && !showCompletionModal) {
+      // Show completion modal for already-completed sessions
+      setShowCompletionModal(true);
+      // Clear notes for already-completed sessions
+      clearSessionNotes();
+    }
+  }, [session, showCompletionModal, clearSessionNotes]);
 
   // Get gradient for current time of day
   const backgroundGradient = getGradientForTime(timeOfDay);
@@ -296,9 +404,12 @@ export default function SessionPage() {
       <div className="h-full w-full flex flex-col lg:flex-row">
         {/* Left Panel - Tree Container (40% width on desktop, 40% height on mobile) */}
         <TreePanel
+          ref={treePanelRef}
           backgroundGradient={backgroundGradient}
           progress={treeProgress}
           treeType={getTreeType()}
+          isWithering={isGivingUpState}
+          isCelebrating={isCompletingState}
         >
           {/* Ambient animations for left panel */}
           <AmbientAnimations
@@ -341,9 +452,13 @@ export default function SessionPage() {
       </div>
 
       {/* Modals */}
-      {showCompletionModal && (
+      {showCompletionModal && session && (
         <CompletionModal
           duration={durationMinutes}
+          treeTier={getTreeType()}
+          sessionNumber={user?.totalSessions}
+          streak={user?.currentStreak}
+          notesCount={sessionNotes.length}
           onClose={() => {
             setShowCompletionModal(false);
             router.push('/dashboard');
@@ -351,12 +466,21 @@ export default function SessionPage() {
         />
       )}
 
-      {showGiveUpModal && (
+      {showGiveUpModal && session && (
         <GiveUpModal
           onConfirm={handleGiveUp}
           onCancel={() => setShowGiveUpModal(false)}
           isLoading={isGivingUp}
+          elapsedMinutes={elapsedMinutes}
+          progressPercent={progressPercent}
+          notesCount={sessionNotes.length}
+          willBreakStreak={false} // TODO: Check if this will break streak from backend
         />
+      )}
+
+      {/* Session Notes Drawer */}
+      {sessionId && (
+        <SessionNotesDrawer sessionId={sessionId} isPro={isPro || false} />
       )}
     </div>
   );
