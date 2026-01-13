@@ -104,7 +104,7 @@ export function QuickStartSession({
 
     try {
       const response = await api.post('/sessions', {
-        taskId: selectedTask?.value || null,
+        ...(selectedTask?.value ? { taskId: selectedTask.value } : {}),
         duration,
       });
 
