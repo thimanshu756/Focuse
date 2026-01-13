@@ -35,6 +35,37 @@ const config: Config = {
         card: '0 8px 24px rgba(15, 23, 42, 0.08)',
         floating: '0 12px 32px rgba(15, 23, 42, 0.12)',
       },
+      keyframes: {
+        drift: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-100vw)' },
+        },
+        'float-up': {
+          '0%': { transform: 'translateY(0) rotate(0deg)', opacity: '0' },
+          '10%': { opacity: '1' },
+          '90%': { opacity: '1' },
+          '100%': {
+            transform: 'translateY(-100vh) rotate(360deg)',
+            opacity: '0',
+          },
+        },
+        'firefly-float': {
+          '0%, 100%': { transform: 'translate(0, 0)', opacity: '0.3' },
+          '25%': { transform: 'translate(20px, -30px)', opacity: '1' },
+          '50%': { transform: 'translate(-15px, -50px)', opacity: '0.8' },
+          '75%': { transform: 'translate(10px, -20px)', opacity: '1' },
+        },
+        twinkle: {
+          '0%, 100%': { opacity: '0.2' },
+          '50%': { opacity: '1' },
+        },
+      },
+      animation: {
+        drift: 'drift linear infinite',
+        'float-up': 'float-up ease-in-out infinite',
+        'firefly-float': 'firefly-float ease-in-out infinite',
+        twinkle: 'twinkle ease-in-out infinite',
+      },
     },
   },
   plugins: [],

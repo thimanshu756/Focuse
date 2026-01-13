@@ -11,6 +11,8 @@ export interface UserProfile {
   timezone: string;
   subscriptionTier: 'FREE' | 'PRO';
   avatar?: string | null;
+  totalSessions?: number;
+  currentStreak?: number;
 }
 
 export function useUserProfile() {
@@ -34,6 +36,8 @@ export function useUserProfile() {
           timezone: userData.timezone || 'America/New_York',
           subscriptionTier: userData.subscriptionTier || 'FREE',
           avatar: userData.avatar || null,
+          totalSessions: userData.totalSessions || 0,
+          currentStreak: userData.currentStreak || 0,
         });
       }
     } catch (err: any) {
@@ -60,6 +64,8 @@ export function useUserProfile() {
           timezone: userData.timezone || 'America/New_York',
           subscriptionTier: userData.subscriptionTier || 'FREE',
           avatar: userData.avatar || null,
+          totalSessions: userData.totalSessions || 0,
+          currentStreak: userData.currentStreak || 0,
         });
         return { success: true };
       }

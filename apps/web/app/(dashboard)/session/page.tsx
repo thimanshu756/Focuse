@@ -2,44 +2,65 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Flag } from 'lucide-react';
-import { TreeAnimation } from '@/components/TreeAnimation';
-import { CircularProgress } from '@/components/session/CircularProgress';
+import { motion } from 'framer-motion';
+import { TreePanel } from '@/components/session/TreePanel';
+import { InfoPanel } from '@/components/session/InfoPanel';
+import { AmbientAnimations } from '@/components/session/AmbientAnimations';
+import { SessionHeader } from '@/components/session/SessionHeader';
+import { TimerPanel } from '@/components/session/TimerPanel';
 import { CompletionModal } from '@/components/session/CompletionModal';
 import { GiveUpModal } from '@/components/session/GiveUpModal';
 import { BackgroundWarning } from '@/components/session/BackgroundWarning';
 import { Button } from '@/components/ui/Button';
-import { useSessionTimer } from '@/hooks/useSessionTimer';
 import { useSessionSync } from '@/hooks/useSessionSync';
 import { useActiveSession } from '@/hooks/useActiveSession';
+import { useTimeOfDay } from '@/hooks/useTimeOfDay';
+import { getGradientForTime } from '@/utils/time-gradients';
 import { isAuthenticated } from '@/lib/auth';
 import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
-
-const TIPS = [
-  '💡 Your tree will die if you leave the app',
-  '💡 Take deep breaths and stay focused',
-  "💡 You're building a forest of productivity",
-  '💡 Each minute counts toward your streak',
-];
 
 export default function SessionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
-  const [currentTip, setCurrentTip] = useState(0);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [showGiveUpModal, setShowGiveUpModal] = useState(false);
-  const [showBackButton, setShowBackButton] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isGivingUp, setIsGivingUp] = useState(false);
   const [showBackgroundWarning, setShowBackgroundWarning] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [treeProgress, setTreeProgress] = useState(0);
 
   const tabHiddenTimeRef = useRef<number | null>(null);
   const { session: activeSession, isLoading: loadingActive } =
     useActiveSession();
+  const { timeOfDay } = useTimeOfDay();
+
+  // Check for reduced motion preference and screen size
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(mediaQuery.matches);
+
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      setReducedMotion(e.matches);
+    };
+
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    mediaQuery.addEventListener('change', handleMotionChange);
+    return () => {
+      mediaQuery.removeEventListener('change', handleMotionChange);
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
 
   // Set mounted state
   useEffect(() => {
@@ -74,15 +95,6 @@ export default function SessionPage() {
     10000
   );
 
-  // Determine tree type based on duration
-  const getTreeType = (): 'basic' | 'premium' | 'elite' => {
-    if (!session) return 'basic';
-    const minutes = session.duration / 60;
-    if (minutes <= 15) return 'basic';
-    if (minutes <= 45) return 'premium';
-    return 'elite';
-  };
-
   // Handle session completion
   const handleComplete = useCallback(async () => {
     if (isCompleting || !session) return;
@@ -94,9 +106,6 @@ export default function SessionPage() {
       });
 
       setShowCompletionModal(true);
-
-      // Show confetti effect (optional)
-      // TODO: Add confetti library if needed
     } catch (error: any) {
       toast.error(
         error.response?.data?.error?.message || 'Failed to complete session'
@@ -106,45 +115,49 @@ export default function SessionPage() {
     }
   }, [session, isCompleting]);
 
-  // Session timer hook
-  // Map session status to timer status (only RUNNING or PAUSED are valid)
-  const timerStatus: 'RUNNING' | 'PAUSED' =
-    session?.status === 'RUNNING' ? 'RUNNING' : 'PAUSED';
+  // Handle session update from timer (pause/resume)
+  const handleSessionUpdate = useCallback(
+    (updatedSession: any) => {
+      // Refetch to get latest session state
+      refetch();
+    },
+    [refetch]
+  );
 
-  const { timeRemaining, progress, formattedTime, isUrgent } = useSessionTimer({
-    duration: session?.duration || 0,
-    startTime: session?.startTime || new Date(),
-    endTime: session?.endTime || new Date(),
-    status: timerStatus,
-    timeElapsed: session?.timeElapsed || 0,
-    onComplete: handleComplete,
-  });
+  // Calculate tree type based on duration
+  const getTreeType = (): 'basic' | 'premium' | 'elite' => {
+    if (!session) return 'basic';
+    const minutes = session.duration / 60;
+    if (minutes <= 15) return 'basic';
+    if (minutes <= 45) return 'premium';
+    return 'elite';
+  };
 
-  // Rotate tips every 30 seconds
+  // Update tree progress when session changes
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTip((prev) => (prev + 1) % TIPS.length);
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
+    if (session && session.duration > 0) {
+      const elapsed = session.timeElapsed || 0;
+      const progress = Math.min(
+        100,
+        Math.round((elapsed / session.duration) * 100)
+      );
+      setTreeProgress(progress);
+    } else {
+      setTreeProgress(0);
+    }
+  }, [session?.timeElapsed, session?.duration]);
 
   // Background detection (tab switching)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // User left the tab
         tabHiddenTimeRef.current = Date.now();
       } else {
-        // User returned to the tab
         if (tabHiddenTimeRef.current) {
           const timeAway = Date.now() - tabHiddenTimeRef.current;
 
-          // Show warning if away for > 30 seconds
           if (timeAway > 30000) {
             setShowBackgroundWarning(true);
-
-            // Auto-dismiss after 5 seconds
             setTimeout(() => {
               setShowBackgroundWarning(false);
             }, 5000);
@@ -160,44 +173,19 @@ export default function SessionPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // Pause/Resume session
-  const handlePauseResume = useCallback(async () => {
-    if (!session) return;
-
-    try {
-      if (session.status === 'RUNNING') {
-        await api.put(`/sessions/${session.id}/pause`);
-        toast.success('Session paused');
-        // Immediately refetch to update UI
-        await refetch();
-      } else {
-        await api.put(`/sessions/${session.id}/resume`);
-        toast.success('Session resumed');
-        // Immediately refetch to update UI
-        await refetch();
-      }
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error?.message || 'Failed to update session'
-      );
-    }
-  }, [session, refetch]);
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === ' ' && !showCompletionModal && !showGiveUpModal) {
-        e.preventDefault();
-        handlePauseResume();
-      } else if (e.key === 'Escape' && !showCompletionModal) {
+      if (e.key === 'Escape' && !showCompletionModal) {
         e.preventDefault();
         setShowGiveUpModal(true);
       }
+      // Space key pause/resume is handled by TimerControls component
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showCompletionModal, showGiveUpModal, handlePauseResume]);
+  }, [showCompletionModal]);
 
   // Handle give up
   const handleGiveUp = async () => {
@@ -212,7 +200,6 @@ export default function SessionPage() {
       toast.error('Session abandoned');
       setShowGiveUpModal(false);
 
-      // Wait 2 seconds to show sad tree animation
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
@@ -224,47 +211,22 @@ export default function SessionPage() {
     }
   };
 
-  // Handle back to dashboard
-  const handleBack = () => {
-    if (session?.status === 'RUNNING' || session?.status === 'PAUSED') {
-      setShowBackButton(true);
-    } else {
-      router.push('/dashboard');
-    }
-  };
-
-  // Handle exit session confirmation
-  const handleExitSession = async () => {
-    if (!session) return;
-
-    setIsGivingUp(true);
-    try {
-      await api.put(`/sessions/${session.id}/fail`, {
-        reason: 'USER_GAVE_UP',
-      });
-
-      toast.error('Session ended - Your tree has died');
-      setShowBackButton(false);
-
-      // Wait 1 second then redirect
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1000);
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.error?.message || 'Failed to end session'
-      );
-      setIsGivingUp(false);
-    }
-  };
+  // Get gradient for current time of day
+  const backgroundGradient = getGradientForTime(timeOfDay);
 
   // Loading state
   if (!mounted || !sessionId || (isLoading && !session)) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#1A1A2E] to-[#16213E] flex items-center justify-center">
+      <div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{
+          background:
+            'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
+        }}
+      >
         <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent border-t-transparent mx-auto mb-4" />
-          <p className="text-sm text-white/60">Loading session...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white mx-auto mb-4" />
+          <p className="text-white/80 text-base">Loading session...</p>
         </div>
       </div>
     );
@@ -273,11 +235,22 @@ export default function SessionPage() {
   // No session found after loading
   if (!session && !isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#1A1A2E] to-[#16213E] flex items-center justify-center px-5">
-        <div className="text-center">
-          <p className="text-white mb-4">Session not found</p>
-          <Button variant="primary" onClick={() => router.push('/dashboard')}>
-            Return to Dashboard
+      <div
+        className="fixed inset-0 flex items-center justify-center px-5"
+        style={{
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+        }}
+      >
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-semibold text-white mb-2">
+            No Active Session
+          </h2>
+          <p className="text-white/80 mb-6">
+            Return to dashboard to start a session
+          </p>
+          <Button variant="secondary" onClick={() => router.push('/dashboard')}>
+            Go to Dashboard
           </Button>
         </div>
       </div>
@@ -287,10 +260,17 @@ export default function SessionPage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#1A1A2E] to-[#16213E] flex items-center justify-center px-5">
-        <div className="text-center">
-          <p className="text-white mb-4">{error}</p>
-          <Button variant="primary" onClick={() => router.push('/dashboard')}>
+      <div
+        className="fixed inset-0 flex items-center justify-center px-5"
+        style={{
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+        }}
+      >
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-semibold text-white mb-2">Error</h2>
+          <p className="text-white/80 mb-6">{error}</p>
+          <Button variant="secondary" onClick={() => router.push('/dashboard')}>
             Return to Dashboard
           </Button>
         </div>
@@ -298,121 +278,66 @@ export default function SessionPage() {
     );
   }
 
-  const treeType = getTreeType();
   const durationMinutes = Math.floor((session?.duration || 0) / 60);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1A1A2E] to-[#16213E] overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden">
       {/* Background Warning */}
       <BackgroundWarning isVisible={showBackgroundWarning} />
 
-      {/* Top Bar */}
-      <div className="w-full px-5 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBack}
-            className="text-white/70 hover:text-white hover:bg-white/10"
-          >
-            <ArrowLeft size={16} className="mr-2" />
-            Back to Dashboard
-          </Button>
+      {/* Session Header */}
+      <SessionHeader
+        sessionDuration={session?.duration || 0}
+        onGiveUp={() => setShowGiveUpModal(true)}
+        isMobile={isMobile}
+      />
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowGiveUpModal(true)}
-            className="text-red-300 hover:text-red-200 hover:bg-red-500/10"
-          >
-            <Flag size={16} className="mr-2" />
-            Give Up
-          </Button>
-        </div>
-      </div>
+      {/* Main Layout Container - Panels adjusted for header height (60px) */}
+      <div className="h-full w-full flex flex-col lg:flex-row">
+        {/* Left Panel - Tree Container (40% width on desktop, 40% height on mobile) */}
+        <TreePanel
+          backgroundGradient={backgroundGradient}
+          progress={treeProgress}
+          treeType={getTreeType()}
+        >
+          {/* Ambient animations for left panel */}
+          <AmbientAnimations
+            timeOfDay={timeOfDay}
+            reducedMotion={reducedMotion}
+            isMobile={isMobile}
+          />
+        </TreePanel>
 
-      {/* Main Content */}
-      <div
-        className="flex flex-col items-center justify-center px-5 py-8"
-        style={{ minHeight: 'calc(100vh - 72px)' }}
-      >
-        <div className="w-full max-w-2xl mx-auto space-y-8">
-          {/* Tree Animation */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
-            className="flex justify-center"
-          >
-            <div style={{ height: 280 }}>
-              <TreeAnimation
-                progress={progress}
-                treeType={treeType}
-                key={isGivingUp ? 'withering' : 'growing'}
-              />
-            </div>
-          </motion.div>
+        {/* Right Panel - Info Container (60% width on desktop, 60% height on mobile) */}
+        <InfoPanel backgroundGradient={backgroundGradient}>
+          {/* Ambient animations for right panel */}
+          <AmbientAnimations
+            timeOfDay={timeOfDay}
+            reducedMotion={reducedMotion}
+            isMobile={isMobile}
+          />
 
-          {/* Timer Display */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="flex justify-center"
-          >
-            <CircularProgress
-              progress={progress}
-              timeRemaining={formattedTime}
-              isUrgent={isUrgent}
+          {/* Timer Panel */}
+          {session && session.status !== 'FAILED' && (
+            <TimerPanel
+              sessionId={session.id}
+              durationSeconds={session.duration}
+              startTime={session.startTime}
+              endTime={session.endTime}
+              status={
+                session.status === 'COMPLETED'
+                  ? 'COMPLETED'
+                  : session.status === 'PAUSED'
+                    ? 'PAUSED'
+                    : 'RUNNING'
+              }
+              timeElapsed={session.timeElapsed}
+              onComplete={handleComplete}
+              onSessionUpdate={handleSessionUpdate}
+              onProgressUpdate={setTreeProgress}
             />
-          </motion.div>
-
-          {/* Task Name */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="text-center"
-          >
-            <p className="text-sm text-white/50 mb-1">Focusing on:</p>
-            <h2 className="text-xl font-semibold text-white">
-              {session?.taskTitle || 'General Focus Session'}
-            </h2>
-          </motion.div>
-
-          {/* Control Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex justify-center"
-          >
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={handlePauseResume}
-              className="w-60 bg-white text-gray-900 hover:bg-gray-100 shadow-lg"
-            >
-              {session?.status === 'RUNNING'
-                ? '⏸️ Pause Session'
-                : '▶️ Resume Session'}
-            </Button>
-          </motion.div>
-
-          {/* Tip */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentTip}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5 }}
-              className="text-center"
-            >
-              <p className="text-sm text-white/60">{TIPS[currentTip]}</p>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+          )}
+        </InfoPanel>
       </div>
 
       {/* Modals */}
@@ -432,51 +357,6 @@ export default function SessionPage() {
           onCancel={() => setShowGiveUpModal(false)}
           isLoading={isGivingUp}
         />
-      )}
-
-      {/* Back Confirmation Modal */}
-      {showBackButton && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-5">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl p-8 max-w-md w-full text-center space-y-6"
-          >
-            <div className="flex justify-center">
-              <div className="p-4 bg-red-50 rounded-full">
-                <Flag className="h-12 w-12 text-red-600" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-semibold text-text-primary">
-              Exit Session?
-            </h2>
-            <p className="text-text-secondary">
-              Exiting the session will make your tree die and this session won't
-              count toward your streak.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => setShowBackButton(false)}
-                disabled={isGivingUp}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={handleExitSession}
-                disabled={isGivingUp}
-                isLoading={isGivingUp}
-                className="flex-1 bg-red-600 text-white hover:bg-red-700"
-              >
-                Exit Session
-              </Button>
-            </div>
-          </motion.div>
-        </div>
       )}
     </div>
   );
