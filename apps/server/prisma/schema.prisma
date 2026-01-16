@@ -76,6 +76,7 @@ model User {
   sessions FocusSession[]
   aiRequests AIRequest[]
   achievements UserAchievement[]
+  weeklyInsights WeeklyInsight[]
   
   // Indexes for common queries
   @@index([subscriptionTier, subscriptionStatus])
@@ -291,6 +292,46 @@ model DailyStats {
   // Prevent duplicate daily records (unique constraint creates index automatically)
   @@unique([userId, date])
   @@map("daily_stats")
+}
+
+/// WeeklyInsight - AI-generated weekly insights and recommendations
+model WeeklyInsight {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  
+  // Week identification
+  weekStart DateTime // Monday of that week (00:00:00)
+  weekEnd DateTime   // Sunday of that week (23:59:59)
+  
+  // Generated content
+  narrative String // AI-generated summary narrative
+  insights Json    // Array of insight objects with type, message, confidence
+  recommendations Json // Array of recommendation objects with action, reason, impact
+  nextWeekPlan Json    // Array of planning items for next week
+  oneLeverToPull String // Single highest-impact change
+  
+  // Metadata
+  generationLatencyMs Int // How long AI took to generate
+  weeklyStats Json // Aggregated stats used for generation
+  model String @default("gemini-2.5-flash") // AI model used
+  provider String @default("google")
+  
+  // Status tracking
+  isRead Boolean @default(false) // Has user viewed the insight
+  readAt DateTime?
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@unique([userId, weekStart]) // One insight per user per week
+  @@index([userId, createdAt])
+  @@index([weekStart, weekEnd])
+  @@map("weekly_insights")
 }
 
 // ============================================================================

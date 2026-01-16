@@ -32,7 +32,8 @@ export function useInsightsData(period: Period) {
         sessionsResponse.data.success
       ) {
         setStats(statsResponse.data.data);
-        setUserProfile(userResponse.data.data);
+        // Extract user from nested structure: { data: { user: {...} } }
+        setUserProfile(userResponse.data.data.user || userResponse.data.data);
         setSessions(sessionsResponse.data.data || []);
       } else {
         setError('Failed to load analytics data');

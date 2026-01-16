@@ -22,6 +22,13 @@ import type {
   AITaskBreakdownResponse,
   AIServiceConfig,
 } from '../types/ai.types.js';
+import type {
+  AIInsightsInput,
+  AIInsightsOutput,
+  Insight,
+  Recommendation,
+  NextWeekPlan,
+} from '../types/insights.types.js';
 
 // Output schema for task breakdown
 const TaskBreakdownSchema = z.object({
@@ -48,6 +55,73 @@ const TaskBreakdownSchema = z.object({
 });
 
 type TaskBreakdownOutput = z.infer<typeof TaskBreakdownSchema>;
+
+// Output schema for weekly insights
+const WeeklyInsightsSchema = z.object({
+  narrative: z.string().min(100).max(2000).describe('AI-generated narrative summary (100-2000 characters)'),
+  insights: z
+    .array(
+      z.object({
+        type: z.enum([
+          'completion_rate',
+          'best_time_of_day',
+          'session_length',
+          'failure_pattern',
+          'productivity_trend',
+          'streak_status',
+          'task_completion',
+          'consistency',
+        ]).describe('Type of insight'),
+        message: z.string().min(10).max(500).describe('Insight message'),
+        confidence: z.number().min(0).max(1).describe('Confidence level (0-1)'),
+        metric: z
+          .object({
+            current: z.union([z.string(), z.number()]).describe('Current metric value'),
+            change: z.number().optional().describe('Percentage change'),
+            trend: z.enum(['up', 'down', 'stable']).optional().describe('Trend direction'),
+          })
+          .optional(),
+        severity: z.enum(['info', 'warning', 'critical']).optional().describe('Severity level'),
+      })
+    )
+    .min(3)
+    .max(8)
+    .describe('Array of 3-8 insights'),
+  recommendations: z
+    .array(
+      z.object({
+        action: z.string().min(10).max(300).describe('Recommended action'),
+        reason: z.string().min(10).max(300).describe('Reason for recommendation'),
+        expectedImpact: z.string().min(10).max(300).describe('Expected impact'),
+        priority: z.enum(['high', 'medium', 'low']).describe('Priority level'),
+        category: z.enum([
+          'session_timing',
+          'session_duration',
+          'break_management',
+          'task_planning',
+          'consistency',
+        ]).describe('Recommendation category'),
+        confidence: z.number().min(0).max(1).describe('Confidence level (0-1)'),
+      })
+    )
+    .min(3)
+    .max(5)
+    .describe('Array of 3-5 recommendations'),
+  nextWeekPlan: z.object({
+    goal: z.string().min(10).max(200).describe('Next week goal'),
+    suggestedSessions: z.number().int().min(1).max(50).describe('Suggested number of sessions'),
+    suggestedDuration: z.number().int().min(15).max(120).describe('Suggested duration per session (minutes)'),
+    bestTimeSlots: z
+      .array(z.string().max(100))
+      .min(1)
+      .max(10)
+      .describe('Best time slots for sessions'),
+    focusAreas: z.array(z.string().max(100)).min(1).max(5).describe('Focus areas/task tags'),
+  }).describe('Next week planning'),
+  oneLeverToPull: z.string().min(20).max(500).describe('Single highest-impact change'),
+});
+
+type WeeklyInsightsOutput = z.infer<typeof WeeklyInsightsSchema>;
 
 /**
  * Security: Input sanitization
@@ -154,6 +228,7 @@ class InputSanitizer {
  */
 export class AIService {
   private model: ChatGoogleGenerativeAI;
+  private insightsModel: ChatGoogleGenerativeAI; // Separate model for insights with higher token limit
   private readonly defaultConfig: Required<AIServiceConfig> = {
     maxRetries: 2,
     timeoutMs: 120000, // 120 seconds - matching Express timeout middleware
@@ -166,10 +241,19 @@ export class AIService {
       throw new Error('GEMINI_API_KEY is required but not set in environment variables');
     }
 
+    // Default model for task breakdown
     this.model = new ChatGoogleGenerativeAI({
       model: 'gemini-2.5-flash', // Free tier model - fast and efficient
       temperature: this.defaultConfig.temperature,
       maxOutputTokens: this.defaultConfig.maxTokens,
+      apiKey: env.GEMINI_API_KEY,
+    });
+
+    // Insights model with higher token limit (insights responses are larger)
+    this.insightsModel = new ChatGoogleGenerativeAI({
+      model: 'gemini-2.5-flash',
+      temperature: 0.7,
+      maxOutputTokens: 8192, // 8K tokens for comprehensive insights (increased from 4K)
       apiKey: env.GEMINI_API_KEY,
     });
   }
@@ -399,6 +483,264 @@ REMEMBER: Return ONLY the raw JSON object. No markdown, no code blocks, no expla
   }
 
   /**
+   * Generate weekly insights from user analytics
+   */
+  async generateWeeklyInsights(
+    input: AIInsightsInput,
+    config?: AIServiceConfig,
+    requestId?: string
+  ): Promise<AIServiceResponse<AIInsightsOutput>> {
+    const startTime = Date.now();
+    const logContext = { requestId: requestId || 'unknown', userId: input.userId };
+
+    logger.info('AI service: Starting weekly insights generation', {
+      ...logContext,
+      weekStart: input.weeklyStats.weekStart.toISOString(),
+      weekEnd: input.weeklyStats.weekEnd.toISOString(),
+      totalSessions: input.weeklyStats.totalSessions,
+    });
+
+    try {
+      // 1. Validate input data
+      if (!input.weeklyStats || input.weeklyStats.totalSessions === 0) {
+        logger.warn('AI service: Insufficient data for insights', logContext);
+        throw new AppError(
+          'Not enough data to generate insights. Complete at least one session this week.',
+          400,
+          'INSUFFICIENT_DATA'
+        );
+      }
+
+      // 2. Build insights prompt
+      logger.debug('AI service: Building insights prompt', logContext);
+      const systemPrompt = this.buildInsightsPrompt(input);
+      logger.debug('AI service: Insights prompt built', {
+        ...logContext,
+        promptLength: systemPrompt.length,
+      });
+
+      // 3. Create JSON schema description for the AI with EXPLICIT enum values
+      const jsonSchema = {
+        type: 'object',
+        properties: {
+          narrative: { 
+            type: 'string', 
+            minLength: 100, 
+            maxLength: 2000,
+            description: 'Conversational summary of the week'
+          },
+          insights: {
+            type: 'array',
+            minItems: 3,
+            maxItems: 8,
+            items: {
+              type: 'object',
+              properties: {
+                type: { 
+                  type: 'string',
+                  enum: ['completion_rate', 'best_time_of_day', 'session_length', 'failure_pattern', 'productivity_trend', 'streak_status', 'task_completion', 'consistency'],
+                  description: 'MUST be one of these EXACT values: completion_rate, best_time_of_day, session_length, failure_pattern, productivity_trend, streak_status, task_completion, consistency'
+                },
+                message: { type: 'string', minLength: 10, maxLength: 500 },
+                confidence: { type: 'number', minimum: 0, maximum: 1 },
+                metric: { 
+                  type: 'object', 
+                  optional: true,
+                  properties: {
+                    current: { description: 'REQUIRED if metric is provided - string or number' },
+                    change: { type: 'number', optional: true },
+                    trend: { type: 'string', enum: ['up', 'down', 'stable'], optional: true }
+                  }
+                },
+                severity: { type: 'string', enum: ['info', 'warning', 'critical'], optional: true },
+              },
+              required: ['type', 'message', 'confidence'],
+            },
+          },
+          recommendations: {
+            type: 'array',
+            minItems: 3,
+            maxItems: 5,
+            items: {
+              type: 'object',
+              properties: {
+                action: { type: 'string', minLength: 10, maxLength: 300 },
+                reason: { type: 'string', minLength: 10, maxLength: 300, description: 'MUST be max 300 characters' },
+                expectedImpact: { type: 'string', minLength: 10, maxLength: 300 },
+                priority: { type: 'string', enum: ['high', 'medium', 'low'] },
+                category: { type: 'string', enum: ['session_timing', 'session_duration', 'break_management', 'task_planning', 'consistency'] },
+                confidence: { type: 'number', minimum: 0, maximum: 1 },
+              },
+              required: ['action', 'reason', 'expectedImpact', 'priority', 'category', 'confidence'],
+            },
+          },
+          nextWeekPlan: {
+            type: 'object',
+            properties: {
+              goal: { type: 'string', minLength: 10, maxLength: 200 },
+              suggestedSessions: { type: 'number', minimum: 1, maximum: 50 },
+              suggestedDuration: { type: 'number', minimum: 15, maximum: 120, description: 'Duration in minutes' },
+              bestTimeSlots: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 10 },
+              focusAreas: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 5 },
+            },
+            required: ['goal', 'suggestedSessions', 'suggestedDuration', 'bestTimeSlots', 'focusAreas'],
+          },
+          oneLeverToPull: { type: 'string', minLength: 20, maxLength: 500, description: 'MUST be max 500 characters - be concise!' },
+        },
+        required: ['narrative', 'insights', 'recommendations', 'nextWeekPlan', 'oneLeverToPull'],
+      };
+
+      const fullPrompt = `${systemPrompt}
+
+CRITICAL OUTPUT REQUIREMENTS:
+1. You MUST return a COMPLETE and VALID JSON object
+2. The JSON MUST match this exact schema:
+${JSON.stringify(jsonSchema, null, 2)}
+
+3. IMPORTANT: You MUST complete the ENTIRE JSON structure
+4. Do NOT stop mid-generation - ensure all fields are populated
+5. The response MUST end with a closing brace }
+6. Return ONLY the raw JSON object - no markdown, no code blocks, no explanations
+7. Start with { and end with }
+8. Ensure all strings are properly closed with quotes
+9. Ensure all arrays are properly closed with brackets
+10. Ensure all objects are properly closed with braces
+
+REMEMBER: COMPLETE THE ENTIRE JSON STRUCTURE BEFORE STOPPING!`;
+
+      logger.debug('AI service: Full insights prompt prepared', {
+        ...logContext,
+        fullPromptLength: fullPrompt.length,
+      });
+
+      // 4. Execute API call with timeout
+      const mergedConfig = { ...this.defaultConfig, ...config };
+      logger.info('AI service: Invoking Gemini for insights', {
+        ...logContext,
+        model: 'gemini-2.5-flash',
+        timeoutMs: mergedConfig.timeoutMs,
+      });
+
+      const apiCallStartTime = Date.now();
+      let rawResponse: string;
+
+      try {
+        // Create timeout promise
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            logger.warn('AI service: Insights request timeout', {
+              ...logContext,
+              timeoutMs: mergedConfig.timeoutMs,
+            });
+            reject(new Error(`Request timeout after ${mergedConfig.timeoutMs}ms`));
+          }, mergedConfig.timeoutMs);
+        });
+
+        // Execute API call with timeout - use insightsModel for higher token limit
+        const apiCallPromise = this.insightsModel.invoke(fullPrompt).then((response) => {
+          const callDuration = Date.now() - apiCallStartTime;
+          
+          const content =
+            typeof response.content === 'string' ? response.content : String(response.content);
+          
+          // Log response metadata to understand why generation stopped
+          logger.debug('AI service: Gemini insights call completed', {
+            ...logContext,
+            callDurationMs: callDuration,
+            contentLength: content.length,
+            contentPreview: content.substring(0, 200),
+            contentEnding: content.substring(Math.max(0, content.length - 100)),
+            responseMetadata: response.response_metadata,
+            finishReason: (response as any).response_metadata?.finishReason || 'unknown',
+          });
+          
+          return content;
+        });
+
+        rawResponse = await Promise.race([apiCallPromise, timeoutPromise]);
+      } catch (apiError) {
+        const callDuration = Date.now() - apiCallStartTime;
+        logger.error('AI service: Gemini insights call failed', {
+          ...logContext,
+          callDurationMs: callDuration,
+          error: apiError instanceof Error ? apiError.message : String(apiError),
+        });
+        throw apiError;
+      }
+
+      const apiCallDuration = Date.now() - apiCallStartTime;
+      logger.info('AI service: Insights API call completed', {
+        ...logContext,
+        apiCallDurationMs: apiCallDuration,
+        responseLength: rawResponse.length,
+      });
+
+      // Log the FULL raw response for debugging
+      logger.debug('AI service: Full raw response', {
+        ...logContext,
+        fullResponse: rawResponse,
+        lastChars: rawResponse.substring(Math.max(0, rawResponse.length - 200)),
+      });
+
+      // 5. Parse and validate response
+      logger.debug('AI service: Parsing insights response', logContext);
+      let result: WeeklyInsightsOutput;
+
+      try {
+        result = this.parseAndValidateInsightsResponse(rawResponse, logContext);
+        logger.debug('AI service: Insights validation successful', {
+          ...logContext,
+          insightsCount: result.insights.length,
+          recommendationsCount: result.recommendations.length,
+        });
+      } catch (parseError) {
+        logger.error('AI service: Failed to parse insights response', {
+          ...logContext,
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+          responsePreview: rawResponse.substring(0, 500),
+          responseEnding: rawResponse.substring(Math.max(0, rawResponse.length - 200)),
+          isIncomplete: !rawResponse.trim().endsWith('}'),
+        });
+
+        throw new AppError(
+          'Failed to generate insights. Please try again.',
+          500,
+          'AI_INSIGHTS_GENERATION_FAILED',
+          {
+            originalError: parseError instanceof Error ? parseError.message : String(parseError),
+          }
+        );
+      }
+
+      const latencyMs = Date.now() - startTime;
+
+      logger.info('AI service: Weekly insights generated successfully', {
+        ...logContext,
+        insightsCount: result.insights.length,
+        recommendationsCount: result.recommendations.length,
+        latencyMs,
+      });
+
+      return {
+        data: result,
+        latencyMs,
+        model: 'gemini-2.5-flash',
+        provider: 'google',
+      };
+    } catch (error) {
+      const latencyMs = Date.now() - startTime;
+      logger.error('AI service: Weekly insights generation failed', {
+        ...logContext,
+        error: error instanceof Error ? error.message : String(error),
+        errorCode: error instanceof AppError ? error.code : 'UNKNOWN',
+        latencyMs,
+      });
+
+      throw this.handleAIError(error);
+    }
+  }
+
+  /**
    * Generic AI request handler (for future use)
    */
   async processRequest<T>(
@@ -420,6 +762,14 @@ REMEMBER: Return ONLY the raw JSON object. No markdown, no code blocks, no expla
             request.context?.priority,
             request.config
           )) as AIServiceResponse<T>;
+        case 'INSIGHT_GENERATE':
+          if (!request.context?.insightsInput) {
+            throw new AppError('Insights input required', 400, 'MISSING_INSIGHTS_INPUT');
+          }
+          return (await this.generateWeeklyInsights(
+            request.context.insightsInput as AIInsightsInput,
+            request.config
+          )) as AIServiceResponse<T>;
         // Add other request types here as needed
         default:
           throw new AppError(
@@ -431,6 +781,155 @@ REMEMBER: Return ONLY the raw JSON object. No markdown, no code blocks, no expla
     } catch (error) {
       throw this.handleAIError(error);
     }
+  }
+
+  /**
+   * Build weekly insights prompt
+   */
+  private buildInsightsPrompt(input: AIInsightsInput): string {
+    const { weeklyStats, userProfile, previousInsight } = input;
+
+    // Format time of day data
+    const timeOfDayData = [
+      { period: 'Morning (6-11 AM)', time: weeklyStats.morningFocusTime },
+      { period: 'Afternoon (12-5 PM)', time: weeklyStats.afternoonFocusTime },
+      { period: 'Evening (6-11 PM)', time: weeklyStats.eveningFocusTime },
+      { period: 'Night (12-5 AM)', time: weeklyStats.nightFocusTime },
+    ]
+      .sort((a, b) => b.time - a.time)
+      .map((d) => `  - ${d.period}: ${Math.round(d.time / 60)} minutes`)
+      .join('\n');
+
+    // Format daily distribution
+    const dailyData = weeklyStats.dailyDistribution
+      .map(
+        (d) =>
+          `  - ${d.dayOfWeek}: ${d.completedSessions}/${d.totalSessions} sessions (${d.completionRate.toFixed(0)}% completion, ${Math.round(d.focusTime / 60)}min focus)`
+      )
+      .join('\n');
+
+    // Format failure reasons
+    const failureData =
+      weeklyStats.failureReasons.length > 0
+        ? weeklyStats.failureReasons
+            .map((f) => `  - ${f.reason}: ${f.count} times (${f.percentage.toFixed(0)}%)`)
+            .join('\n')
+        : '  - No failures recorded';
+
+    // Format session duration distribution
+    const durationData = weeklyStats.sessionDurationDistribution
+      .map((d) => `  - ${d.range}: ${d.count} sessions (${d.completionRate.toFixed(0)}% completion)`)
+      .join('\n');
+
+    // Previous insight context
+    const previousContext = previousInsight
+      ? `
+PREVIOUS WEEK'S INSIGHT:
+Previous recommendation: "${previousInsight.oneLeverToPull}"
+Check if the user has improved on this recommendation and acknowledge it if they have.
+`
+      : '';
+
+    return `You are an AI focus coach analyzing a user's productivity data for the past week. Your job is to provide personalized, actionable insights and recommendations.
+
+USER PROFILE:
+- Name: ${userProfile.name}
+- Type: ${userProfile.userType || 'Not specified'}
+- Preferred Focus Time: ${userProfile.preferredFocusTime || 'Not specified'}
+- Current Streak: ${userProfile.currentStreak} days
+- Longest Streak: ${userProfile.longestStreak} days
+- Lifetime Stats: ${Math.round(userProfile.totalFocusTime / 3600)} hours over ${userProfile.totalSessions} sessions
+
+WEEKLY STATS (${weeklyStats.weekStart.toLocaleDateString()} - ${weeklyStats.weekEnd.toLocaleDateString()}):
+Session Performance:
+  - Total Sessions: ${weeklyStats.totalSessions}
+  - Completed: ${weeklyStats.completedSessions} (${weeklyStats.completionRate.toFixed(1)}%)
+  - Failed: ${weeklyStats.failedSessions}
+  - Total Focus Time: ${Math.round(weeklyStats.totalFocusTime / 60)} minutes
+  - Average Session: ${Math.round(weeklyStats.averageSessionDuration / 60)} minutes
+  - Longest Session: ${Math.round(weeklyStats.longestSession / 60)} minutes
+
+Time of Day Breakdown:
+${timeOfDayData}
+Best Time: ${weeklyStats.bestTimeOfDay}
+
+Daily Breakdown:
+${dailyData}
+Best Day: ${weeklyStats.bestDay || 'N/A'}
+Worst Day: ${weeklyStats.worstDay || 'N/A'}
+
+Failure Analysis:
+${failureData}
+Average time before giving up: ${Math.round(weeklyStats.averageFailureTime / 60)} minutes
+
+Session Duration Distribution:
+${durationData}
+
+Task Completion:
+  - Tasks Completed: ${weeklyStats.tasksCompleted}
+
+Streak Status:
+  - Current Streak: ${weeklyStats.streakData.currentStreak} days
+  - Change from last week: ${weeklyStats.streakData.streakChange >= 0 ? '+' : ''}${weeklyStats.streakData.streakChange} days
+${previousContext}
+
+YOUR TASK:
+Generate a comprehensive weekly review with:
+
+1. NARRATIVE (100-2000 chars): 
+   - Write a friendly, conversational summary of the week
+   - Highlight the most important wins and challenges
+   - Be specific with numbers
+   - Use the user's name
+
+2. INSIGHTS (3-8 items):
+   - CRITICAL: Each insight "type" field MUST be EXACTLY one of these values:
+     * completion_rate
+     * best_time_of_day
+     * session_length
+     * failure_pattern
+     * productivity_trend
+     * streak_status
+     * task_completion
+     * consistency
+   - DO NOT use any other values like "positive" or "area_for_improvement"
+   - Mix different insight types to cover various aspects
+   - Message: 10-500 characters
+   - If including "metric", MUST have "current" field (string or number)
+   - Confidence: 0 to 1 (decimal)
+   - Severity (optional): 'info', 'warning', or 'critical'
+
+3. RECOMMENDATIONS (3-5 items):
+   - Action: 10-300 characters (stay under 300!)
+   - Reason: 10-300 characters (MUST be under 300!)
+   - ExpectedImpact: 10-300 characters
+   - Priority: EXACTLY 'high', 'medium', or 'low'
+   - Category: EXACTLY one of: session_timing, session_duration, break_management, task_planning, consistency
+   - Confidence: 0 to 1 (decimal)
+
+4. NEXT WEEK PLAN:
+   - Set a specific, achievable goal
+   - Suggest number of sessions and duration based on past success rates
+   - Recommend best time slots based on historical performance
+   - Identify 1-3 focus areas
+
+5. ONE LEVER TO PULL (20-500 characters - BE CONCISE!):
+   - Identify THE SINGLE most impactful change
+   - Must be specific and measurable
+   - Should address the biggest bottleneck in their productivity
+   - CRITICAL: Keep under 500 characters total!
+
+TONE:
+- Encouraging but honest
+- Data-driven, not generic
+- Personalized to the user's actual performance
+- Actionable, not just observational
+
+CRITICAL OUTPUT REQUIREMENTS:
+- Return ONLY valid JSON
+- No markdown formatting (no \`\`\`json or \`\`\`)
+- No explanations or additional text
+- Just the raw JSON object starting with { and ending with }`;
   }
 
   /**
@@ -580,6 +1079,113 @@ Remember: Return ONLY the JSON object, nothing else.`;
 
     // All strategies failed
     throw new Error('All parsing strategies failed');
+  }
+
+  /**
+   * Parse and validate weekly insights response
+   */
+  private parseAndValidateInsightsResponse(
+    rawResponse: string,
+    logContext: { requestId: string; userId: string }
+  ): WeeklyInsightsOutput {
+    let jsonStr = rawResponse.trim();
+    const originalLength = jsonStr.length;
+
+    logger.info('AI service: Starting insights response parsing', {
+      ...logContext,
+      originalLength,
+      firstChars: jsonStr.substring(0, 100),
+      lastChars: jsonStr.substring(Math.max(0, jsonStr.length - 100)),
+    });
+
+    // Strategy 1: Try direct JSON parse
+    try {
+      const directParse = JSON.parse(jsonStr);
+      logger.info('AI service: JSON parse successful, validating schema', {
+        ...logContext,
+        keys: Object.keys(directParse),
+      });
+      
+      const validated = WeeklyInsightsSchema.parse(directParse);
+      logger.info('AI service: Direct insights parse succeeded', logContext);
+      return validated;
+    } catch (e) {
+      logger.error('AI service: Direct insights parse failed', {
+        ...logContext,
+        error: e instanceof Error ? e.message : String(e),
+        errorDetails: e instanceof z.ZodError ? JSON.stringify(e.errors, null, 2) : undefined,
+        errorStack: e instanceof Error ? e.stack : undefined,
+      });
+    }
+
+    // Strategy 2: Remove markdown code blocks
+    logger.info('AI service: Trying strategy 2 - markdown removal', logContext);
+    let cleaned = jsonStr
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    try {
+      const markdownParse = JSON.parse(cleaned);
+      const validated = WeeklyInsightsSchema.parse(markdownParse);
+      logger.info('AI service: Markdown removal insights parse succeeded', logContext);
+      return validated;
+    } catch (e) {
+      logger.error('AI service: Strategy 2 failed', {
+        ...logContext,
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    // Strategy 3: Extract JSON object from text
+    logger.info('AI service: Trying strategy 3 - JSON extraction', logContext);
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const extractedParse = JSON.parse(jsonMatch[0]);
+        const validated = WeeklyInsightsSchema.parse(extractedParse);
+        logger.info('AI service: JSON extraction insights parse succeeded', logContext);
+        return validated;
+      } catch (e) {
+        logger.error('AI service: Strategy 3 failed', {
+          ...logContext,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    } else {
+      logger.error('AI service: Strategy 3 - No JSON object found in response', logContext);
+    }
+
+    // Strategy 4: Try to fix common JSON issues
+    logger.info('AI service: Trying strategy 4 - fixing common JSON issues', logContext);
+    let fixed = cleaned
+      .replace(/^[^{]*/, '') // Remove everything before first {
+      .replace(/[^}]*$/, '}') // Remove everything after last }
+      .replace(/,\s*}/g, '}') // Remove trailing commas
+      .replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+
+    try {
+      const fixedParse = JSON.parse(fixed);
+      const validated = WeeklyInsightsSchema.parse(fixedParse);
+      logger.info('AI service: Fixed JSON insights parse succeeded', logContext);
+      return validated;
+    } catch (e) {
+      logger.error('AI service: Strategy 4 failed - all strategies exhausted', {
+        ...logContext,
+        error: e instanceof Error ? e.message : String(e),
+        errorDetails: e instanceof z.ZodError ? JSON.stringify(e.errors, null, 2) : undefined,
+      });
+    }
+
+    // All strategies failed - log a sample of the response
+    logger.error('AI service: All parsing strategies failed', {
+      ...logContext,
+      responseSample: jsonStr.substring(0, 1000),
+      responseEnd: jsonStr.substring(Math.max(0, jsonStr.length - 500)),
+    });
+    
+    throw new Error('All insights parsing strategies failed');
   }
 
   /**

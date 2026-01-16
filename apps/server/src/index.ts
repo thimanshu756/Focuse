@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.routes.js';
 import taskRoutes from './routes/task.routes.js';
 import sessionRoutes from './routes/session.routes.js';
 import syncRoutes from './routes/sync.routes.js';
+import insightsRoutes from './routes/insights.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -51,6 +52,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/insights', insightsRoutes);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -63,6 +65,7 @@ app.get('/', (req: Request, res: Response) => {
       tasks: '/api/tasks',
       sessions: '/api/sessions',
       sync: '/api/sync',
+      insights: '/api/insights',
     }
   });
 });

@@ -1,19 +1,48 @@
 'use client';
 
+import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
-import { User, Crown } from 'lucide-react';
+import { Crown } from 'lucide-react';
 
 interface HeaderProps {
   userTier?: 'FREE' | 'PRO';
   userName?: string;
+  userAvatar?: string | null;
+  userId?: string;
 }
 
-export function Header({ userTier = 'FREE', userName }: HeaderProps) {
+// Generate a consistent color based on user ID
+function getAvatarColor(userId?: string): string {
+  if (!userId) return '#6366f1';
+  const colors = [
+    '#6366f1',
+    '#8b5cf6',
+    '#ec4899',
+    '#f59e0b',
+    '#10b981',
+    '#3b82f6',
+    '#ef4444',
+    '#14b8a6',
+  ];
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
+export function Header({
+  userTier = 'FREE',
+  userName,
+  userAvatar,
+  userId,
+}: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [avatarError, setAvatarError] = React.useState(false);
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
@@ -23,6 +52,10 @@ export function Header({ userTier = 'FREE', userName }: HeaderProps) {
   ];
 
   const isActive = (href: string) => pathname === href;
+
+  const hasAvatar = userAvatar && userAvatar.trim() !== '';
+  const avatarColor = getAvatarColor(userId);
+  const avatarInitial = userName?.charAt(0).toUpperCase() || 'U';
 
   return (
     <header className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
@@ -81,9 +114,23 @@ export function Header({ userTier = 'FREE', userName }: HeaderProps) {
               className="flex items-center gap-2"
               aria-label="Profile"
             >
-              <div className="h-8 w-8 rounded-full bg-accent/20 flex items-center justify-center">
-                <User size={16} className="text-accent" />
-              </div>
+              {hasAvatar && !avatarError ? (
+                <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
+                  <img
+                    src={userAvatar!}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
+                  style={{ backgroundColor: avatarColor }}
+                >
+                  {avatarInitial}
+                </div>
+              )}
               {userName && (
                 <span className="hidden md:inline text-sm">{userName}</span>
               )}

@@ -11,6 +11,7 @@ interface UserProfile {
   name: string;
   email: string;
   subscriptionTier: 'FREE' | 'PRO';
+  avatar?: string | null;
 }
 
 export default function DashboardLayout({
@@ -52,6 +53,7 @@ export default function DashboardLayout({
             name: user.name || '',
             email: user.email || '',
             subscriptionTier: user.subscriptionTier || 'FREE',
+            avatar: user.avatar || null,
           });
         }
       } catch (error) {
@@ -90,7 +92,14 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
-      {!isSessionPage && <Header userTier={userTier} userName={firstName} />}
+      {!isSessionPage && (
+        <Header
+          userTier={userTier}
+          userName={firstName}
+          userAvatar={userProfile?.avatar}
+          userId={userProfile?.id}
+        />
+      )}
       {children}
     </div>
   );

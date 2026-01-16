@@ -22,6 +22,7 @@ import { FocusTimesHeatmap } from '@/components/insights/FocusTimesHeatmap';
 import { TopTasksChart } from '@/components/insights/TopTasksChart';
 import { TreeDistributionChart } from '@/components/insights/TreeDistributionChart';
 import { AIInsightsCard } from '@/components/insights/AIInsightsCard';
+import { WeeklyAIInsights } from '@/components/insights/WeeklyAIInsights';
 import { isAuthenticated } from '@/lib/auth';
 import { Option } from '@/types/select.types';
 import { Period } from '@/types/insights.types';
@@ -97,7 +98,6 @@ export default function InsightsPage() {
     return null;
   }
 
-  const firstName = userProfile?.name?.split(' ')[0] || 'there';
   const isPro = userProfile?.subscriptionTier === 'PRO';
   const currentStreak = userProfile?.currentStreak || stats?.currentStreak || 0;
 
@@ -126,6 +126,12 @@ export default function InsightsPage() {
     : 0;
   const completionColor = getCompletionRateColor(completionRate);
 
+  // Handle upgrade navigation
+  const handleUpgrade = () => {
+    toast('Upgrade feature coming soon!', { icon: '👑' });
+    // router.push('/upgrade');
+  };
+
   return (
     <>
       <main className="max-w-7xl mx-auto px-5 md:px-10 py-8">
@@ -142,7 +148,7 @@ export default function InsightsPage() {
                 Insights 📊
               </h1>
               <p className="text-sm text-text-secondary mt-2">
-                Track your focus patterns and productivity
+                AI-powered insights and productivity analytics
               </p>
             </div>
 
@@ -293,15 +299,18 @@ export default function InsightsPage() {
                 isLoading={isLoading}
               />
             </motion.div>
-
-            {/* AI Insights Section */}
-            {stats && (
-              <div className="mt-8">
-                <AIInsightsCard stats={stats} isPro={isPro} />
-              </div>
-            )}
           </>
         )}
+
+        {/* AI Weekly Insights - Moved to Bottom */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="mt-12"
+        >
+          <WeeklyAIInsights isPro={isPro} onUpgrade={handleUpgrade} />
+        </motion.div>
       </main>
     </>
   );
