@@ -13,6 +13,7 @@ interface Session {
   timeElapsed: number;
   taskId?: string;
   taskTitle?: string;
+  taskDescription?: string;
 }
 
 interface UseSessionSyncResult {
@@ -57,6 +58,7 @@ export function useSessionSync(
           timeElapsed: sessionData.timeElapsed || 0,
           taskId: sessionData.taskId,
           taskTitle: sessionData.task?.title,
+          taskDescription: sessionData.task?.description,
         });
         setError(null);
       }

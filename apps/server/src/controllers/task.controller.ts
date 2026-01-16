@@ -7,6 +7,7 @@ import {
   TaskListFilters,
   AIBreakdownInput,
   BulkDeleteInput,
+  BulkCreateInput,
 } from '../types/task.types.js';
 
 export class TaskController {
@@ -141,6 +142,20 @@ export class TaskController {
         success: true,
         data: result,
         message: 'Task breakdown created successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  bulkCreate = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data: BulkCreateInput = req.body;
+      const result = await this.taskService.bulkCreate(req.user!.id, data);
+      res.status(201).json({
+        success: true,
+        data: result,
+        message: `${result.createdCount} task(s) created successfully`,
       });
     } catch (error) {
       next(error);

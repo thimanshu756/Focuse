@@ -106,7 +106,6 @@ model Task {
   // AI-generated breakdown
   isAIGenerated Boolean @default(false)
   aiPrompt String? // Original user prompt
-  parentTaskId String? @db.ObjectId // For subtasks
   
   // Scheduling (AI auto-schedule feature)
   scheduledStartTime DateTime?
@@ -123,14 +122,11 @@ model Task {
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessions FocusSession[]
-  parentTask Task? @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  subTasks Task[] @relation("SubTasks")
   
   // Indexes for performance
   @@index([userId, status]) // List tasks by user and status
   @@index([userId, dueDate]) // Sort by due date
   @@index([userId, priority, status]) // Filter by priority
-  @@index([parentTaskId]) // Query subtasks
   @@index([createdAt])
   @@index([deletedAt])
   @@map("tasks")

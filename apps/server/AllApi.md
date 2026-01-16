@@ -365,7 +365,6 @@ Authorization: Bearer <access-token>
   "dueDate": "2026-01-15T10:00:00Z",
   "priority": "HIGH",
   "estimatedMinutes": 120,
-  "parentTaskId": "507f1f77bcf86cd799439011", // Optional
   "tagIds": ["tag1", "tag2"] // Optional
 }
 ```
@@ -386,7 +385,6 @@ Authorization: Bearer <access-token>
       "estimatedMinutes": 120,
       "actualMinutes": 0,
       "tagIds": ["tag1", "tag2"],
-      "parentTaskId": null,
       "createdAt": "2026-01-10T10:00:00Z",
       "updatedAt": "2026-01-10T10:00:00Z"
     }
@@ -437,7 +435,7 @@ Authorization: Bearer <access-token>
 
 ### 2.3 GET /api/tasks/:id
 
-**Description:** Get a single task by ID with subtasks.
+**Description:** Get a single task by ID.
 
 **Auth:** Required
 
@@ -451,14 +449,7 @@ Authorization: Bearer <access-token>
       "id": "507f1f77bcf86cd799439011",
       "title": "Study DBMS",
       "status": "TODO",
-      "priority": "HIGH",
-      "subTasks": [
-        {
-          "id": "507f1f77bcf86cd799439012",
-          "title": "Review course materials",
-          "status": "TODO"
-        }
-      ]
+      "priority": "HIGH"
     }
   }
 }
@@ -565,21 +556,27 @@ Authorization: Bearer <access-token>
 {
   "success": true,
   "data": {
-    "parentTask": {
-      "id": "507f1f77bcf86cd799439011",
-      "title": "AI Breakdown: Study for DBMS exam",
-      "status": "TODO"
-    },
-    "subtasks": [
+    "tasks": [
+      {
+        "id": "507f1f77bcf86cd799439011",
+        "title": "Review course materials",
+        "status": "TODO",
+        "estimatedMinutes": 60,
+        "isAIGenerated": true
+      },
       {
         "id": "507f1f77bcf86cd799439012",
-        "title": "Review course materials",
-        "estimatedMinutes": 60
+        "title": "Practice problems",
+        "status": "TODO",
+        "estimatedMinutes": 90,
+        "isAIGenerated": true
       },
       {
         "id": "507f1f77bcf86cd799439013",
-        "title": "Practice problems",
-        "estimatedMinutes": 90
+        "title": "Create study notes",
+        "status": "TODO",
+        "estimatedMinutes": 45,
+        "isAIGenerated": true
       }
     ]
   }

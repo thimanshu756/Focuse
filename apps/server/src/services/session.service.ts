@@ -189,17 +189,18 @@ export class SessionService {
       prisma.focusSession.findMany({
         where,
         include: {
-          task: {
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              priority: true,
-            },
+        task: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            priority: true,
           },
         },
-        orderBy: { startTime: 'desc' },
-        skip: (page - 1) * limit,
+      },
+      orderBy: { startTime: 'desc' },
+      skip: (page - 1) * limit,
         take: limit,
       }),
       prisma.focusSession.count({ where }),
@@ -231,6 +232,7 @@ export class SessionService {
           select: {
             id: true,
             title: true,
+            description: true,
             status: true,
             priority: true,
           },
@@ -266,6 +268,7 @@ export class SessionService {
           select: {
             id: true,
             title: true,
+            description: true,
             status: true,
             priority: true,
           },
@@ -659,6 +662,7 @@ export class SessionService {
           select: {
             id: true,
             title: true,
+            description: true,
             status: true,
             priority: true,
           },
@@ -714,6 +718,7 @@ export class SessionService {
           select: {
             id: true,
             title: true,
+            description: true,
           },
         },
       },
@@ -926,6 +931,7 @@ export class SessionService {
         ? {
             id: task.id,
             title: task.title,
+            description: task.description,
             status: task.status,
             priority: task.priority,
           }

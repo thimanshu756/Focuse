@@ -21,6 +21,8 @@ interface TimerPanelProps {
   endTime: Date;
   status: 'RUNNING' | 'PAUSED' | 'COMPLETED';
   timeElapsed?: number;
+  taskTitle?: string;
+  taskDescription?: string;
   onComplete: () => void;
   onSessionUpdate?: (session: any) => void;
   onProgressUpdate?: (progress: number) => void;
@@ -36,6 +38,8 @@ export function TimerPanel({
   endTime,
   status,
   timeElapsed = 0,
+  taskTitle,
+  taskDescription,
   onComplete,
   onSessionUpdate,
   onProgressUpdate,
@@ -244,6 +248,24 @@ export function TimerPanel({
 
   return (
     <div className="w-full flex flex-col items-center mt-8 md:mt-12 lg:mt-16">
+      {/* Task Info */}
+      {taskTitle && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 md:mb-8 max-w-md px-4 text-center"
+        >
+          <h2 className="text-lg md:text-xl font-semibold text-white mb-2">
+            {taskTitle}
+          </h2>
+          {taskDescription && (
+            <p className="text-sm md:text-base text-white/70 leading-relaxed">
+              {taskDescription}
+            </p>
+          )}
+        </motion.div>
+      )}
+
       {/* Offline Badge */}
       <AnimatePresence>
         {isOffline && (

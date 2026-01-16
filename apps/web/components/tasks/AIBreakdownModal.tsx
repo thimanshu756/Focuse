@@ -2,16 +2,17 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Loader2 } from 'lucide-react';
+import { Sparkles, X, Loader2, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { api } from '@/lib/api';
+import { aiApi, api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-interface Subtask {
+interface GeneratedTask {
   title: string;
   estimatedMinutes: number;
+  description?: string;
 }
 
 interface AIBreakdownModalProps {
@@ -29,10 +30,10 @@ export function AIBreakdownModal({
 }: AIBreakdownModalProps) {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedTasks, setGeneratedTasks] = useState<{
-    parentTask: { title: string; description: string };
-    subtasks: Subtask[];
-  } | null>(null);
+  const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
+    new Set()
+  );
   const [isCreating, setIsCreating] = useState(false);
 
   const handleGenerate = async () => {
@@ -48,23 +49,19 @@ export function AIBreakdownModal({
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + 7); // Default 7 days
 
-      const response = await api.post('/tasks/ai-breakdown', {
+      const response = await aiApi.post('/tasks/ai-breakdown', {
         prompt: prompt.trim(),
         priority: 'MEDIUM',
         deadline: deadline.toISOString(),
       });
 
-      if (response.data.success && response.data.data) {
-        setGeneratedTasks({
-          parentTask: {
-            title: response.data.data.parentTask.title,
-            description: response.data.data.parentTask.description || '',
-          },
-          subtasks: response.data.data.subtasks.map((st: any) => ({
-            title: st.title,
-            estimatedMinutes: st.estimatedMinutes || 60,
-          })),
-        });
+      if (response.data.success && response.data.data?.tasks) {
+        const tasks = response.data.data.tasks;
+        setGeneratedTasks(tasks);
+        // Select all tasks by default
+        setSelectedIndices(
+          new Set(tasks.map((_: any, index: number) => index))
+        );
       }
     } catch (error: any) {
       const errorMsg =
@@ -78,42 +75,39 @@ export function AIBreakdownModal({
   };
 
   const handleCreateAll = async () => {
-    if (!generatedTasks) return;
+    if (generatedTasks.length === 0 || selectedIndices.size === 0) {
+      toast.error('Please select at least one task to create');
+      return;
+    }
 
     setIsCreating(true);
     try {
-      // Create parent task first
-      const parentResponse = await api.post('/tasks', {
-        title: generatedTasks.parentTask.title,
-        description: generatedTasks.parentTask.description,
-        priority: 'MEDIUM',
-        status: 'TODO',
+      // Get selected tasks
+      const selectedTasks = generatedTasks
+        .filter((_, index) => selectedIndices.has(index))
+        .map((task) => ({
+          title: task.title,
+          description: task.description,
+          priority: 'MEDIUM' as const,
+          estimatedMinutes: task.estimatedMinutes,
+        }));
+
+      // Bulk create selected tasks
+      const response = await api.post('/tasks/bulk-create', {
+        tasks: selectedTasks,
       });
 
-      if (parentResponse.data.success) {
-        const parentId = parentResponse.data.data.id;
-
-        // Create subtasks
-        await Promise.all(
-          generatedTasks.subtasks.map((subtask) =>
-            api.post('/tasks', {
-              title: subtask.title,
-              priority: 'MEDIUM',
-              estimatedMinutes: subtask.estimatedMinutes,
-              parentTaskId: parentId,
-              status: 'TODO',
-            })
-          )
-        );
-
-        toast.success(
-          `${generatedTasks.subtasks.length + 1} tasks created! 🎉`
-        );
+      if (response.data.success) {
+        toast.success(`${response.data.data.createdCount} task(s) created! 🎉`);
         onSuccess();
         handleClose();
       }
     } catch (error: any) {
-      toast.error('Failed to create tasks. Please try again.');
+      const errorMsg =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Failed to create tasks. Please try again.';
+      toast.error(errorMsg);
     } finally {
       setIsCreating(false);
     }
@@ -121,8 +115,27 @@ export function AIBreakdownModal({
 
   const handleClose = () => {
     setPrompt('');
-    setGeneratedTasks(null);
+    setGeneratedTasks([]);
+    setSelectedIndices(new Set());
     onClose();
+  };
+
+  const toggleTask = (index: number) => {
+    const newSelected = new Set(selectedIndices);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedIndices(newSelected);
+  };
+
+  const toggleAll = () => {
+    if (selectedIndices.size === generatedTasks.length) {
+      setSelectedIndices(new Set());
+    } else {
+      setSelectedIndices(new Set(generatedTasks.map((_, i) => i)));
+    }
   };
 
   if (!isOpen) return null;
@@ -141,7 +154,9 @@ export function AIBreakdownModal({
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-accent" />
               <h2 className="text-xl font-semibold text-text-primary">
-                {generatedTasks ? 'AI-Generated Task Plan' : 'Create with AI'}
+                {generatedTasks.length > 0
+                  ? 'AI-Generated Task Plan'
+                  : 'Create with AI'}
               </h2>
               {userTier === 'PRO' && (
                 <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-accent">
@@ -155,7 +170,7 @@ export function AIBreakdownModal({
           </div>
 
           <AnimatePresence mode="wait">
-            {!generatedTasks ? (
+            {generatedTasks.length === 0 ? (
               <motion.div
                 key="input"
                 initial={{ opacity: 0 }}
@@ -231,49 +246,107 @@ export function AIBreakdownModal({
                 exit={{ opacity: 0 }}
                 className="space-y-4"
               >
-                {/* Parent Task */}
-                <div className="p-4 bg-blue-50 rounded-xl">
-                  <h3 className="font-semibold text-text-primary mb-1">
-                    📚 {generatedTasks.parentTask.title}
-                  </h3>
-                  {generatedTasks.parentTask.description && (
-                    <p className="text-sm text-text-secondary">
-                      {generatedTasks.parentTask.description}
-                    </p>
-                  )}
+                {/* Header with select all */}
+                <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                  <h4 className="font-medium text-text-primary">
+                    AI Generated Tasks ({generatedTasks.length})
+                  </h4>
+                  <button
+                    onClick={toggleAll}
+                    className="flex items-center gap-2 text-sm text-accent hover:text-accent/80 transition-colors"
+                  >
+                    {selectedIndices.size === generatedTasks.length ? (
+                      <>
+                        <CheckSquare size={16} />
+                        Deselect All
+                      </>
+                    ) : (
+                      <>
+                        <Square size={16} />
+                        Select All
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                {/* Subtasks */}
-                <div>
-                  <h4 className="font-medium text-text-primary mb-3">
-                    Subtasks:
-                  </h4>
-                  <div className="space-y-2">
-                    {generatedTasks.subtasks.map((subtask, index) => (
-                      <div
-                        key={index}
-                        className="p-3 bg-white border border-gray-200 rounded-xl flex items-center gap-3"
-                      >
-                        <div className="w-5 h-5 rounded border-2 border-gray-300 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-text-primary">
-                            {subtask.title}
+                {/* Task List */}
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                  {generatedTasks.map((task, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => toggleTask(index)}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                        selectedIndices.has(index)
+                          ? 'border-accent bg-accent/5'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 flex-shrink-0">
+                          {selectedIndices.has(index) ? (
+                            <CheckSquare size={20} className="text-accent" />
+                          ) : (
+                            <Square size={20} className="text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-text-primary mb-1">
+                            {task.title}
                           </p>
-                          <p className="text-xs text-text-muted">
-                            {Math.round(subtask.estimatedMinutes / 60)}h
-                            estimated
-                          </p>
+                          {task.description && (
+                            <p className="text-xs text-text-secondary mb-2 line-clamp-2">
+                              {task.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-text-muted bg-gray-100 px-2 py-0.5 rounded-full">
+                              ⏱️ {task.estimatedMinutes} min
+                            </span>
+                            <span className="text-xs text-text-muted bg-gray-100 px-2 py-0.5 rounded-full">
+                              ~{Math.ceil(task.estimatedMinutes / 25)} sessions
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </motion.div>
+                  ))}
                 </div>
 
-                <div className="flex items-center gap-3 pt-4">
+                {/* Selected count info */}
+                <div className="p-3 bg-blue-50 rounded-xl">
+                  <p className="text-sm text-blue-800">
+                    {selectedIndices.size === 0 ? (
+                      'No tasks selected'
+                    ) : (
+                      <>
+                        <strong>{selectedIndices.size}</strong> task
+                        {selectedIndices.size !== 1 ? 's' : ''} selected •{' '}
+                        <strong>
+                          {generatedTasks
+                            .filter((_, i) => selectedIndices.has(i))
+                            .reduce(
+                              (sum, t) => sum + t.estimatedMinutes,
+                              0
+                            )}{' '}
+                          min
+                        </strong>{' '}
+                        total
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
                   <Button
                     variant="ghost"
                     size="lg"
-                    onClick={() => setGeneratedTasks(null)}
+                    onClick={() => {
+                      setGeneratedTasks([]);
+                      setSelectedIndices(new Set());
+                    }}
                     className="flex-1"
                     disabled={isCreating}
                   >
@@ -284,9 +357,19 @@ export function AIBreakdownModal({
                     size="lg"
                     onClick={handleCreateAll}
                     isLoading={isCreating}
+                    disabled={selectedIndices.size === 0}
                     className="flex-1"
                   >
-                    Create All Tasks →
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="animate-spin mr-2" size={16} />
+                        Creating...
+                      </>
+                    ) : (
+                      `Create ${selectedIndices.size} Task${
+                        selectedIndices.size !== 1 ? 's' : ''
+                      } →`
+                    )}
                   </Button>
                 </div>
               </motion.div>

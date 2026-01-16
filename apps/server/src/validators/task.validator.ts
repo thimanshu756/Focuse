@@ -27,7 +27,6 @@ export const createTaskSchema = z.object({
       .min(5, 'Estimated minutes must be at least 5')
       .max(480, 'Estimated minutes must be at most 480')
       .optional(),
-    parentTaskId: objectIdSchema.optional(),
     tagIds: z.array(z.string()).max(10, 'Maximum 10 tags allowed').optional(),
   }),
 });
@@ -112,3 +111,25 @@ export const bulkDeleteSchema = z.object({
   }),
 });
 
+export const bulkCreateSchema = z.object({
+  body: z.object({
+    tasks: z
+      .array(
+        z.object({
+          title: z.string().min(1, 'Title is required').max(200, 'Title must be 200 characters or less'),
+          description: z.string().max(1000, 'Description must be 1000 characters or less').optional(),
+          dueDate: futureDateSchema.optional(),
+          priority: taskPrioritySchema.optional().default('MEDIUM'),
+          estimatedMinutes: z
+            .number()
+            .int('Estimated minutes must be an integer')
+            .min(5, 'Estimated minutes must be at least 5')
+            .max(480, 'Estimated minutes must be at most 480')
+            .optional(),
+          tagIds: z.array(z.string()).max(10, 'Maximum 10 tags allowed').optional(),
+        })
+      )
+      .min(1, 'At least one task is required')
+      .max(50, 'Maximum 50 tasks can be created at once'),
+  }),
+});

@@ -55,6 +55,7 @@ export interface SessionResponse {
   task?: {
     id: string;
     title: string;
+    description?: string;
     status: string;
     priority: string;
   };

@@ -442,6 +442,8 @@ export default function SessionPage() {
                     : 'RUNNING'
               }
               timeElapsed={session.timeElapsed}
+              taskTitle={session.taskTitle}
+              taskDescription={session.taskDescription}
               onComplete={handleComplete}
               onSessionUpdate={handleSessionUpdate}
               onProgressUpdate={setTreeProgress}

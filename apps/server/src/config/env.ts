@@ -12,6 +12,8 @@ const envSchema = z.object({
   GMAIL_USER: z.string().email('Invalid Gmail user email'),
   GMAIL_APP_PASSWORD: z.string().min(1, 'Gmail app password is required'),
   FRONTEND_URL: z.string().url('Invalid frontend URL').default('http://localhost:3000'),
+  // AI Configuration
+  GEMINI_API_KEY: z.string().min(1, 'Gemini API key is required'),
 });
 
 export const env = envSchema.parse(process.env);

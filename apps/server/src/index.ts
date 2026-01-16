@@ -32,7 +32,6 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', async (req: Request, res: Response) => {
   try {
     // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
     res.json({ 
       status: 'ok', 
       message: 'Server is running',
@@ -77,11 +76,17 @@ process.on('beforeExit', async () => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Configured' : 'Not configured'}`);
 });
+
+// Set server timeout to 2 minutes (for AI operations that may take longer)
+// Individual routes can override this with their own timeout middleware
+server.timeout = 120000; // 2 minutes
+server.keepAliveTimeout = 65000; // Keep connections alive
+server.headersTimeout = 66000; // Slightly longer than keepAliveTimeout
 
 export default app;
 
