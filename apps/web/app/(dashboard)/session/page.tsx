@@ -11,7 +11,6 @@ import { TimerPanel } from '@/components/session/TimerPanel';
 import { CompletionModal } from '@/components/session/CompletionModal';
 import { GiveUpModal } from '@/components/session/GiveUpModal';
 import { BackgroundWarning } from '@/components/session/BackgroundWarning';
-import { SessionNotesDrawer } from '@/components/session/SessionNotesDrawer';
 import { Button } from '@/components/ui/Button';
 import { useSessionSync } from '@/hooks/useSessionSync';
 import { useActiveSession } from '@/hooks/useActiveSession';
@@ -476,11 +475,6 @@ export default function SessionPage() {
           notesCount={sessionNotes.length}
           willBreakStreak={false} // TODO: Check if this will break streak from backend
         />
-      )}
-
-      {/* Session Notes Drawer */}
-      {sessionId && (
-        <SessionNotesDrawer sessionId={sessionId} isPro={isPro || false} />
       )}
     </div>
   );

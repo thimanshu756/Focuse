@@ -47,28 +47,28 @@ export function NoteItem({ note, onDelete }: NoteItemProps) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors"
+      className="group bg-white/5 rounded-lg p-3 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
     >
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 text-xl">{getTypeIcon()}</div>
+      <div className="flex items-start gap-2.5">
+        <div className="flex-shrink-0 text-lg mt-0.5">{getTypeIcon()}</div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-1.5 mb-1.5">
             <span className="text-xs text-white/60 font-medium">
               {getTypeLabel()}
             </span>
-            <span className="text-xs text-white/40">•</span>
+            <span className="text-xs text-white/30">•</span>
             <span className="text-xs text-white/40">{timeAgo}</span>
           </div>
-          <p className="text-sm text-white/90 whitespace-pre-wrap break-words">
+          <p className="text-sm text-white/90 whitespace-pre-wrap break-words leading-relaxed">
             {note.content}
           </p>
         </div>
         <button
           onClick={() => onDelete(note.id)}
-          className="flex-shrink-0 p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+          className="flex-shrink-0 p-1.5 text-white/30 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
           aria-label="Delete note"
         >
-          <Trash2 size={16} />
+          <Trash2 size={14} />
         </button>
       </div>
     </motion.div>

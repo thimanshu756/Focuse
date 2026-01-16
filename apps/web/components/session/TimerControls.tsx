@@ -102,7 +102,7 @@ export function TimerControls({
         )}
 
         {/* Break Button */}
-        <Button
+        {/* <Button
           variant="ghost"
           size="md"
           onClick={handleBreak}
@@ -112,7 +112,7 @@ export function TimerControls({
         >
           <Coffee size={18} />
           <span className="hidden md:inline">Break</span>
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

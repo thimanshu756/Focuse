@@ -60,7 +60,7 @@ export const TreePanel = forwardRef<TreePanelRef, TreePanelProps>(
 
     return (
       <div
-        className="relative h-[calc(40vh-24px)] lg:h-[calc(100vh-60px)] w-full lg:w-[40%] flex items-center justify-center overflow-hidden p-5 lg:p-10"
+        className="relative h-[calc(40vh-24px)] lg:h-[calc(100vh-0px)] w-full lg:w-[40%] flex items-center justify-center overflow-hidden p-5 lg:p-10"
         style={{ background: backgroundGradient }}
       >
         {/* Ambient Animations - Behind tree */}
