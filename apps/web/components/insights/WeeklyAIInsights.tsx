@@ -267,18 +267,18 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
       className="space-y-6"
     >
       {/* Hero Section - One Lever to Pull */}
-      <Card className="relative overflow-hidden bg-gradient-to-br from-[#D7F50A] via-[#E9FF6A] to-[#D7F50A]">
-        <div className="relative z-10 p-6 md:p-8">
+      <Card className="relative overflow-hidden p-2 md:p-6 bg-gradient-to-br from-[#D7F50A] via-[#E9FF6A] to-[#D7F50A]">
+        <div className="relative z-10 p-2 md:p-8">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-white/90 rounded-2xl backdrop-blur-sm">
                 <Target className="h-6 w-6 text-gray-800" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-1">
+                <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-800 mb-1">
                   Your #1 Priority
                 </h2>
-                <p className="text-sm text-gray-700">
+                <p className="text-xs md:text-sm text-gray-700">
                   Week of{' '}
                   {new Date(insight.weekStart).toLocaleDateString('en-US', {
                     month: 'short',
@@ -305,36 +305,37 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
                   <span className="hidden sm:inline">Upgrade</span>
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => generateInsights({ forceRegenerate: true })}
-                disabled={isGenerating}
-                className="text-gray-800 hover:bg-white/50"
-                aria-label="Regenerate insights"
-              >
-                <RefreshCw
-                  size={16}
-                  className={isGenerating ? 'animate-spin' : ''}
-                />
-              </Button>
+              {
+                // only show regenerate button if the current day is the last day of the current insight week
+                new Date(insight.weekEnd).getTime() < Date.now() && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => generateInsights({ forceRegenerate: true })}
+                    disabled={isGenerating}
+                    className="text-gray-800 hover:bg-white/50"
+                    aria-label="Regenerate insights"
+                  >
+                    <RefreshCw
+                      size={16}
+                      className={isGenerating ? 'animate-spin' : ''}
+                    />
+                  </Button>
+                )
+              }
             </div>
           </div>
 
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6">
-            <p className="text-lg md:text-xl font-semibold text-gray-800 leading-relaxed">
+            <p className="text-md md:text-lg lg:text-xl text-gray-800 leading-relaxed">
               {insight.oneLeverToPull}
             </p>
           </div>
         </div>
-
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gray-800/5 rounded-full blur-2xl" />
       </Card>
 
       {/* Tab Navigation */}
-      <Card className="p-2">
+      <Card className="!p-2 md:!p-4">
         <div className="flex gap-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -376,7 +377,7 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-text-primary">
-                    AI Analysis
+                    CHITRA Analysis
                   </h3>
                   <p className="text-sm text-text-secondary">
                     Based on your activity this week
@@ -390,70 +391,78 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
 
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {insight.insights.map((item, index) => {
-                const Icon = getInsightIcon(item.type);
-                const severityColors = {
-                  critical: 'from-red-50 to-red-100 border-red-200',
-                  warning: 'from-yellow-50 to-yellow-100 border-yellow-200',
-                  info: 'from-blue-50 to-blue-100 border-blue-200',
-                };
-                const bgGradient = severityColors[item.severity || 'info'];
+              {/* Exclude streak_status, task_completion, and best_time_of_day */}
+              {insight.insights
+                .filter(
+                  (item) =>
+                    item.type !== 'streak_status' &&
+                    item.type !== 'task_completion' &&
+                    item.type !== 'best_time_of_day'
+                )
+                .map((item, index) => {
+                  const Icon = getInsightIcon(item.type);
+                  const severityColors = {
+                    critical: 'from-red-50 to-red-100 border-red-200',
+                    warning: 'from-yellow-50 to-yellow-100 border-yellow-200',
+                    info: 'from-blue-50 to-blue-100 border-blue-200',
+                  };
+                  const bgGradient = severityColors[item.severity || 'info'];
 
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                  >
-                    <Card
-                      className={`p-5 bg-gradient-to-br ${bgGradient} border-2`}
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 bg-white rounded-xl shadow-sm">
-                          <Icon size={24} className="text-gray-800" />
+                      <Card
+                        className={`p-5 bg-gradient-to-br ${bgGradient} border-2`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 bg-white rounded-xl shadow-sm">
+                            <Icon size={24} className="text-gray-800" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-text-primary mb-3">
+                              {item.message}
+                            </p>
+                            {item.metric && (
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl font-bold text-gray-800">
+                                  {item.metric.current}
+                                </span>
+                                {item.metric.change !== undefined && (
+                                  <div className="flex items-center gap-1">
+                                    {item.metric.trend === 'up' ? (
+                                      <TrendingUp
+                                        size={16}
+                                        className="text-green-600"
+                                      />
+                                    ) : (
+                                      <TrendingDown
+                                        size={16}
+                                        className="text-red-600"
+                                      />
+                                    )}
+                                    <span
+                                      className={`text-sm font-semibold ${
+                                        item.metric.trend === 'up'
+                                          ? 'text-green-600'
+                                          : 'text-red-600'
+                                      }`}
+                                    >
+                                      {Math.abs(item.metric.change)}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-text-primary mb-3">
-                            {item.message}
-                          </p>
-                          {item.metric && (
-                            <div className="flex items-center gap-3">
-                              <span className="text-2xl font-bold text-gray-800">
-                                {item.metric.current}
-                              </span>
-                              {item.metric.change !== undefined && (
-                                <div className="flex items-center gap-1">
-                                  {item.metric.trend === 'up' ? (
-                                    <TrendingUp
-                                      size={16}
-                                      className="text-green-600"
-                                    />
-                                  ) : (
-                                    <TrendingDown
-                                      size={16}
-                                      className="text-red-600"
-                                    />
-                                  )}
-                                  <span
-                                    className={`text-sm font-semibold ${
-                                      item.metric.trend === 'up'
-                                        ? 'text-green-600'
-                                        : 'text-red-600'
-                                    }`}
-                                  >
-                                    {Math.abs(item.metric.change)}%
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                );
-              })}
+                      </Card>
+                    </motion.div>
+                  );
+                })}
             </div>
           </motion.div>
         )}
@@ -688,7 +697,7 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
       {/* Footer */}
       <div className="text-center">
         <p className="text-xs text-text-muted">
-          Generated by {insight.model} in{' '}
+          Analysed by {insight.model} in{' '}
           {(insight.generationLatencyMs / 1000).toFixed(1)}s
         </p>
       </div>

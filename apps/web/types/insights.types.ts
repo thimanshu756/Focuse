@@ -33,4 +33,5 @@ export interface UserProfile {
   email: string;
   currentStreak: number;
   subscriptionTier: 'FREE' | 'PRO';
+  createdAt?: string | Date;
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { motion } from 'framer-motion';
 import { TreeCard } from './TreeCard';
 import { Session } from '@/types/forest.types';
@@ -10,30 +11,68 @@ interface TreeGridProps {
   isLoading?: boolean;
 }
 
-// Generate natural forest positions for trees
-function generateForestLayout(sessionCount: number) {
-  const positions: Array<{ x: number; y: number; depth: number }> = [];
-  const rows = Math.ceil(sessionCount / 8);
+// Responsive cell dimensions based on viewport
+function getCellDimensions(viewportWidth: number) {
+  if (viewportWidth < 640) {
+    // Mobile: smaller cells for compact layout
+    return { width: 100, height: 140 };
+  } else if (viewportWidth < 1024) {
+    // Tablet: medium cells
+    return { width: 140, height: 160 };
+  } else {
+    // Desktop: larger cells
+    return { width: 160, height: 180 };
+  }
+}
 
-  for (let i = 0; i < sessionCount; i++) {
-    const row = Math.floor(i / 8);
-    const col = i % 8;
+// Calculate optimal grid layout based on tree count and viewport
+function calculateGridLayout(
+  sessionCount: number,
+  viewportWidth: number = 1024
+) {
+  if (sessionCount === 0)
+    return { cols: 0, rows: 0, cellWidth: 160, cellHeight: 180 };
 
-    // Add some randomness to make it look natural
-    const baseX = col * 12.5 + Math.random() * 3;
-    const baseY = row * 25 + Math.random() * 8;
+  const cellDimensions = getCellDimensions(viewportWidth);
 
-    // Depth for layering effect (0-1, where 1 is foreground)
-    const depth = 0.4 + Math.random() * 0.6;
-
-    positions.push({
-      x: baseX,
-      y: baseY,
-      depth,
-    });
+  // Determine base columns based on viewport size
+  let baseCols: number;
+  if (viewportWidth < 640) {
+    baseCols = 3; // Mobile: 3 columns for better grid appearance
+  } else if (viewportWidth < 1024) {
+    baseCols = 4; // Tablet: 4 columns
+  } else if (viewportWidth < 1440) {
+    baseCols = 5; // Desktop: 5 columns
+  } else {
+    baseCols = 6; // Large desktop: 6 columns
   }
 
-  return positions;
+  // Calculate how many cells we can fit given minimum cell width
+  const availableWidth = viewportWidth - 32; // Account for padding (16px each side)
+  const maxColsByWidth = Math.floor(availableWidth / cellDimensions.width);
+
+  // Use the smaller of baseCols and maxColsByWidth to ensure cells aren't too small
+  const cols = Math.max(2, Math.min(baseCols, maxColsByWidth, sessionCount));
+
+  // Calculate rows needed
+  const rows = Math.ceil(sessionCount / cols);
+
+  return {
+    cols,
+    rows,
+    cellWidth: cellDimensions.width,
+    cellHeight: cellDimensions.height,
+  };
+}
+
+// Calculate container height based on grid layout
+function calculateContainerHeight(rows: number, cellHeight: number): number {
+  // Each row needs cellHeight + gap
+  const rowHeight = cellHeight + 16; // 16px gap between rows
+  const baseHeight = 40; // Top padding (reduced)
+  const bottomHeight = 60; // Bottom padding (reduced)
+
+  return Math.max(300, baseHeight + rows * rowHeight + bottomHeight);
 }
 
 export function TreeGrid({
@@ -41,7 +80,30 @@ export function TreeGrid({
   onTreeClick,
   isLoading = false,
 }: TreeGridProps) {
-  const layout = generateForestLayout(sessions.length);
+  // Calculate grid layout based on viewport width (using client-side)
+  const [gridLayout, setGridLayout] = React.useState({
+    cols: 4,
+    rows: 1,
+    cellWidth: 160,
+    cellHeight: 180,
+  });
+
+  React.useEffect(() => {
+    function updateLayout() {
+      const viewportWidth = window.innerWidth;
+      const layout = calculateGridLayout(sessions.length, viewportWidth);
+      setGridLayout(layout);
+    }
+
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    return () => window.removeEventListener('resize', updateLayout);
+  }, [sessions.length]);
+
+  const containerHeight = calculateContainerHeight(
+    gridLayout.rows,
+    gridLayout.cellHeight
+  );
 
   if (isLoading) {
     return (
@@ -54,10 +116,23 @@ export function TreeGrid({
     );
   }
 
+  if (sessions.length === 0) {
+    return (
+      <div className="relative w-full min-h-[400px] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-text-secondary">No trees planted yet</p>
+          <p className="text-sm text-text-muted mt-2">
+            Complete focus sessions to grow your forest
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="relative w-full overflow-x-auto pb-16"
-      style={{ overflow: 'visible' }}
+      className="relative w-full overflow-hidden pb-16"
+      style={{ minHeight: `${containerHeight}px` }}
     >
       {/* Forest Ground */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-green-700/30 via-green-600/15 to-transparent pointer-events-none" />
@@ -67,9 +142,9 @@ export function TreeGrid({
         <div className="w-full h-full bg-gradient-to-t from-green-800/20 to-transparent" />
       </div>
 
-      {/* Forest Container */}
+      {/* Forest Grid Container */}
       <motion.div
-        className="relative pt-20 pb-16 px-8 min-h-[500px]"
+        className="relative pt-12 pb-12 px-4 sm:pt-16 sm:pb-16 sm:px-8"
         style={{
           backgroundImage: `
             radial-gradient(circle at 20% 80%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
@@ -83,26 +158,24 @@ export function TreeGrid({
           show: {
             opacity: 1,
             transition: {
-              staggerChildren: 0.03,
+              staggerChildren: 0.05,
             },
           },
         }}
       >
-        {sessions.map((session, index) => {
-          const position = layout[index];
-          if (!position) return null;
-
-          return (
+        {/* CSS Grid for tree layout */}
+        <div
+          className="grid w-full max-w-7xl mx-auto"
+          style={{
+            gridTemplateColumns: `repeat(${gridLayout.cols}, minmax(${gridLayout.cellWidth}px, 1fr))`,
+            gridAutoRows: `minmax(${gridLayout.cellHeight}px, auto)`,
+            gap: '16px',
+          }}
+        >
+          {sessions.map((session) => (
             <motion.div
               key={session.id}
-              className="absolute"
-              style={{
-                left: `${position.x}%`,
-                top: `${position.y}%`,
-                zIndex: Math.floor(position.depth * 100),
-                opacity: 0.6 + position.depth * 0.4, // Foreground trees more visible
-                transform: `scale(${0.7 + position.depth * 0.3})`, // Size based on depth
-              }}
+              className="flex items-center justify-center hover:z-10 relative"
               variants={{
                 hidden: {
                   opacity: 0,
@@ -110,9 +183,9 @@ export function TreeGrid({
                   scale: 0,
                 },
                 show: {
-                  opacity: 0.6 + position.depth * 0.4,
+                  opacity: 1,
                   y: 0,
-                  scale: 0.7 + position.depth * 0.3,
+                  scale: 1,
                   transition: {
                     type: 'spring',
                     stiffness: 200,
@@ -121,15 +194,17 @@ export function TreeGrid({
                 },
               }}
             >
-              <TreeCard session={session} onClick={onTreeClick} />
+              <div className="scale-75 sm:scale-90 md:scale-100">
+                <TreeCard session={session} onClick={onTreeClick} />
+              </div>
             </motion.div>
-          );
-        })}
+          ))}
+        </div>
       </motion.div>
 
       {/* Clouds */}
       <motion.div
-        className="absolute top-4 right-16 text-2xl opacity-30 pointer-events-none"
+        className="absolute top-4 right-16 text-2xl opacity-30 pointer-events-none hidden sm:block"
         animate={{
           x: [0, 20, 0],
         }}
@@ -143,7 +218,7 @@ export function TreeGrid({
       </motion.div>
 
       <motion.div
-        className="absolute top-12 right-48 text-xl opacity-20 pointer-events-none"
+        className="absolute top-12 right-48 text-xl opacity-20 pointer-events-none hidden md:block"
         animate={{
           x: [0, -15, 0],
         }}

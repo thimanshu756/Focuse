@@ -184,7 +184,7 @@ export default function ForestPage() {
                   </div>
 
                   {/* Tree Type Filter */}
-                  <div className="w-full sm:w-64">
+                  {/* <div className="w-full sm:w-64">
                     <label className="block text-sm font-medium text-text-secondary mb-2">
                       Tree Type
                     </label>
@@ -209,7 +209,7 @@ export default function ForestPage() {
                       }}
                       placeholder="Select tree type"
                     />
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Clear Filters Button */}

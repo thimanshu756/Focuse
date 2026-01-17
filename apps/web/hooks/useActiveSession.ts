@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 
 interface ActiveSession {
@@ -16,11 +16,15 @@ export function useActiveSession() {
   const [session, setSession] = useState<ActiveSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isInitialLoad = useRef(true);
 
   useEffect(() => {
     const fetchActiveSession = async () => {
       try {
-        setIsLoading(true);
+        // Only show loading state on initial load, not during polls
+        if (isInitialLoad.current) {
+          setIsLoading(true);
+        }
         setError(null);
 
         const response = await api.get('/sessions/active');
@@ -47,7 +51,10 @@ export function useActiveSession() {
         }
         setSession(null);
       } finally {
-        setIsLoading(false);
+        if (isInitialLoad.current) {
+          setIsLoading(false);
+          isInitialLoad.current = false;
+        }
       }
     };
 

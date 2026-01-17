@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -53,6 +53,17 @@ export default function InsightsPage() {
 
   const { stats, userProfile, sessions, isLoading, error, refetch } =
     useInsightsData(period);
+
+  // Check if user has at least 7 days of data (must be before any early returns)
+  const hasWeekData = useMemo(() => {
+    if (!userProfile?.createdAt) return false;
+    const createdAt = new Date(userProfile.createdAt);
+    const now = new Date();
+    const daysSinceCreation = Math.floor(
+      (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return daysSinceCreation >= 5;
+  }, [userProfile?.createdAt]);
 
   // Set mounted state after hydration
   useEffect(() => {
@@ -303,14 +314,40 @@ export default function InsightsPage() {
         )}
 
         {/* AI Weekly Insights - Moved to Bottom */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="mt-12"
-        >
-          <WeeklyAIInsights isPro={isPro} onUpgrade={handleUpgrade} />
-        </motion.div>
+        {!isLoading && userProfile ? (
+          hasWeekData ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+              className="mt-12"
+            >
+              <WeeklyAIInsights isPro={isPro} onUpgrade={handleUpgrade} />
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+              className="mt-12"
+            >
+              <Card className="p-12 text-center">
+                <div className="text-7xl mb-6">🤖</div>
+                <h3 className="text-2xl font-semibold text-text-primary mb-3">
+                  CHITRA is analysing you
+                </h3>
+                <p className="text-base text-text-secondary mb-2 max-w-md mx-auto">
+                  CHITRA is collecting and analysing your focus patterns. It
+                  will generate a detailed report after the 7th day of your
+                  journey.
+                </p>
+                <p className="text-sm text-text-secondary mt-4">
+                  Keep focusing! Your insights will be ready soon. 🌱
+                </p>
+              </Card>
+            </motion.div>
+          )
+        ) : null}
       </main>
     </>
   );

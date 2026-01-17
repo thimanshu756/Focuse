@@ -947,32 +947,60 @@ DEADLINE: ${deadline.toISOString().split('T')[0]} (${daysUntilDeadline} days fro
 PRIORITY: ${priority || 'MEDIUM'}
 
 CRITICAL INSTRUCTIONS:
-1. Break this task into 2-8 clear, actionable subtasks
-2. Each subtask must be specific and achievable
-3. Estimate realistic time for each subtask (between 5 and 480 minutes)
-4. Ensure the total estimated time is reasonable for the ${daysUntilDeadline}-day deadline
-5. Use clear, concise titles (maximum 200 characters each)
-6. Optional descriptions should be helpful but brief (maximum 500 characters)
+
+Break this task into 2-8 clear, actionable subtasks
+
+Each subtask must be specific and achievable
+
+Estimate realistic time for each subtask (between 5 and 480 minutes)
+
+Ensure the total estimated time is reasonable for the ${daysUntilDeadline}-day deadline
+
+Use clear, concise titles (maximum 200 characters each)
+
+Optional descriptions should be helpful but brief (maximum 500 characters)
+
+TIME CONSTRAINT HANDLING (CRITICAL EDGE CASE RULE):
+
+If the user explicitly mentions a total time duration in the task (e.g., "in 2 hours", "within 90 minutes", "in one day"), you MUST:
+
+Detect and interpret that duration correctly
+
+Treat it as a hard upper limit for total estimated time
+
+Ensure the sum of all estimatedMinutes across subtasks does NOT exceed the mentioned duration
+
+In this case, IGNORE the default deadline-based time distribution and strictly follow the user-provided time constraint
+
+Distribute time proportionally and realistically across subtasks within the given duration
+
+If the mentioned duration is very short, reduce the number of subtasks accordingly while keeping them meaningful
 
 OUTPUT FORMAT REQUIREMENTS:
-- You MUST return ONLY a valid JSON object
-- Do NOT include any markdown formatting (no \`\`\`json or \`\`\`)
-- Do NOT include any explanations, comments, or additional text
-- Do NOT wrap the JSON in code blocks
-- Return ONLY the raw JSON object starting with { and ending with }
+
+You MUST return ONLY a valid JSON object
+
+Do NOT include any markdown formatting (no json or )
+
+Do NOT include any explanations, comments, or additional text
+
+Do NOT wrap the JSON in code blocks
+
+Return ONLY the raw JSON object starting with { and ending with }
 
 REQUIRED JSON STRUCTURE:
 {
-  "tasks": [
-    {
-      "title": "Task title here (1-200 characters)",
-      "estimatedMinutes": 60,
-      "description": "Optional description (max 500 characters)"
-    }
-  ]
+"tasks": [
+{
+"title": "Task title here (1-200 characters)",
+"estimatedMinutes": 60,
+"description": "Optional description (max 500 characters)"
+}
+]
 }
 
 Remember: Return ONLY the JSON object, nothing else.`;
+
   }
 
   /**
