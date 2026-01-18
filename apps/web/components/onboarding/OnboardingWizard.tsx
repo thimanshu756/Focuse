@@ -249,7 +249,7 @@ export function OnboardingWizard() {
           });
 
           toast.success(
-            'Welcome to Sylva! 🌱 Ready for your first focus session?'
+            'Welcome to Focuse! 🌱 Ready for your first focus session?'
           );
           router.push('/dashboard');
         }
@@ -268,7 +268,7 @@ export function OnboardingWizard() {
           });
 
           toast.success(
-            'Welcome to Sylva! 🌱 Ready for your first focus session?'
+            'Welcome to Focuse! 🌱 Ready for your first focus session?'
           );
           router.push('/dashboard');
         }
@@ -292,7 +292,7 @@ export function OnboardingWizard() {
               onboardingCompleted: true,
             });
             toast.success(
-              'Welcome to Sylva! 🌱 Ready for your first focus session?'
+              'Welcome to Focuse! 🌱 Ready for your first focus session?'
             );
             router.push('/dashboard');
           }

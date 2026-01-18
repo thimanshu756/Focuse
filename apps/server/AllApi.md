@@ -1,6 +1,6 @@
-# Sylva API Documentation
+# Focuse API Documentation
 
-Complete API reference for the Sylva Focus Timer application. All APIs follow a three-layer architecture (Routes → Controllers → Services) with comprehensive validation, authentication, and error handling.
+Complete API reference for the Focuse Focus Timer application. All APIs follow a three-layer architecture (Routes → Controllers → Services) with comprehensive validation, authentication, and error handling.
 
 ## Base URL
 
