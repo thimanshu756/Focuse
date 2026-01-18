@@ -125,7 +125,7 @@ export default function InsightsPage() {
     } else {
       toast.error('Upgrade to PRO to export insights');
       // Could navigate to upgrade page
-      // router.push('/upgrade');
+      // router.push('/pricing');
     }
   };
 
@@ -140,7 +140,7 @@ export default function InsightsPage() {
   // Handle upgrade navigation
   const handleUpgrade = () => {
     toast('Upgrade feature coming soon!', { icon: '👑' });
-    // router.push('/upgrade');
+    // router.push('/pricing');
   };
 
   return (

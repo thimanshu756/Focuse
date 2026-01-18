@@ -9,6 +9,8 @@ import taskRoutes from './routes/task.routes.js';
 import sessionRoutes from './routes/session.routes.js';
 import syncRoutes from './routes/sync.routes.js';
 import insightsRoutes from './routes/insights.routes.js';
+import subscriptionRoutes from './routes/subscription.routes.js';
+import webhookRoutes from './routes/webhook.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +28,11 @@ const PORT = env.PORT;
 
 // Middleware
 app.use(cors());
+
+// Webhook routes MUST be registered BEFORE express.json()
+// because they need raw body for signature verification
+app.use('/api/v1/webhooks', webhookRoutes);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -53,6 +60,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/insights', insightsRoutes);
+app.use('/api/v1/subscription', subscriptionRoutes);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
@@ -66,6 +74,8 @@ app.get('/', (req: Request, res: Response) => {
       sessions: '/api/sessions',
       sync: '/api/sync',
       insights: '/api/insights',
+      subscription: '/api/v1/subscription',
+      webhooks: '/api/v1/webhooks',
     }
   });
 });

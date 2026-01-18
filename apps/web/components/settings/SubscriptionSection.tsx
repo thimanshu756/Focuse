@@ -113,7 +113,7 @@ export function SubscriptionSection({ user }: SubscriptionSectionProps) {
           <Button
             variant="primary"
             size="md"
-            onClick={() => router.push('/upgrade')}
+            onClick={() => router.push('/pricing')}
             className="w-full flex items-center justify-center gap-2"
           >
             <Crown size={18} />

@@ -34,8 +34,7 @@ model User {
   subscriptionStatus SubscriptionStatus @default(INACTIVE)
   subscriptionStartDate DateTime?
   subscriptionEndDate DateTime?
-  stripeCustomerId String? 
-  stripeSubscriptionId String? 
+  razorpayCustomerId String? @unique // Razorpay customer ID 
   
   // User preferences
   timezone String @default("UTC")
@@ -77,6 +76,9 @@ model User {
   aiRequests AIRequest[]
   achievements UserAchievement[]
   weeklyInsights WeeklyInsight[]
+  subscriptions Subscription[]
+  payments Payment[]
+  subscriptionAuditLogs SubscriptionAuditLog[]
   
   // Indexes for common queries
   @@index([subscriptionTier, subscriptionStatus])
@@ -335,6 +337,275 @@ model WeeklyInsight {
 }
 
 // ============================================================================
+// SUBSCRIPTION & PAYMENTS
+// ============================================================================
+
+/// Subscription - Track user subscription lifecycle
+model Subscription {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  
+  // Razorpay identifiers
+  razorpaySubscriptionId String @unique // Razorpay subscription ID
+  razorpayPlanId String // Razorpay plan ID
+  razorpayCustomerId String // Razorpay customer ID
+  
+  // Plan details
+  planType SubscriptionPlanType // MONTHLY, YEARLY
+  planAmount Int // Amount in paise (9500 for monthly, 60000 for yearly)
+  currency String @default("INR")
+  
+  // Billing cycle
+  billingCycle Int // 1 for monthly, 12 for yearly
+  currentPeriodStart DateTime
+  currentPeriodEnd DateTime
+  nextBillingDate DateTime?
+  
+  // Status management
+  status SubscriptionStatus @default(ACTIVE)
+  previousStatus SubscriptionStatus? // For tracking status changes
+  
+  // Lifecycle tracking
+  activatedAt DateTime?
+  pausedAt DateTime?
+  cancelledAt DateTime?
+  cancellationReason String? // User-provided reason
+  cancelledBy String? // "user" | "admin" | "payment_failed"
+  expiresAt DateTime? // When subscription actually expires
+  
+  // Auto-renewal
+  autoRenew Boolean @default(true)
+  renewalAttempts Int @default(0) // Track failed renewal attempts
+  lastRenewalAttemptAt DateTime?
+  
+  // Trial (for future use)
+  trialStart DateTime?
+  trialEnd DateTime?
+  isTrialUsed Boolean @default(false)
+  
+  // Payment tracking
+  totalBillingCycles Int @default(0) // Number of successful charges
+  totalAmountPaid Int @default(0) // In paise
+  lastPaymentDate DateTime?
+  nextPaymentAmount Int? // In paise
+  
+  // Metadata
+  metadata Json? // Store additional Razorpay metadata
+  notes Json? // Store custom notes
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
+  
+  // Indexes for queries
+  @@index([userId, status])
+  @@index([status, nextBillingDate]) // For renewal queries
+  @@index([expiresAt]) // For expiry checks
+  @@index([currentPeriodEnd]) // For validation queries
+  @@map("subscriptions")
+}
+
+/// Payment - Track all payment transactions
+model Payment {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  subscriptionId String? @db.ObjectId // Nullable for one-time payments
+  
+  // Razorpay identifiers
+  razorpayPaymentId String @unique
+  razorpayOrderId String
+  razorpaySignature String? // For verification
+  
+  // Payment details
+  amount Int // Amount in paise
+  currency String @default("INR")
+  status PaymentStatus @default(PENDING)
+  
+  // Payment method
+  method PaymentMethod? // card, netbanking, wallet, upi
+  cardNetwork String? // visa, mastercard, amex, rupay
+  cardLast4 String? // Last 4 digits
+  bankName String?
+  walletName String? // paytm, phonepe, etc.
+  vpa String? // UPI ID
+  
+  // Transaction details
+  description String?
+  email String? // Customer email at time of payment
+  contact String? // Customer phone
+  
+  // Refund tracking
+  isRefunded Boolean @default(false)
+  refundedAmount Int @default(0) // In paise
+  refundedAt DateTime?
+  refundReason String?
+  razorpayRefundId String?
+  
+  // Failure tracking
+  errorCode String?
+  errorDescription String?
+  errorReason String? // Razorpay error reason
+  failureSource String? // customer, business, bank
+  retryCount Int @default(0)
+  
+  // Metadata
+  metadata Json? // Store additional data
+  
+  // Audit fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  capturedAt DateTime? // When payment was captured
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  
+  // Indexes
+  @@index([userId, status])
+  @@index([razorpayOrderId])
+  @@index([subscriptionId])
+  @@index([status, createdAt])
+  @@index([createdAt]) // For payment history queries
+  @@map("payments")
+}
+
+/// WebhookEvent - Store all Razorpay webhooks for idempotency
+model WebhookEvent {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Razorpay webhook details
+  razorpayEventId String @unique // For idempotency
+  eventType RazorpayEventType
+  accountId String? // Razorpay account ID
+  
+  // Payload
+  payload Json // Complete webhook payload
+  signature String // Razorpay signature for verification
+  signatureVerified Boolean @default(false)
+  
+  // Processing status
+  status WebhookStatus @default(PENDING)
+  processedAt DateTime?
+  failedAt DateTime?
+  
+  // Error handling
+  errorMessage String?
+  retryCount Int @default(0)
+  maxRetries Int @default(3)
+  nextRetryAt DateTime?
+  
+  // Associated entities
+  userId String? @db.ObjectId // If identifiable
+  subscriptionId String? @db.ObjectId
+  paymentId String? @db.ObjectId
+  
+  // Audit
+  receivedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Indexes
+  @@index([eventType, status])
+  @@index([status, nextRetryAt]) // For retry queries
+  @@index([receivedAt])
+  @@index([userId]) // For user-specific webhook queries
+  @@map("webhook_events")
+}
+
+/// SubscriptionAuditLog - Audit trail for compliance and debugging
+model SubscriptionAuditLog {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Entity tracking
+  userId String @db.ObjectId
+  subscriptionId String? @db.ObjectId
+  paymentId String? @db.ObjectId
+  
+  // Action details
+  action SubscriptionAction
+  actor SubscriptionActor // USER, SYSTEM, ADMIN, WEBHOOK
+  actorId String? // Admin user ID if applicable
+  
+  // State changes
+  previousState Json? // Previous state snapshot
+  newState Json? // New state snapshot
+  changes Json? // Specific fields that changed
+  
+  // Context
+  reason String? // Why this action was taken
+  metadata Json? // Additional context
+  ipAddress String?
+  userAgent String?
+  
+  // Audit
+  timestamp DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Indexes
+  @@index([userId, timestamp])
+  @@index([subscriptionId, timestamp])
+  @@index([action, timestamp])
+  @@index([actor, timestamp])
+  @@map("subscription_audit_logs")
+}
+
+/// PlanConfiguration - Dynamic plan management
+model PlanConfiguration {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Plan identification
+  planId String @unique // "pro_monthly", "pro_yearly"
+  razorpayPlanId String @unique // Razorpay plan ID
+  
+  // Plan details
+  name String // "Pro Monthly", "Pro Yearly"
+  description String?
+  tier SubscriptionTier // PRO
+  billingPeriod SubscriptionPlanType // MONTHLY, YEARLY
+  
+  // Pricing
+  amount Int // In paise
+  currency String @default("INR")
+  
+  // Features & limits
+  features Json // Array of features
+  aiRequestsLimit Int? // null = unlimited
+  maxDevices Int @default(5)
+  exportEnabled Boolean @default(true)
+  prioritySupport Boolean @default(true)
+  
+  // Availability
+  isActive Boolean @default(true)
+  availableFrom DateTime @default(now())
+  availableUntil DateTime? // For limited-time plans
+  
+  // Marketing
+  displayOrder Int @default(0)
+  isPopular Boolean @default(false)
+  savingsPercentage Float? // For yearly plan
+  
+  // Trial (optional)
+  trialDays Int @default(0)
+  
+  // Metadata
+  metadata Json?
+  
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([isActive, displayOrder])
+  @@index([tier, billingPeriod])
+  @@map("plan_configurations")
+}
+
+// ============================================================================
 // ENUMS
 // ============================================================================
 
@@ -420,4 +691,92 @@ enum NotificationType {
   ACHIEVEMENT       // "Achievement unlocked!"
   SUBSCRIPTION      // Billing/subscription updates
   SYSTEM            // App updates, maintenance
+}
+
+// ============================================================================
+// SUBSCRIPTION & PAYMENT ENUMS
+// ============================================================================
+
+enum SubscriptionPlanType {
+  MONTHLY
+  YEARLY
+}
+
+enum PaymentStatus {
+  PENDING       // Payment initiated
+  AUTHORIZED    // Payment authorized but not captured
+  CAPTURED      // Payment successful
+  FAILED        // Payment failed
+  REFUNDED      // Full refund
+  PARTIAL_REFUND // Partial refund
+}
+
+enum PaymentMethod {
+  CARD
+  NETBANKING
+  WALLET
+  UPI
+  EMI
+  CARDLESS_EMI
+  PAYLATER
+}
+
+enum WebhookStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+  IGNORED     // Duplicate or irrelevant events
+}
+
+enum RazorpayEventType {
+  // Subscription events
+  SUBSCRIPTION_ACTIVATED
+  SUBSCRIPTION_CHARGED
+  SUBSCRIPTION_COMPLETED
+  SUBSCRIPTION_PENDING
+  SUBSCRIPTION_HALTED
+  SUBSCRIPTION_CANCELLED
+  SUBSCRIPTION_PAUSED
+  SUBSCRIPTION_RESUMED
+  SUBSCRIPTION_UPDATED
+  
+  // Payment events
+  PAYMENT_AUTHORIZED
+  PAYMENT_CAPTURED
+  PAYMENT_FAILED
+  PAYMENT_PENDING
+  
+  // Refund events
+  REFUND_CREATED
+  REFUND_PROCESSED
+  REFUND_FAILED
+  
+  // Order events
+  ORDER_PAID
+}
+
+enum SubscriptionAction {
+  CREATED
+  ACTIVATED
+  UPGRADED
+  DOWNGRADED
+  RENEWED
+  PAUSED
+  RESUMED
+  CANCELLED
+  EXPIRED
+  PAYMENT_SUCCEEDED
+  PAYMENT_FAILED
+  REFUND_ISSUED
+  TRIAL_STARTED
+  TRIAL_ENDED
+}
+
+enum SubscriptionActor {
+  USER
+  SYSTEM
+  ADMIN
+  WEBHOOK
+  CRON_JOB
 }

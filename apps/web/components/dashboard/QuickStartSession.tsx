@@ -127,7 +127,7 @@ export function QuickStartSession({
               <button
                 onClick={() => {
                   toast.dismiss(t.id);
-                  router.push('/upgrade');
+                  router.push('/pricing');
                 }}
                 className="px-3 py-1.5 text-sm font-semibold text-white bg-accent rounded-lg hover:bg-accent/90 transition-colors whitespace-nowrap"
               >

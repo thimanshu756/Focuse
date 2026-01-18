@@ -100,7 +100,7 @@ export function Header({
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => router.push('/upgrade')}
+                onClick={() => router.push('/pricing')}
                 className="hidden sm:flex items-center gap-2"
               >
                 <Crown size={16} />

@@ -81,5 +81,30 @@ export const rateLimiters = {
     windowMs: 60 * 1000, // 1 minute
     message: 'Too many complete/fail requests',
   }),
+  subscriptionCreate: createRateLimiter({
+    max: process.env.NODE_ENV === 'production' ? 3 : 100,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    message: 'Too many subscription creation attempts. Please try again later.',
+  }),
+  paymentVerify: createRateLimiter({
+    max: 10,
+    windowMs: 60 * 1000, // 1 minute
+    message: 'Too many payment verification attempts. Please try again later.',
+  }),
+  subscriptionCancel: createRateLimiter({
+    max: 5,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    message: 'Too many cancellation attempts. Please try again later.',
+  }),
+  subscriptionResume: createRateLimiter({
+    max: 5,
+    windowMs: 60 * 60 * 1000, // 1 hour
+    message: 'Too many resume attempts. Please try again later.',
+  }),
+  webhook: createRateLimiter({
+    max: 1000,
+    windowMs: 60 * 1000, // 1 minute
+    message: 'Too many webhook requests. Please try again later.',
+  }),
 };
 

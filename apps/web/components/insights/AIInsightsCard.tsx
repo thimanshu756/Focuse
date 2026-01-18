@@ -106,7 +106,7 @@ export function AIInsightsCard({ stats, isPro }: AIInsightsCardProps) {
           <Button
             variant="primary"
             size="lg"
-            onClick={() => router.push('/upgrade')}
+            onClick={() => router.push('/pricing')}
           >
             Upgrade to PRO
           </Button>
