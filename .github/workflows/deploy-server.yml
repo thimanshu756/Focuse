@@ -33,12 +33,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: '${{ env.SERVER_PATH }}/package-lock.json'
 
       - name: Install dependencies
         working-directory: ${{ env.SERVER_PATH }}
-        run: npm ci
+        run: npm install
 
       - name: Validate Prisma schema
         working-directory: ${{ env.SERVER_PATH }}
@@ -149,7 +147,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: ${{ env.SERVER_PATH }}
-        run: npm ci
+        run: npm install
 
       - name: Generate Prisma Client
         working-directory: ${{ env.SERVER_PATH }}
