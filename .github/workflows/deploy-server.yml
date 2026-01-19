@@ -155,15 +155,6 @@ jobs:
         working-directory: ${{ env.SERVER_PATH }}
         run: npx prisma generate
 
-      - name: Run Prisma migrations
-        working-directory: ${{ env.SERVER_PATH }}
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          echo "🔄 Running database migrations..."
-          npx prisma migrate deploy
-          echo "✅ Migrations completed successfully"
-
   # ============================================================================
   # JOB 4: DEPLOY TO KOYEB
   # ============================================================================
