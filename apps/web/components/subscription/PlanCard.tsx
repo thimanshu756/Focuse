@@ -22,7 +22,7 @@ export function PlanCard({
 
   return (
     <motion.div
-      className={`relative bg-white rounded-3xl p-8 shadow-[0_8px_24px_rgba(15,23,42,0.08)] 
+      className={`relative bg-white rounded-3xl p-8 shadow-[0_8px_24px_rgba(15,23,42,0.08)] h-full flex flex-col
         ${plan.isPopular ? 'ring-2 ring-[#D7F50A]' : ''}`}
       whileHover={{ scale: 1.02 }}
       transition={{ duration: 0.2 }}
@@ -78,11 +78,25 @@ export function PlanCard({
         )}
       </div>
 
+      {/* Features list */}
+      <div className="mt-8 space-y-4 flex-grow">
+        {plan.features.map((feature, index) => (
+          <div key={index} className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
+              <Check size={14} className="text-green-600" />
+            </div>
+            <span className="text-[#0F172A] text-sm leading-relaxed">
+              {feature}
+            </span>
+          </div>
+        ))}
+      </div>
+
       {/* CTA Button */}
       <button
         onClick={() => onSubscribe(plan.planId)}
         disabled={isCurrentPlan || isSubscribing}
-        className={`w-full py-3.5 rounded-full font-semibold text-[15px] transition-all duration-200
+        className={`w-full py-3.5 rounded-full mt-5 font-semibold text-[15px] transition-all duration-200 mt-auto
           ${
             plan.isPopular
               ? 'bg-[#D7F50A] text-[#0F172A] hover:bg-[#E9FF6A] hover:scale-[1.02]'
@@ -118,20 +132,6 @@ export function PlanCard({
           'Subscribe Now'
         )}
       </button>
-
-      {/* Features list */}
-      <div className="mt-8 space-y-4">
-        {plan.features.map((feature, index) => (
-          <div key={index} className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-5 h-5 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
-              <Check size={14} className="text-green-600" />
-            </div>
-            <span className="text-[#0F172A] text-sm leading-relaxed">
-              {feature}
-            </span>
-          </div>
-        ))}
-      </div>
     </motion.div>
   );
 }

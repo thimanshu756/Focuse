@@ -1,16 +1,65 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, X, Sparkles } from 'lucide-react';
+import { Check, X, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSubscriptionPlans } from '../../hooks/useSubscription';
 import { useRazorpayCheckout } from '../../components/subscription/RazorpayCheckout';
 import { PlanCard } from '../../components/subscription/PlanCard';
+import { Navigation } from '@/components/landing/Navigation';
+import { Footer } from '@/components/landing/Footer';
+import { isAuthenticated } from '@/lib/auth';
+import { api } from '@/lib/api';
+
+interface UserProfile {
+  id: string;
+  name: string;
+  subscriptionTier: 'FREE' | 'PRO';
+  avatar?: string | null;
+}
 
 export default function PricingPage() {
   const router = useRouter();
   const { plans, currentPlan, isLoading, error } = useSubscriptionPlans();
   const { initiateCheckout, isSubscribing } = useRazorpayCheckout();
+  const [mounted, setMounted] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Fetch user profile if authenticated
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (!isAuthenticated()) {
+      setUserProfile(null);
+      return;
+    }
+
+    const fetchUserProfile = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        if (response.data.success && response.data.data) {
+          // Handle both response formats
+          const user = response.data.data.user || response.data.data;
+          setUserProfile({
+            id: user.id,
+            name: user.name || '',
+            subscriptionTier: user.subscriptionTier || 'FREE',
+            avatar: user.avatar || null,
+          });
+        }
+      } catch (error) {
+        // Silently fail - user might not be authenticated or token expired
+        setUserProfile(null);
+      }
+    };
+
+    fetchUserProfile();
+  }, [mounted]);
 
   const handleSubscribe = (planId: string) => {
     initiateCheckout(planId, () => {
@@ -37,19 +86,15 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
-      {/* Header */}
-      <div className="px-5 py-6">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-[#64748B] hover:text-[#0F172A] transition-colors"
-        >
-          <ArrowLeft size={20} />
-          <span className="font-medium">Back</span>
-        </button>
-      </div>
+      <Navigation
+        userTier={userProfile?.subscriptionTier}
+        userName={userProfile?.name}
+        userAvatar={userProfile?.avatar}
+        userId={userProfile?.id}
+      />
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-5 py-12 lg:py-20">
+      <div className="max-w-7xl mx-auto px-5 pt-24 pb-12 lg:pt-32 lg:py-20">
         <motion.div
           className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
@@ -87,7 +132,7 @@ export default function PricingPage() {
           </div>
         ) : (
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto"
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch"
             initial="hidden"
             animate="show"
             variants={{
@@ -103,6 +148,7 @@ export default function PricingPage() {
               .map((plan) => (
                 <motion.div
                   key={plan.planId}
+                  className="flex flex-col"
                   variants={{
                     hidden: { opacity: 0, y: 20 },
                     show: { opacity: 1, y: 0 },
@@ -146,19 +192,31 @@ export default function PricingPage() {
 
               {/* Feature rows */}
               {[
-                { feature: 'AI Task Breakdown', free: false, pro: true },
-                { feature: 'AI Requests', free: '5/month', pro: 'Unlimited' },
                 { feature: 'Focus Timer', free: true, pro: true },
-                { feature: 'Task Management', free: true, pro: true },
-                { feature: 'Basic Analytics', free: true, pro: true },
-                { feature: 'Advanced Insights', free: false, pro: true },
-                { feature: 'Weekly AI Reports', free: false, pro: true },
-                { feature: 'Export Data (CSV/PDF)', free: false, pro: true },
                 {
-                  feature: 'Multiple Devices',
-                  free: '1 device',
-                  pro: '5 devices',
+                  feature: 'Weekly AI Reports',
+                  free: '1 report',
+                  pro: 'Unlimited',
                 },
+                {
+                  feature: 'Daily Sessions',
+                  free: '3 sessions',
+                  pro: 'Unlimited',
+                },
+                { feature: 'Session Notes', free: '3 notes', pro: 'Unlimited' },
+                {
+                  feature: 'Focus Ambient Sounds',
+                  free: '1 sound',
+                  pro: '5+ sounds',
+                },
+                { feature: 'AI Task Breakdown', free: false, pro: true },
+                {
+                  feature: 'Advanced Analytics & Insights',
+                  free: false,
+                  pro: true,
+                },
+                { feature: 'Weekly AI Insights', free: false, pro: true },
+                { feature: 'Export Data (CSV/PDF)', free: false, pro: true },
                 { feature: 'Priority Support', free: false, pro: true },
               ].map((row, index) => (
                 <div key={index} className="contents">
@@ -234,7 +292,7 @@ export default function PricingPage() {
         </motion.div>
 
         {/* CTA Section */}
-        <motion.div
+        {/* <motion.div
           className="mt-20 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -247,8 +305,10 @@ export default function PricingPage() {
           >
             Contact Support →
           </button>
-        </motion.div>
+        </motion.div> */}
       </div>
+
+      <Footer />
     </div>
   );
 }

@@ -56,12 +56,10 @@ export function Hero() {
                 whileTap={{ scale: 0.98 }}
               >
                 <a
-                  href="#demo"
-                  onClick={scrollToDemo}
+                  href="/pricing"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold bg-white text-text-primary border-2 border-accent rounded-full hover:bg-accent/10 transition-all shadow-sm"
                 >
-                  <Play size={20} />
-                  See How It Works
+                  See Pricing
                 </a>
               </motion.div>
             </div>

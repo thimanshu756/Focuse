@@ -18,36 +18,17 @@ const footerSections: FooterSection[] = [
     title: 'Product',
     links: [
       { label: 'Features', href: '#features' },
-      { label: 'Pricing', href: '#pricing' },
-      { label: 'Changelog', href: '/changelog' },
+      { label: 'Pricing', href: '/pricing' },
     ],
   },
-  {
-    title: 'Resources',
-    links: [
-      { label: 'Blog', href: '/blog' },
-      { label: 'Help Center', href: '/help' },
-      { label: 'API Docs', href: '/docs' },
-    ],
-  },
+
   {
     title: 'Legal',
     links: [
       { label: 'Privacy', href: '/privacy' },
       { label: 'Terms', href: '/terms' },
-      { label: 'Contact', href: '/contact' },
     ],
   },
-];
-
-const socialLinks = [
-  { icon: Twitter, href: 'https://twitter.com/focuseapp', label: 'Twitter' },
-  {
-    icon: Linkedin,
-    href: 'https://linkedin.com/company/focuseapp',
-    label: 'LinkedIn',
-  },
-  { icon: Github, href: 'https://github.com/focuseapp', label: 'GitHub' },
 ];
 
 export function Footer() {
@@ -71,7 +52,7 @@ export function Footer() {
             </p>
 
             {/* Social Icons */}
-            <div className="flex items-center gap-4 mt-6">
+            {/* <div className="flex items-center gap-4 mt-6">
               {socialLinks.map((social) => {
                 const Icon = social.icon;
                 return (
@@ -90,7 +71,7 @@ export function Footer() {
                   </a>
                 );
               })}
-            </div>
+            </div> */}
           </div>
 
           {/* Footer Sections */}

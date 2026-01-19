@@ -50,11 +50,10 @@ export function FinalCTA() {
 
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <a
-              href="#demo"
+              href="/pricing"
               className="inline-flex items-center justify-center gap-2 px-10 py-5 text-lg font-semibold bg-white text-text-primary border-2 border-accent rounded-full hover:bg-accent/10 transition-all shadow-md"
             >
-              <Play size={22} />
-              Watch 60s Demo
+              See Pricing
             </a>
           </motion.div>
         </motion.div>
