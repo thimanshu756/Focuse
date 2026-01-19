@@ -90,3 +90,25 @@ export const changePasswordSchema = z.object({
   }),
 });
 
+// Helper to validate IANA timezone (used in updateProfileSchema)
+const timezoneOptionalSchema = z.string().refine(
+  (tz) => {
+    try {
+      Intl.DateTimeFormat(undefined, { timeZone: tz });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  { message: 'Invalid IANA timezone' }
+).optional().default('UTC');
+
+export const googleAuthSchema = z.object({
+  body: z.object({
+    idToken: z
+      .string()
+      .min(1, 'Google ID token is required')
+      .max(10000, 'Invalid Google ID token'), // Google ID tokens are typically ~800-2000 chars
+    timezone: timezoneOptionalSchema,
+  }),
+});

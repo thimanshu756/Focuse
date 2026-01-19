@@ -1,8 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
+import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 
 export default function ForgotPasswordPage() {
   return (
@@ -29,21 +29,16 @@ export default function ForgotPasswordPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-sm text-text-muted text-center"
           >
-            Password reset functionality coming soon
+            Enter your email address and we'll send you a link to reset your
+            password
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="text-center"
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Link
-              href="/login"
-              className="text-sm font-medium text-accent hover:text-accent-soft transition-colors focus:outline-none focus:ring-2 focus:ring-accent rounded px-1 py-0.5"
-            >
-              ← Back to Sign In
-            </Link>
+            <ForgotPasswordForm />
           </motion.div>
         </Card>
       </motion.div>

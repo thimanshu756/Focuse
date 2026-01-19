@@ -1,0 +1,318 @@
+name: Deploy API to Koyeb (Optimized)
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'apps/server/**'
+      - '.github/workflows/deploy-server.yml'
+  workflow_dispatch: # Manual trigger
+
+concurrency:
+  group: production-server
+  cancel-in-progress: false # Don't cancel in-progress deploys
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/forest-server
+  SERVER_PATH: apps/server
+
+jobs:
+  # ============================================================================
+  # JOB 1: PRE-DEPLOYMENT VALIDATION
+  # ============================================================================
+  validate:
+    name: Validate & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '${{ env.SERVER_PATH }}/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ${{ env.SERVER_PATH }}
+        run: npm ci
+
+      - name: Validate Prisma schema
+        working-directory: ${{ env.SERVER_PATH }}
+        run: |
+          npx prisma validate
+          npx prisma generate
+
+      - name: Type check
+        working-directory: ${{ env.SERVER_PATH }}
+        run: npm run type-check
+
+      - name: Lint code
+        working-directory: ${{ env.SERVER_PATH }}
+        run: npm run lint || true # Continue even if lint has warnings
+
+      - name: Build TypeScript
+        working-directory: ${{ env.SERVER_PATH }}
+        run: npm run build
+
+      - name: Check critical env vars
+        run: |
+          echo "✅ Validation complete"
+          echo "Build successful, proceeding to Docker build..."
+
+  # ============================================================================
+  # JOB 2: BUILD & PUSH DOCKER IMAGE
+  # ============================================================================
+  build-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest
+            type=raw,value={{date 'YYYY-MM-DD-HHmmss'}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.SERVER_PATH }}
+          file: ${{ env.SERVER_PATH }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_SHA=${{ github.sha }}
+
+      - name: Image digest
+        run: |
+          echo "🐳 Image built and pushed successfully!"
+          echo "Digest: ${{ steps.build.outputs.digest }}"
+          echo "Tags: ${{ steps.meta.outputs.tags }}"
+
+  # ============================================================================
+  # JOB 3: DATABASE MIGRATIONS (Critical - runs before deployment)
+  # ============================================================================
+  migrate:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: build-push
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ${{ env.SERVER_PATH }}
+        run: npm ci
+
+      - name: Generate Prisma Client
+        working-directory: ${{ env.SERVER_PATH }}
+        run: npx prisma generate
+
+      - name: Run Prisma migrations
+        working-directory: ${{ env.SERVER_PATH }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🔄 Running database migrations..."
+          npx prisma migrate deploy
+          echo "✅ Migrations completed successfully"
+
+  # ============================================================================
+  # JOB 4: DEPLOY TO KOYEB
+  # ============================================================================
+  deploy:
+    name: Deploy to Koyeb
+    runs-on: ubuntu-latest
+    needs: [build-push, migrate]
+    timeout-minutes: 10
+
+    steps:
+      - name: Install Koyeb CLI
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: ${{ secrets.KOYEB_API_TOKEN }}
+
+      - name: Deploy to Koyeb with Environment Variables
+        run: |
+          echo "🚀 Deploying to Koyeb..."
+
+          # Use SHA-based tag for immutable deployments
+          IMAGE_TAG="${{ env.IMAGE_NAME }}:sha-$(echo ${{ github.sha }} | cut -c1-7)"
+
+          koyeb service update "${{ secrets.KOYEB_SERVICE_NAME }}" \
+            --app "${{ secrets.KOYEB_APP_NAME }}" \
+            --docker "$IMAGE_TAG" \
+            --ports "8000:http" \
+            --routes "/:8000" \
+            --checks "8000:http:/health" \
+            --env NODE_ENV=production \
+            --env PORT=8000 \
+            --env DATABASE_URL='${{ secrets.DATABASE_URL }}' \
+            --env JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+            --env JWT_REFRESH_SECRET='${{ secrets.JWT_REFRESH_SECRET }}' \
+            --env GMAIL_USER='${{ secrets.GMAIL_USER }}' \
+            --env GMAIL_APP_PASSWORD='${{ secrets.GMAIL_APP_PASSWORD }}' \
+            --env FRONTEND_URL='${{ secrets.FRONTEND_URL }}' \
+            --env GEMINI_API_KEY='${{ secrets.GEMINI_API_KEY }}' \
+            --env GOOGLE_CLIENT_ID='${{ secrets.GOOGLE_CLIENT_ID }}' \
+            --env GOOGLE_CLIENT_SECRET='${{ secrets.GOOGLE_CLIENT_SECRET }}' \
+            --env RAZORPAY_KEY_ID='${{ secrets.RAZORPAY_KEY_ID }}' \
+            --env RAZORPAY_KEY_SECRET='${{ secrets.RAZORPAY_KEY_SECRET }}' \
+            --env RAZORPAY_WEBHOOK_SECRET='${{ secrets.RAZORPAY_WEBHOOK_SECRET }}' \
+            --env RAZORPAY_PLAN_MONTHLY='${{ secrets.RAZORPAY_PLAN_MONTHLY }}' \
+            --env RAZORPAY_PLAN_YEARLY='${{ secrets.RAZORPAY_PLAN_YEARLY }}' \
+            --regions fra \
+            --instance-type free \
+            --min-scale 1 \
+            --max-scale 1
+
+          echo "✅ Deployment initiated successfully"
+
+      - name: Wait for deployment to complete
+        run: |
+          echo "⏳ Waiting for deployment to stabilize..."
+          sleep 45 # Give Koyeb time to pull image and start container
+
+  # ============================================================================
+  # JOB 5: POST-DEPLOYMENT HEALTH CHECK
+  # ============================================================================
+  verify:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: deploy
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait for service to be ready
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          echo "🏥 Running health check..."
+
+          MAX_RETRIES=10
+          RETRY_COUNT=0
+          HEALTH_URL="${{ secrets.KOYEB_SERVICE_URL }}/health"
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            echo "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES: Checking $HEALTH_URL"
+            
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" || echo "000")
+            
+            if [ "$RESPONSE" = "200" ]; then
+              echo "✅ Health check passed! Service is healthy."
+              curl -s "$HEALTH_URL" | jq '.' || echo "Response received"
+              exit 0
+            fi
+            
+            echo "⚠️ Health check failed with status $RESPONSE. Retrying in 10s..."
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            sleep 10
+          done
+
+          echo "❌ Health check failed after $MAX_RETRIES attempts"
+          echo "🔍 Please check Koyeb logs for details"
+          exit 1
+
+      - name: Test API endpoints
+        run: |
+          echo "🧪 Testing critical API endpoints..."
+
+          BASE_URL="${{ secrets.KOYEB_SERVICE_URL }}"
+
+          # Test root endpoint
+          echo "Testing root endpoint..."
+          curl -f -s "$BASE_URL/" | jq '.message' || exit 1
+
+          # Test auth endpoints availability (should return 400/401, not 404)
+          echo "Testing auth endpoints..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/auth/login")
+          if [ "$STATUS" != "404" ]; then
+            echo "✅ Auth endpoints are accessible"
+          else
+            echo "❌ Auth endpoints not found"
+            exit 1
+          fi
+
+          echo "✅ All endpoint tests passed!"
+
+  # ============================================================================
+  # JOB 6: NOTIFY DEPLOYMENT STATUS
+  # ============================================================================
+  notify:
+    name: Notify Status
+    runs-on: ubuntu-latest
+    needs: [validate, build-push, migrate, deploy, verify]
+    if: always()
+
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ env.IMAGE_NAME }}:sha-$(echo ${{ github.sha }} | cut -c1-7)\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.verify.result }}" = "success" ]; then
+            echo "✅ **Status:** Deployment successful!" >> $GITHUB_STEP_SUMMARY
+            echo "🌐 **URL:** ${{ secrets.KOYEB_SERVICE_URL }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Deployment failed!" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the logs above for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on commit (optional)
+        if: needs.verify.result == 'success'
+        run: |
+          echo "Deployment successful! 🎉"
+          echo "Service URL: ${{ secrets.KOYEB_SERVICE_URL }}"

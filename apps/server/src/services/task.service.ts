@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
+import { aiService } from './ai.service.js';
 import {
   CreateTaskInput,
   UpdateTaskInput,
@@ -10,6 +11,8 @@ import {
   AIBreakdownResponse,
   BulkDeleteInput,
   BulkDeleteResponse,
+  BulkCreateInput,
+  BulkCreateResponse,
 } from '../types/task.types.js';
 
 // Type for Prisma transaction client
@@ -19,7 +22,6 @@ type PrismaTransaction = Parameters<Parameters<typeof prisma.$transaction>[0]>[0
 interface TaskWithRelations {
   id: string;
   sessions?: Array<{ id: string; status: string }>;
-  subTasks?: Array<{ id: string; status: string }>;
 }
 
 export class TaskService {
@@ -43,21 +45,6 @@ export class TaskService {
       }
     }
 
-    // Verify parent task exists and belongs to user if provided
-    if (data.parentTaskId) {
-      const parentTask = await prisma.task.findFirst({
-        where: {
-          id: data.parentTaskId,
-          userId,
-          deletedAt: null,
-        },
-      });
-
-      if (!parentTask) {
-        throw new AppError('Parent task not found', 404, 'PARENT_TASK_NOT_FOUND');
-      }
-    }
-
     // Create task
     const task = await prisma.task.create({
       data: {
@@ -67,7 +54,6 @@ export class TaskService {
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
         priority: data.priority || 'MEDIUM',
         estimatedMinutes: data.estimatedMinutes || null,
-        parentTaskId: data.parentTaskId || null,
         tagIds: data.tagIds || [],
         status: 'TODO',
       },
@@ -82,18 +68,34 @@ export class TaskService {
     tasks: TaskResponse[];
     meta: { total: number; page: number; limit: number };
   }> {
-    const { status, priority, page = 1, limit = 20 } = filters;
+    const { status, priority, search, page = 1, limit = 20 } = filters;
 
     const where: any = {
       userId,
     };
 
     if (status) {
-      where.status = status;
+      // Handle both single status and array of statuses
+      if (Array.isArray(status)) {
+        where.status = { in: status };
+      } else {
+        where.status = status;
+      }
     }
 
     if (priority) {
       where.priority = priority;
+    }
+
+    // Search functionality - search in title and description
+    // Note: MongoDB's contains is case-sensitive, but we'll use it for now
+    // For case-insensitive search, consider using text indexes or client-side filtering
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      where.OR = [
+        { title: { contains: searchTerm } },
+        { description: { contains: searchTerm } },
+      ];
     }
 
     const [tasks, total] = await Promise.all([
@@ -126,26 +128,13 @@ export class TaskService {
         id: taskId,
         userId,
       },
-      include: {
-        subTasks: {
-          where: {
-            deletedAt: null,
-          },
-          orderBy: { createdAt: 'asc' },
-        },
-      },
     });
 
     if (!task) {
       throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
     }
 
-    const formattedTask = this.formatTaskResponse(task as any);
-    if (task.subTasks && task.subTasks.length > 0) {
-      formattedTask.subTasks = task.subTasks.map((st: any) => this.formatTaskResponse(st));
-    }
-
-    return formattedTask;
+    return this.formatTaskResponse(task);
   }
 
   async updateTask(
@@ -158,14 +147,6 @@ export class TaskService {
       where: {
         id: taskId,
         userId,
-        deletedAt: null,
-      },
-      include: {
-        subTasks: {
-          where: {
-            status: { not: 'COMPLETED' },
-          },
-        },
       },
     });
 
@@ -192,15 +173,6 @@ export class TaskService {
           'INVALID_ESTIMATED_MINUTES'
         );
       }
-    }
-
-    // Check if trying to complete parent task with incomplete subtasks
-    if (data.status === 'COMPLETED' && existingTask.subTasks.length > 0) {
-      throw new AppError(
-        'Cannot complete task with incomplete subtasks',
-        400,
-        'INCOMPLETE_SUBTASKS'
-      );
     }
 
     // Prepare update data
@@ -248,11 +220,6 @@ export class TaskService {
             status: 'RUNNING',
           },
         },
-        subTasks: {
-          where: {
-            deletedAt: null,
-          },
-        },
       },
     });
 
@@ -269,36 +236,13 @@ export class TaskService {
       );
     }
 
-    // Soft delete task and all subtasks in transaction
-    await prisma.$transaction(async (tx: PrismaTransaction) => {
-      // Soft delete main task
-      await tx.task.update({
-        where: { id: taskId },
-        data: { deletedAt: new Date() },
-      });
-
-      // Soft delete all subtasks
-      if (task.subTasks.length > 0) {
-        await tx.task.updateMany({
-          where: {
-            parentTaskId: taskId,
-            deletedAt: null,
-          },
-          data: { deletedAt: new Date() },
-        });
-      }
-
-      // Unlink from sessions (set taskId to null)
-      await tx.focusSession.updateMany({
-        where: {
-          taskId,
-          status: { not: 'RUNNING' },
-        },
-        data: { taskId: null },
-      });
+    // Hard delete task
+    // Note: Sessions will have taskId set to null automatically due to onDelete: SetNull
+    await prisma.task.delete({
+      where: { id: taskId },
     });
 
-    logger.info('Task deleted', { userId, taskId });
+    logger.info('Task hard deleted', { userId, taskId });
   }
 
   async completeTask(userId: string, taskId: string): Promise<TaskResponse> {
@@ -306,29 +250,11 @@ export class TaskService {
       where: {
         id: taskId,
         userId,
-        deletedAt: null,
-      },
-      include: {
-        subTasks: {
-          where: {
-            deletedAt: null,
-            status: { not: 'COMPLETED' },
-          },
-        },
       },
     });
 
     if (!task) {
       throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
-    }
-
-    // Check if has incomplete subtasks
-    if (task.subTasks.length > 0) {
-      throw new AppError(
-        'Cannot complete task with incomplete subtasks',
-        400,
-        'INCOMPLETE_SUBTASKS'
-      );
     }
 
     // Update task and user stats in transaction
@@ -377,7 +303,6 @@ export class TaskService {
       where: {
         id: { in: data.taskIds },
         userId,
-        deletedAt: null,
       },
       include: {
         sessions: {
@@ -402,47 +327,20 @@ export class TaskService {
       );
     }
 
-    // Soft delete all tasks and their subtasks in transaction
-    const deletedCount = await prisma.$transaction(async (tx: PrismaTransaction) => {
-      const now = new Date();
-
-      // Soft delete main tasks
-      await tx.task.updateMany({
-        where: {
-          id: { in: data.taskIds },
-          userId,
-          deletedAt: null,
-        },
-        data: { deletedAt: now },
-      });
-
-      // Soft delete all subtasks
-      await tx.task.updateMany({
-        where: {
-          parentTaskId: { in: data.taskIds },
-          deletedAt: null,
-        },
-        data: { deletedAt: now },
-      });
-
-      // Unlink from sessions
-      await tx.focusSession.updateMany({
-        where: {
-          taskId: { in: data.taskIds },
-          status: { not: 'RUNNING' },
-        },
-        data: { taskId: null },
-      });
-
-      return tasks.length;
+    // Hard delete all tasks
+    // Note: Sessions will have taskId set to null automatically due to onDelete: SetNull
+    const deletedCount = await prisma.task.deleteMany({
+      where: {
+        id: { in: data.taskIds },
+        userId,
+      },
     });
 
-    logger.info('Bulk delete completed', { userId, deletedCount, taskIds: data.taskIds });
+    logger.info('Bulk delete completed', { userId, deletedCount: deletedCount.count, taskIds: data.taskIds });
 
-    return { deletedCount };
+    return { deletedCount: deletedCount.count };
   }
-
-  async aiBreakdown(
+ async aiBreakdown(
     userId: string,
     data: AIBreakdownInput
   ): Promise<AIBreakdownResponse> {
@@ -489,80 +387,176 @@ export class TaskService {
       throw new AppError('Deadline must be in the future', 400, 'INVALID_DEADLINE');
     }
 
-    // TODO: Call actual AI service (Gemini/OpenAI) to break down task
-    // For now, create a mock breakdown
-    const mockSubtasks = [
-      { title: 'Review course materials', estimatedMinutes: 60 },
-      { title: 'Practice problems', estimatedMinutes: 90 },
-      { title: 'Create study notes', estimatedMinutes: 45 },
-    ];
+    // Call AI service to generate task breakdown
+    let aiResponse;
+    let aiRequestStatus: 'SUCCESS' | 'FAILED' | 'RATE_LIMITED' | 'TIMEOUT' = 'SUCCESS';
+    let errorMessage: string | null = null;
+    const aiStartTime = Date.now();
 
-    // Create parent task and subtasks in transaction
-    const result = await prisma.$transaction(async (tx: PrismaTransaction) => {
-      // Create parent task
-      const parentTask = await tx.task.create({
-        data: {
-          userId,
-          title: `AI Breakdown: ${data.prompt.substring(0, 100)}`,
-          description: `AI-generated task breakdown for: ${data.prompt}`,
-          dueDate: deadline,
-          priority: data.priority || 'MEDIUM',
-          status: 'TODO',
-          isAIGenerated: true,
-          aiPrompt: data.prompt,
-        },
+    try {
+      aiResponse = await aiService.generateTaskBreakdown(
+        data.prompt,
+        deadline,
+        data.priority
+      );
+    } catch (error) {
+      // Handle AI service errors
+      if (error instanceof AppError) {
+        // Map error codes to AI request statuses
+        if (error.code === 'AI_RATE_LIMITED') {
+          aiRequestStatus = 'RATE_LIMITED';
+        } else if (error.code === 'AI_TIMEOUT') {
+          aiRequestStatus = 'TIMEOUT';
+        } else {
+          aiRequestStatus = 'FAILED';
+        }
+        errorMessage = error.message;
+
+        // Re-throw user-facing errors
+        throw error;
+      }
+
+      // Unexpected errors
+      aiRequestStatus = 'FAILED';
+      errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('Unexpected AI service error', {
+        userId,
+        error: errorMessage,
       });
+      throw new AppError(
+        'Failed to generate task breakdown. Please try again.',
+        500,
+        'AI_SERVICE_ERROR'
+      );
+    }
+    
+    // Create all tasks as independent tasks in transaction
+    // const result = await prisma.$transaction(async (tx: PrismaTransaction) => {
+    //   // Create all independent tasks from AI response
+    //   const tasks = await Promise.all(
+    //     aiResponse.data.tasks.map((task) =>
+    //       tx.task.create({
+    //         data: {
+    //           userId,
+    //           title: task.title,
+    //           description: task.description || `AI-generated task from breakdown: ${data.prompt}`,
+    //           dueDate: deadline,
+    //           priority: data.priority || 'MEDIUM',
+    //           estimatedMinutes: task.estimatedMinutes,
+    //           status: 'TODO',
+    //           isAIGenerated: true,
+    //           aiPrompt: data.prompt,
+    //         },
+    //       })
+    //     )
+    //   );
 
-      // Create subtasks
-      const subtasks = await Promise.all(
-        mockSubtasks.map((subtask) =>
+    //   // Update AI request count (only on success)
+    //   if (aiRequestStatus === 'SUCCESS') {
+    //     await tx.user.update({
+    //       where: { id: userId },
+    //       data: {
+    //         aiRequestsThisMonth: { increment: 1 },
+    //       },
+    //     });
+    //   }
+
+    //   // Log AI request with full details
+    //   await tx.aIRequest.create({
+    //     data: {
+    //       userId,
+    //       requestType: 'TASK_BREAKDOWN',
+    //       prompt: data.prompt,
+    //       response: JSON.stringify(aiResponse.data),
+    //       provider: aiResponse.provider,
+    //       model: aiResponse.model,
+    //       tokensUsed: aiResponse.tokensUsed || null,
+    //       latencyMs: aiResponse.latencyMs,
+    //       status: aiRequestStatus,
+    //       errorMessage: errorMessage,
+    //     },
+    //   });
+
+    //   return tasks;
+    // });
+
+    // logger.info('AI breakdown created', {
+    //   userId,
+    //   prompt: data.prompt,
+    //   tasksCount: result.length,
+    // });
+
+    return {
+      tasks: aiResponse.data.tasks,
+    };
+  }
+
+  async bulkCreate(userId: string, data: BulkCreateInput): Promise<BulkCreateResponse> {
+    if (data.tasks.length === 0) {
+      throw new AppError('No tasks provided', 400, 'NO_TASKS');
+    }
+
+    if (data.tasks.length > 50) {
+      throw new AppError('Maximum 50 tasks can be created at once', 400, 'TOO_MANY_TASKS');
+    }
+
+    // Validate all tasks before creating
+    for (const taskData of data.tasks) {
+      // Validate due date if provided
+      if (taskData.dueDate) {
+        const dueDate = new Date(taskData.dueDate);
+        if (dueDate <= new Date()) {
+          throw new AppError(
+            `Due date must be in the future for task: ${taskData.title}`,
+            400,
+            'INVALID_DUE_DATE'
+          );
+        }
+      }
+
+      // Validate estimatedMinutes if provided
+      if (taskData.estimatedMinutes !== undefined) {
+        if (taskData.estimatedMinutes < 5 || taskData.estimatedMinutes > 480) {
+          throw new AppError(
+            `Estimated minutes must be between 5 and 480 for task: ${taskData.title}`,
+            400,
+            'INVALID_ESTIMATED_MINUTES'
+          );
+        }
+      }
+    }
+
+    // Create all tasks in a transaction
+    const result = await prisma.$transaction(async (tx: PrismaTransaction) => {
+      const tasks = await Promise.all(
+        data.tasks.map((taskData) =>
           tx.task.create({
             data: {
               userId,
-              parentTaskId: parentTask.id,
-              title: subtask.title,
-              priority: data.priority || 'MEDIUM',
-              estimatedMinutes: subtask.estimatedMinutes,
+              title: taskData.title,
+              description: taskData.description || null,
+              dueDate: taskData.dueDate ? new Date(taskData.dueDate) : null,
+              priority: taskData.priority || 'MEDIUM',
+              estimatedMinutes: taskData.estimatedMinutes || null,
+              tagIds: taskData.tagIds || [],
               status: 'TODO',
-              isAIGenerated: true,
             },
           })
         )
       );
 
-      // Update AI request count
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          aiRequestsThisMonth: { increment: 1 },
-        },
-      });
-
-      // Log AI request
-      await tx.aIRequest.create({
-        data: {
-          userId,
-          requestType: 'TASK_BREAKDOWN',
-          prompt: data.prompt,
-          response: JSON.stringify(mockSubtasks),
-          provider: 'mock',
-          model: 'mock-model',
-          status: 'SUCCESS',
-        },
-      });
-
-      return { parentTask, subtasks };
+      return tasks;
     });
 
-    logger.info('AI breakdown created', {
+    logger.info('Bulk create completed', {
       userId,
-      prompt: data.prompt,
-      subtasksCount: result.subtasks.length,
+      createdCount: result.length,
+      taskTitles: result.map((t) => t.title),
     });
 
     return {
-      parentTask: this.formatTaskResponse(result.parentTask as any),
-      subtasks: result.subtasks.map((t: any) => this.formatTaskResponse(t)),
+      tasks: result.map((task) => this.formatTaskResponse(task)),
+      createdCount: result.length,
     };
   }
 
@@ -580,7 +574,6 @@ export class TaskService {
       tagIds: task.tagIds,
       isAIGenerated: task.isAIGenerated,
       aiPrompt: task.aiPrompt,
-      parentTaskId: task.parentTaskId,
       scheduledStartTime: task.scheduledStartTime,
       scheduledEndTime: task.scheduledEndTime,
       completedAt: task.completedAt,
@@ -590,3 +583,4 @@ export class TaskService {
   }
 }
 
+ 

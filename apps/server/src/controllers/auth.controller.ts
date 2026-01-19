@@ -12,6 +12,7 @@ import {
   ResetPasswordInput,
   UpdateProfileInput,
   ChangePasswordInput,
+  GoogleAuthInput,
 } from '../types/auth.types.js';
 
 export class AuthController {
@@ -179,6 +180,47 @@ export class AuthController {
       res.json({
         success: true,
         message: 'Password changed successfully. Please login again on all devices.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Google OAuth Authentication
+   * 
+   * Handles Google Sign-In by verifying the ID token and either:
+   * - Creating a new user account
+   * - Linking Google to an existing email/password account
+   * - Logging in an existing Google user
+   * 
+   * POST /api/auth/google
+   * Body: { idToken: string, timezone?: string }
+   */
+  googleAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data: GoogleAuthInput = req.body;
+      const result = await this.authService.googleAuth(data);
+
+      // Customize message based on action taken
+      let message = 'Successfully logged in with Google';
+      if (result.isNewUser) {
+        message = 'Account created successfully. Welcome!';
+      } else if (result.isLinked) {
+        message = 'Login Successfull';
+      }
+
+      res.json({
+        success: true,
+        data: {
+          user: result.user,
+          tokens: result.tokens,
+        },
+        meta: {
+          isNewUser: result.isNewUser,
+          isLinked: result.isLinked,
+        },
+        message,
       });
     } catch (error) {
       next(error);

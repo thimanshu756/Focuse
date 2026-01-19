@@ -107,3 +107,15 @@ export const bulkCompleteSchema = z.object({
   }),
 });
 
+export const forestSessionsSchema = z.object({
+  query: z.object({
+    limit: z
+      .string()
+      .regex(/^\d+$/)
+      .transform(Number)
+      .pipe(z.number().int().min(1).max(100))
+      .optional()
+      .default('50'),
+  }),
+});
+

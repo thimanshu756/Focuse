@@ -2,32 +2,38 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
-  timeout: 10000,
+  timeout: 120000, // 120 seconds (2 minutes) - increased for AI operations
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor - add auth token
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('accessToken');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
+/**
+ * API client specifically for AI operations with extended timeout
+ * Use this for requests that may take longer (e.g., AI task breakdown, AI insights)
+ */
+export const aiApi = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
+  timeout: 150000, // 150 seconds (2.5 minutes) - extra buffer for AI operations
+  headers: {
+    'Content-Type': 'application/json',
   },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+});
 
-// Response interceptor - handle errors and token refresh
-api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
+// Shared request interceptor - add auth token
+const requestInterceptor = (config: InternalAxiosRequestConfig) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('accessToken');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+};
+
+// Shared response interceptor - handle errors and token refresh
+const createResponseInterceptor = (client: typeof api | typeof aiApi) => {
+  return async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
@@ -53,7 +59,7 @@ api.interceptors.response.use(
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${data.data.accessToken}`;
               }
-              return api(originalRequest);
+              return client(originalRequest);
             }
           } catch (refreshError) {
             // Refresh failed, clear tokens and redirect to login
@@ -74,7 +80,25 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  };
+};
+
+// Apply interceptors to default API client
+api.interceptors.request.use(requestInterceptor, (error) =>
+  Promise.reject(error)
+);
+api.interceptors.response.use(
+  (response) => response,
+  createResponseInterceptor(api)
+);
+
+// Apply interceptors to AI API client
+aiApi.interceptors.request.use(requestInterceptor, (error) =>
+  Promise.reject(error)
+);
+aiApi.interceptors.response.use(
+  (response) => response,
+  createResponseInterceptor(aiApi)
 );
 
 export default api;

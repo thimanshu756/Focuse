@@ -27,7 +27,6 @@ export const createTaskSchema = z.object({
       .min(5, 'Estimated minutes must be at least 5')
       .max(480, 'Estimated minutes must be at most 480')
       .optional(),
-    parentTaskId: objectIdSchema.optional(),
     tagIds: z.array(z.string()).max(10, 'Maximum 10 tags allowed').optional(),
   }),
 });
@@ -55,7 +54,21 @@ export const updateTaskSchema = z.object({
 
 export const listTasksSchema = z.object({
   query: z.object({
-    status: taskStatusSchema.optional(),
+    // Accept string or array of strings (Express query params format)
+    status: z
+      .union([
+        taskStatusSchema,
+        z.array(taskStatusSchema),
+        z.string().refine(
+          (val) => ['TODO', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'].includes(val),
+          { message: 'Invalid status value' }
+        ),
+        z.array(z.string()).refine(
+          (arr) => arr.every((val) => ['TODO', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'].includes(val)),
+          { message: 'Invalid status value in array' }
+        ),
+      ])
+      .optional(),
     priority: taskPrioritySchema.optional(),
     page: z
       .string()
@@ -71,6 +84,7 @@ export const listTasksSchema = z.object({
       .pipe(z.number().int().min(1).max(100))
       .optional()
       .default('20'),
+    search: z.string().optional(),
   }),
 });
 
@@ -97,3 +111,25 @@ export const bulkDeleteSchema = z.object({
   }),
 });
 
+export const bulkCreateSchema = z.object({
+  body: z.object({
+    tasks: z
+      .array(
+        z.object({
+          title: z.string().min(1, 'Title is required').max(200, 'Title must be 200 characters or less'),
+          description: z.string().max(1000, 'Description must be 1000 characters or less').optional(),
+          dueDate: futureDateSchema.optional(),
+          priority: taskPrioritySchema.optional().default('MEDIUM'),
+          estimatedMinutes: z
+            .number()
+            .int('Estimated minutes must be an integer')
+            .min(5, 'Estimated minutes must be at least 5')
+            .max(480, 'Estimated minutes must be at most 480')
+            .optional(),
+          tagIds: z.array(z.string()).max(10, 'Maximum 10 tags allowed').optional(),
+        })
+      )
+      .min(1, 'At least one task is required')
+      .max(50, 'Maximum 50 tasks can be created at once'),
+  }),
+});

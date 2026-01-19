@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Card } from '@/components/ui/Card';
-import { api } from '@/lib/api';
+import { api, aiApi } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
 import toast from 'react-hot-toast';
 
@@ -236,7 +236,7 @@ export function OnboardingWizard() {
         const deadline = new Date();
         deadline.setDate(deadline.getDate() + 7); // Default 7 days from now
 
-        const response = await api.post('/tasks/ai-breakdown', {
+        const response = await aiApi.post('/tasks/ai-breakdown', {
           prompt: data.taskTitle,
           deadline: deadline.toISOString(),
           priority: 'MEDIUM',
@@ -249,7 +249,7 @@ export function OnboardingWizard() {
           });
 
           toast.success(
-            'Welcome to Sylva! 🌱 Ready for your first focus session?'
+            'Welcome to Focuse! 🌱 Ready for your first focus session?'
           );
           router.push('/dashboard');
         }
@@ -268,7 +268,7 @@ export function OnboardingWizard() {
           });
 
           toast.success(
-            'Welcome to Sylva! 🌱 Ready for your first focus session?'
+            'Welcome to Focuse! 🌱 Ready for your first focus session?'
           );
           router.push('/dashboard');
         }
@@ -292,7 +292,7 @@ export function OnboardingWizard() {
               onboardingCompleted: true,
             });
             toast.success(
-              'Welcome to Sylva! 🌱 Ready for your first focus session?'
+              'Welcome to Focuse! 🌱 Ready for your first focus session?'
             );
             router.push('/dashboard');
           }

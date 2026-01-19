@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { api } from '@/lib/api';
 import { setAuthTokens, isAuthenticated } from '@/lib/auth';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { AuthDivider } from '@/components/auth/AuthDivider';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -97,13 +99,7 @@ export function LoginForm() {
   const emailRegister = register('email');
   const passwordRegister = register('password');
 
-  const onSubmit = async (
-    data: LoginFormData,
-    e?: React.BaseSyntheticEvent
-  ) => {
-    // Prevent default form submission
-    e?.preventDefault();
-
+  const onSubmit = async (data: LoginFormData) => {
     setServerError(null);
 
     try {
@@ -136,9 +132,6 @@ export function LoginForm() {
         router.push('/dashboard');
       }
     } catch (error: any) {
-      // Prevent any default behavior
-      e?.preventDefault();
-
       // Handle network errors
       if (!error.response) {
         setServerError(
@@ -197,14 +190,7 @@ export function LoginForm() {
   }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleSubmit(onSubmit)(e);
-      }}
-      className="space-y-6"
-      noValidate
-    >
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
       {/* Server Error Display */}
       {serverError && (
         <motion.div
@@ -311,6 +297,15 @@ export function LoginForm() {
       >
         {isSubmitting ? 'Signing in...' : 'Sign In'}
       </Button>
+
+      {/* Divider */}
+      <AuthDivider />
+
+      {/* Google Sign In */}
+      <GoogleSignInButton
+        mode="signin"
+        onError={(error) => setServerError(error)}
+      />
     </form>
   );
 }

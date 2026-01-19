@@ -84,7 +84,6 @@ export class SessionService {
         where: {
           id: data.taskId,
           userId,
-          deletedAt: null,
         },
       });
 
@@ -190,17 +189,18 @@ export class SessionService {
       prisma.focusSession.findMany({
         where,
         include: {
-          task: {
-            select: {
-              id: true,
-              title: true,
-              status: true,
-              priority: true,
-            },
+        task: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            priority: true,
           },
         },
-        orderBy: { startTime: 'desc' },
-        skip: (page - 1) * limit,
+      },
+      orderBy: { startTime: 'desc' },
+      skip: (page - 1) * limit,
         take: limit,
       }),
       prisma.focusSession.count({ where }),
@@ -211,6 +211,47 @@ export class SessionService {
       meta: {
         total,
         page,
+        limit,
+      },
+    };
+  }
+
+  /**
+   * Get forest sessions (completed and failed) in a single query
+   * Optimized for forest page visualization
+   */
+  async getForestSessions(userId: string, limit: number = 50) {
+    // Fetch both completed and failed sessions in a single query
+    const sessions = await prisma.focusSession.findMany({
+      where: {
+        userId,
+        status: { in: ['COMPLETED', 'FAILED'] },
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            priority: true,
+          },
+        },
+      },
+      orderBy: { startTime: 'desc' },
+      take: limit,
+    });
+
+    // Separate and count by status
+    const completedSessions = sessions.filter((s: any) => s.status === 'COMPLETED');
+    const failedSessions = sessions.filter((s: any) => s.status === 'FAILED');
+
+    return {
+      sessions: sessions.map((s: any) => this.formatSessionResponse(s, s.task)),
+      meta: {
+        total: sessions.length,
+        completed: completedSessions.length,
+        failed: failedSessions.length,
         limit,
       },
     };
@@ -227,6 +268,7 @@ export class SessionService {
           select: {
             id: true,
             title: true,
+            description: true,
             status: true,
             priority: true,
           },
@@ -242,7 +284,9 @@ export class SessionService {
     let progress = session.progress;
     if (session.status === 'RUNNING') {
       const now = new Date();
-      const elapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+      // Calculate elapsed time minus any pause duration
+      const totalElapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+      const elapsed = totalElapsed - session.pauseDuration;
       progress = Math.min(100, Math.floor((elapsed / session.duration) * 100));
     }
 
@@ -280,7 +324,9 @@ export class SessionService {
     }
 
     const now = new Date();
-    const elapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+    // Calculate elapsed time minus any previous pause duration
+    const totalElapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+    const elapsed = totalElapsed - session.pauseDuration;
     const progress = Math.min(100, Math.floor((elapsed / session.duration) * 100));
 
     const updatedSession = await prisma.focusSession.update({
@@ -318,26 +364,34 @@ export class SessionService {
       throw new AppError('Session pause time not found', 400, 'INVALID_SESSION_STATE');
     }
 
-    // Check if session expired
-    if (session.endTime < new Date()) {
+    const now = new Date();
+    const currentPauseDuration = Math.floor((now.getTime() - session.pausedAt.getTime()) / 1000);
+    const totalPauseDuration = session.pauseDuration + currentPauseDuration;
+    
+    // Calculate how much actual focus time has elapsed (excluding all pause time)
+    const totalElapsed = Math.floor((session.pausedAt.getTime() - session.startTime.getTime()) / 1000);
+    const actualElapsed = totalElapsed - session.pauseDuration;
+    
+    // Check if the actual focus time has exceeded the duration (session truly expired)
+    if (actualElapsed >= session.duration) {
       throw new AppError('Session expired, start a new one', 400, 'SESSION_EXPIRED');
     }
 
-    const now = new Date();
-    const pauseDuration = Math.floor((now.getTime() - session.pausedAt.getTime()) / 1000);
-    const newEndTime = new Date(session.endTime.getTime() + pauseDuration * 1000);
+    // Calculate new end time: now + remaining time
+    const remainingTime = session.duration - actualElapsed;
+    const newEndTime = new Date(now.getTime() + remainingTime * 1000);
 
     const updatedSession = await prisma.focusSession.update({
       where: { id: sessionId },
       data: {
         status: 'RUNNING',
         pausedAt: null,
-        pauseDuration: session.pauseDuration + pauseDuration,
+        pauseDuration: totalPauseDuration,
         endTime: newEndTime,
       },
     });
 
-    logger.info('Session resumed', { userId, sessionId });
+    logger.info('Session resumed', { userId, sessionId, remainingTime });
 
     return this.formatSessionResponse(updatedSession);
   }
@@ -521,7 +575,9 @@ export class SessionService {
     }
 
     const now = new Date();
-    const elapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+    // Calculate elapsed time minus any pause duration
+    const totalElapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+    const elapsed = totalElapsed - session.pauseDuration;
     const progress = Math.min(100, Math.floor((elapsed / session.duration) * 100));
 
     // Fail session and update stats in transaction
@@ -606,6 +662,7 @@ export class SessionService {
           select: {
             id: true,
             title: true,
+            description: true,
             status: true,
             priority: true,
           },
@@ -622,7 +679,9 @@ export class SessionService {
     let progress = session.progress;
     if (session.status === 'RUNNING') {
       const now = new Date();
-      const elapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+      // Calculate elapsed time minus any pause duration
+      const totalElapsed = Math.floor((now.getTime() - session.startTime.getTime()) / 1000);
+      const elapsed = totalElapsed - session.pauseDuration;
       progress = Math.min(100, Math.floor((elapsed / session.duration) * 100));
     }
 
@@ -659,6 +718,7 @@ export class SessionService {
           select: {
             id: true,
             title: true,
+            description: true,
           },
         },
       },
@@ -871,6 +931,7 @@ export class SessionService {
         ? {
             id: task.id,
             title: task.title,
+            description: task.description,
             status: task.status,
             priority: task.priority,
           }

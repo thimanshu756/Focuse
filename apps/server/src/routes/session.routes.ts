@@ -13,6 +13,7 @@ import {
   listSessionsSchema,
   statsQuerySchema,
   bulkCompleteSchema,
+  forestSessionsSchema,
 } from '../validators/session.validator.js';
 
 const router: Router = Router();
@@ -46,6 +47,15 @@ router.get(
   rateLimiters.standard,
   validateRequest(statsQuerySchema),
   controller.getSessionStats
+);
+
+// GET /api/sessions/forest - Get Forest Sessions (must come before /:id)
+router.get(
+  '/forest',
+  authenticate,
+  rateLimiters.taskList, // 200/min - same as list sessions
+  validateRequest(forestSessionsSchema),
+  controller.getForestSessions
 );
 
 // GET /api/sessions/:id - Get Single Session

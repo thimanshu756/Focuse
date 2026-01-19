@@ -4,7 +4,6 @@ export interface CreateTaskInput {
   dueDate?: string; // ISO date string
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   estimatedMinutes?: number;
-  parentTaskId?: string;
   tagIds?: string[];
 }
 
@@ -19,8 +18,9 @@ export interface UpdateTaskInput {
 }
 
 export interface TaskListFilters {
-  status?: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED';
+  status?: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED' | Array<'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED'>;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -38,13 +38,11 @@ export interface TaskResponse {
   tagIds: string[];
   isAIGenerated: boolean;
   aiPrompt: string | null;
-  parentTaskId: string | null;
   scheduledStartTime: Date | null;
   scheduledEndTime: Date | null;
   completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  subTasks?: TaskResponse[];
 }
 
 export interface TaskWithProject extends TaskResponse {
@@ -57,9 +55,14 @@ export interface AIBreakdownInput {
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 }
 
+export interface AITaskBreakdown {
+  title: string;
+  estimatedMinutes: number;
+  description?: string;
+}
+
 export interface AIBreakdownResponse {
-  parentTask: TaskResponse;
-  subtasks: TaskResponse[];
+  tasks: AITaskBreakdown[];
 }
 
 export interface BulkDeleteInput {
@@ -70,3 +73,11 @@ export interface BulkDeleteResponse {
   deletedCount: number;
 }
 
+export interface BulkCreateInput {
+  tasks: CreateTaskInput[];
+}
+
+export interface BulkCreateResponse {
+  tasks: TaskResponse[];
+  createdCount: number;
+}

@@ -48,8 +48,10 @@ export interface UserResponse {
   preferredFocusTime?: string | null;
   onboardingCompleted?: boolean;
   currentStreak: number;
+  longestStreak: number;
   totalFocusTime: number;
   totalSessions: number;
+  completedSessions: number;
   createdAt: Date;
 }
 
@@ -73,3 +75,15 @@ export interface ChangePasswordInput {
   newPassword: string;
 }
 
+export interface GoogleAuthInput {
+  idToken: string; // Google ID token from client
+  timezone?: string;
+}
+
+export interface GoogleUserInfo {
+  googleId: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  emailVerified: boolean;
+}
