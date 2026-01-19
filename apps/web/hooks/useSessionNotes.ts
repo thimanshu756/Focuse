@@ -232,7 +232,7 @@ export function useSessionNotes({
   );
 
   // Delete note
-  const deleteNote = useCallback((noteId: string) => {
+  const deleteNote = useCallback(async (noteId: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
   }, []);
 

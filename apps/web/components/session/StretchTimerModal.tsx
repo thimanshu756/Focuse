@@ -189,7 +189,7 @@ export function StretchTimerModal({ onClose }: StretchTimerModalProps) {
                 </Button>
                 <Button
                   onClick={onClose}
-                  variant="outline"
+                  variant="secondary"
                   size="lg"
                   className="flex-1"
                 >

@@ -18,6 +18,7 @@ interface TreeData {
   color: string;
   icon: string;
   label: string;
+  [key: string]: string | number; // Index signature for recharts compatibility
 }
 
 function calculateTreeDistribution(sessions: Session[]): TreeData[] {
