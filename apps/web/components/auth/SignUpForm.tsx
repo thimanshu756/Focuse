@@ -12,6 +12,8 @@ import { Input } from '@/components/ui/Input';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 import { api } from '@/lib/api';
 import { setAuthTokens, isAuthenticated } from '@/lib/auth';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { AuthDivider } from '@/components/auth/AuthDivider';
 
 const signUpSchema = z
   .object({
@@ -288,6 +290,15 @@ export function SignUpForm() {
       >
         Create Account
       </Button>
+
+      {/* Divider */}
+      <AuthDivider />
+
+      {/* Google Sign In */}
+      <GoogleSignInButton
+        mode="signup"
+        onError={(error) => setServerError(error)}
+      />
     </form>
   );
 }

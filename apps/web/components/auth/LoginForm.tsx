@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/Input';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { api } from '@/lib/api';
 import { setAuthTokens, isAuthenticated } from '@/lib/auth';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { AuthDivider } from '@/components/auth/AuthDivider';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -295,6 +297,15 @@ export function LoginForm() {
       >
         {isSubmitting ? 'Signing in...' : 'Sign In'}
       </Button>
+
+      {/* Divider */}
+      <AuthDivider />
+
+      {/* Google Sign In */}
+      <GoogleSignInButton
+        mode="signin"
+        onError={(error) => setServerError(error)}
+      />
     </form>
   );
 }

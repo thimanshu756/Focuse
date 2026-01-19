@@ -31,7 +31,9 @@ import {
   ChangePasswordInput,
   UserResponse,
   TokensResponse,
+  GoogleAuthInput,
 } from '../types/auth.types.js';
+import { verifyGoogleToken } from '../lib/google-oauth.js';
 
 export class AuthService {
   async register(data: RegisterInput): Promise<{
@@ -94,8 +96,10 @@ export class AuthService {
         emailVerified: true,
         timezone: true,
         currentStreak: true,
+        longestStreak: true,
         totalFocusTime: true,
         totalSessions: true,
+        completedSessions: true,
         createdAt: true,
       },
     });
@@ -658,6 +662,296 @@ export class AuthService {
     // This would require maintaining a token blacklist or user token version
 
     logger.info('Password changed', { userId });
+  }
+
+  /**
+   * Google OAuth Authentication
+   * 
+   * Handles three scenarios:
+   * 1. New user → Create account with Google
+   * 2. Existing user with email/password but no Google → Link Google account
+   * 3. Existing user with Google → Login
+   * 
+   * Security considerations:
+   * - Always verify Google token server-side
+   * - Google emails are pre-verified (emailVerified = true)
+   * - Check for soft-deleted accounts
+   * - Handle duplicate googleId edge cases
+   * 
+   * @param data - Google authentication input with ID token
+   * @returns User and tokens
+   */
+  async googleAuth(data: GoogleAuthInput): Promise<{
+    user: UserResponse;
+    tokens: TokensResponse;
+    isNewUser: boolean;
+    isLinked: boolean;
+  }> {
+    // Step 1: Verify Google token and extract user info
+    const googleUser = await verifyGoogleToken(data.idToken);
+
+    // Step 2: Check if user exists with this Google ID
+    let user = await prisma.user.findFirst({
+      where: {
+        googleId: googleUser.googleId,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        subscriptionTier: true,
+        subscriptionStatus: true,
+        emailVerified: true,
+        timezone: true,
+        userType: true,
+        preferredFocusTime: true,
+        onboardingCompleted: true,
+        currentStreak: true,
+        longestStreak: true,
+        totalFocusTime: true,
+        totalSessions: true,
+        completedSessions: true,
+        createdAt: true,
+        googleId: true,
+      },
+    });
+
+    // Step 3: If user exists with Google ID → Login
+    if (user) {
+      // Update last login
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { 
+          lastLoginAt: new Date(),
+          // Update avatar if Google profile picture changed
+          avatar: googleUser.avatar || user.avatar,
+        },
+      });
+
+      const tokens = this.generateTokens(user.id, user.email);
+
+      logger.info('User logged in with Google', {
+        userId: user.id,
+        email: user.email,
+        googleId: googleUser.googleId,
+      });
+
+      return {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: googleUser.avatar || user.avatar,
+          subscriptionTier: user.subscriptionTier,
+          subscriptionStatus: user.subscriptionStatus,
+          emailVerified: user.emailVerified,
+          timezone: user.timezone,
+          userType: user.userType,
+          preferredFocusTime: user.preferredFocusTime,
+          onboardingCompleted: user.onboardingCompleted ?? false,
+          currentStreak: user.currentStreak,
+          longestStreak: user.longestStreak,
+          totalFocusTime: user.totalFocusTime,
+          totalSessions: user.totalSessions,
+          completedSessions: user.completedSessions,
+          createdAt: user.createdAt,
+        },
+        tokens,
+        isNewUser: false,
+        isLinked: false,
+      };
+    }
+
+    // Step 4: Check if user exists with this email (but no Google ID yet)
+    const existingEmailUser = await prisma.user.findFirst({
+      where: {
+        email: googleUser.email,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        subscriptionTier: true,
+        subscriptionStatus: true,
+        emailVerified: true,
+        timezone: true,
+        userType: true,
+        preferredFocusTime: true,
+        onboardingCompleted: true,
+        currentStreak: true,
+        longestStreak: true,
+        totalFocusTime: true,
+        totalSessions: true,
+        completedSessions: true,
+        createdAt: true,
+        googleId: true,
+        passwordHash: true,
+      },
+    });
+
+    // Step 5: If user exists with email but no Google ID → Link accounts
+    if (existingEmailUser && !existingEmailUser.googleId) {
+      // Link Google account to existing user
+      const updatedUser = await prisma.user.update({
+        where: { id: existingEmailUser.id },
+        data: {
+          googleId: googleUser.googleId,
+          emailVerified: true, // Google emails are verified
+          avatar: googleUser.avatar || existingEmailUser.avatar, // Update avatar if provided
+          lastLoginAt: new Date(),
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          subscriptionTier: true,
+          subscriptionStatus: true,
+          emailVerified: true,
+          timezone: true,
+          userType: true,
+          preferredFocusTime: true,
+          onboardingCompleted: true,
+          currentStreak: true,
+          longestStreak: true,
+          totalFocusTime: true,
+          totalSessions: true,
+          completedSessions: true,
+          createdAt: true,
+        },
+      });
+
+      const tokens = this.generateTokens(updatedUser.id, updatedUser.email);
+
+      logger.info('Google account linked to existing user', {
+        userId: updatedUser.id,
+        email: updatedUser.email,
+        googleId: googleUser.googleId,
+        hadPassword: !!existingEmailUser.passwordHash,
+      });
+
+      return {
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          avatar: updatedUser.avatar,
+          subscriptionTier: updatedUser.subscriptionTier,
+          subscriptionStatus: updatedUser.subscriptionStatus,
+          emailVerified: updatedUser.emailVerified,
+          timezone: updatedUser.timezone,
+          userType: updatedUser.userType,
+          preferredFocusTime: updatedUser.preferredFocusTime,
+          onboardingCompleted: updatedUser.onboardingCompleted ?? false,
+          currentStreak: updatedUser.currentStreak,
+          longestStreak: updatedUser.longestStreak,
+          totalFocusTime: updatedUser.totalFocusTime,
+          totalSessions: updatedUser.totalSessions,
+          completedSessions: updatedUser.completedSessions,
+          createdAt: updatedUser.createdAt,
+        },
+        tokens,
+        isNewUser: false,
+        isLinked: true,
+      };
+    }
+
+    // Step 6: New user → Create account with Google
+    try {
+      const newUser = await prisma.user.create({
+        data: {
+          name: googleUser.name,
+          email: googleUser.email,
+          googleId: googleUser.googleId,
+          avatar: googleUser.avatar,
+          emailVerified: true, // Google emails are pre-verified
+          timezone: data.timezone || 'UTC',
+          subscriptionTier: 'FREE',
+          subscriptionStatus: 'INACTIVE',
+          passwordHash: null, // OAuth users don't have passwords initially
+          lastLoginAt: new Date(),
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          subscriptionTier: true,
+          subscriptionStatus: true,
+          emailVerified: true,
+          timezone: true,
+          userType: true,
+          preferredFocusTime: true,
+          onboardingCompleted: true,
+          currentStreak: true,
+          longestStreak: true,
+          totalFocusTime: true,
+          totalSessions: true,
+          completedSessions: true,
+          createdAt: true,
+        },
+      });
+
+      const tokens = this.generateTokens(newUser.id, newUser.email);
+
+      logger.info('New user registered with Google', {
+        userId: newUser.id,
+        email: newUser.email,
+        googleId: googleUser.googleId,
+      });
+
+      return {
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+          avatar: newUser.avatar,
+          subscriptionTier: newUser.subscriptionTier,
+          subscriptionStatus: newUser.subscriptionStatus,
+          emailVerified: newUser.emailVerified,
+          timezone: newUser.timezone,
+          userType: newUser.userType,
+          preferredFocusTime: newUser.preferredFocusTime,
+          onboardingCompleted: newUser.onboardingCompleted ?? false,
+          currentStreak: newUser.currentStreak,
+          longestStreak: newUser.longestStreak,
+          totalFocusTime: newUser.totalFocusTime,
+          totalSessions: newUser.totalSessions,
+          completedSessions: newUser.completedSessions,
+          createdAt: newUser.createdAt,
+        },
+        tokens,
+        isNewUser: true,
+        isLinked: false,
+      };
+    } catch (error: unknown) {
+      // Handle potential race conditions or database errors
+      logger.error('Error creating Google OAuth user', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        email: googleUser.email,
+        googleId: googleUser.googleId,
+      });
+
+      // Check if error is due to duplicate email (race condition)
+      if (
+        error instanceof Error &&
+        error.message.includes('Unique constraint')
+      ) {
+        throw new AppError(
+          'An account with this email already exists. Please try logging in.',
+          409,
+          'DUPLICATE_EMAIL'
+        );
+      }
+
+      throw new AppError(
+        'Failed to create account. Please try again.',
+        500,
+        'REGISTRATION_FAILED'
+      );
+    }
   }
 
   private generateTokens(userId: string, email: string): TokensResponse {

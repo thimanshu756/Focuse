@@ -1,7 +1,16 @@
-import { Router } from 'express';
+import { Router, Request } from 'express';
 import express from 'express';
 import { WebhookController } from '../controllers/webhook.controller.js';
 import { rateLimiters } from '../middleware/rate-limiter.middleware.js';
+
+// Extend Express Request to include rawBody
+declare global {
+  namespace Express {
+    interface Request {
+      rawBody?: string;
+    }
+  }
+}
 
 const router: Router = Router();
 const controller = new WebhookController();
@@ -16,12 +25,13 @@ router.post(
   rateLimiters.webhook, // Special rate limiter for webhooks
   (req, res, next) => {
     // Convert raw body to string and store it
-    // @ts-ignore - Add rawBody property
     req.rawBody = req.body.toString('utf8');
     
     // Parse JSON for easier access
     try {
-      req.body = JSON.parse(req.rawBody);
+      if (req.rawBody) {
+        req.body = JSON.parse(req.rawBody);
+      }
     } catch (error) {
       // If parsing fails, let the controller handle it
     }

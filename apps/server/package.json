@@ -24,6 +24,8 @@
     "dotenv": "^16.3.1",
     "express": "^4.22.1",
     "express-rate-limit": "^7.1.5",
+    "fs": "0.0.1-security",
+    "google-auth-library": "^9.6.3",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.8",
     "razorpay": "^2.9.6",

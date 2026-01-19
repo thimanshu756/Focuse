@@ -1,0 +1,74 @@
+========================================
+GOOGLE OAUTH SETUP - FOREST WEB APP
+========================================
+
+Quick Setup (3 steps):
+
+1. GET GOOGLE CLIENT ID
+   - Go to: https://console.cloud.google.com/
+   - Create/Select project
+   - Enable Google+ API
+   - Create OAuth 2.0 Client ID (Web application)
+   - Add authorized origins:
+     * http://localhost:3000 (development)
+     * https://yourdomain.com (production)
+   - Copy Client ID
+
+2. ADD TO ENVIRONMENT
+   Create/Update .env.local file in apps/web/:
+   
+   NEXT_PUBLIC_API_URL=http://localhost:3001/api
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+
+3. INSTALL & RUN
+   cd apps/web
+   pnpm install
+   pnpm dev
+
+FEATURES IMPLEMENTED:
+✓ Google Sign-In button on Login & Signup pages
+✓ Automatic account creation for new users
+✓ Seamless account linking for existing users
+✓ Smooth animations and transitions
+✓ Comprehensive error handling
+✓ Loading states with spinners
+✓ Success messages with emojis
+✓ Toast notifications
+✓ Mobile responsive design
+✓ Accessibility (ARIA labels, keyboard nav)
+✓ Security best practices
+
+EDGE CASES HANDLED:
+✓ Invalid/expired Google token
+✓ Network errors
+✓ Duplicate account prevention
+✓ Account linking for existing email users
+✓ Cancelled sign-in attempts
+✓ Missing environment variables
+
+USER FLOW:
+1. User clicks "Sign in with Google"
+2. Google OAuth popup opens
+3. User selects account
+4. Token sent to backend for verification
+5. One of three scenarios:
+   a) New user → Create account → Show welcome message → Redirect to onboarding
+   b) Existing email user → Link Google → Show linking message → Redirect to dashboard
+   c) Existing Google user → Login → Show success → Redirect to dashboard
+6. Smooth animated transition to next page
+
+CUSTOMIZATIONS:
+- Custom toast styling matching Forest theme
+- Branded Google button with proper sizing
+- Loading spinner matching accent color (#D7F50A)
+- Success/error messages with icons
+- Smooth page transitions with Framer Motion
+
+TROUBLESHOOTING:
+- If button doesn't appear: Check NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local
+- If "Invalid Client ID": Verify Client ID matches Google Cloud Console
+- If CORS error: Add your domain to authorized origins in Google Console
+- If network error: Verify backend is running on http://localhost:3001
+
+For detailed implementation docs, see:
+/apps/server/GOOGLE_OAUTH_IMPLEMENTATION.md (backend)

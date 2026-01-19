@@ -14,6 +14,9 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url('Invalid frontend URL').default('http://localhost:3000'),
   // AI Configuration
   GEMINI_API_KEY: z.string().min(1, 'Gemini API key is required'),
+  // Google OAuth Configuration
+  GOOGLE_CLIENT_ID: z.string().min(1, 'Google Client ID is required'),
+  GOOGLE_CLIENT_SECRET: z.string().min(1, 'Google Client Secret is required'),
   // Razorpay Configuration
   RAZORPAY_KEY_ID: z.string().min(1, 'Razorpay Key ID is required'),
   RAZORPAY_KEY_SECRET: z.string().min(1, 'Razorpay Key Secret is required'),

@@ -14,6 +14,7 @@ import {
   resetPasswordSchema,
   updateProfileSchema,
   changePasswordSchema,
+  googleAuthSchema,
 } from '../validators/auth.validator.js';
 
 const router: Router = Router();
@@ -33,6 +34,14 @@ router.post(
   rateLimiters.auth,
   validateRequest(loginSchema),
   controller.login
+);
+
+// POST /api/auth/google
+router.post(
+  '/google',
+  rateLimiters.auth,
+  validateRequest(googleAuthSchema),
+  controller.googleAuth
 );
 
 // POST /api/auth/refresh

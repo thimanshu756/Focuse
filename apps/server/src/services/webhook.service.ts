@@ -122,7 +122,6 @@ export class WebhookService {
         where: { id: webhookEvent.id },
         data: {
           status: 'PROCESSING' as WebhookStatus,
-          processingStartedAt: new Date(),
         },
       });
 
@@ -513,7 +512,7 @@ export class WebhookService {
         data: {
           status: 'CANCELLED' as SubscriptionStatus,
           cancelledAt: new Date(),
-          autoRenewal: false,
+          autoRenew: false,
           nextBillingDate: null,
         },
       });
@@ -584,8 +583,8 @@ export class WebhookService {
         where: { id: subscription.id },
         data: {
           status: 'EXPIRED' as SubscriptionStatus,
-          completedAt: new Date(),
-          autoRenewal: false,
+          expiresAt: new Date(),
+          autoRenew: false,
           nextBillingDate: null,
         },
       });
@@ -678,13 +677,13 @@ export class WebhookService {
       return 'Subscription not found in database';
     }
 
-    // Update subscription to halted
+    // Update subscription to halted (using INACTIVE status as HALTED is not in enum)
     await prisma.$transaction(async (tx) => {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'HALTED' as SubscriptionStatus,
-          autoRenewal: false,
+          status: 'INACTIVE' as SubscriptionStatus,
+          autoRenew: false,
         },
       });
 
@@ -702,11 +701,11 @@ export class WebhookService {
         data: {
           userId: subscription.userId,
           subscriptionId: subscription.id,
-          action: 'HALTED',
+          action: 'PAUSED',
           actor: 'WEBHOOK',
           actorId: 'razorpay',
           previousState: { status: subscription.status },
-          newState: { status: 'HALTED' },
+          newState: { status: 'INACTIVE' },
           reason: 'Webhook: subscription.halted',
         },
       });
@@ -747,9 +746,8 @@ export class WebhookService {
         where: { id: subscription.id },
         data: {
           status: 'ACTIVE' as SubscriptionStatus,
-          autoRenewal: true,
+          autoRenew: true,
           cancelledAt: null,
-          cancelAtPeriodEnd: false,
         },
       });
 
@@ -815,13 +813,14 @@ export class WebhookService {
       return 'Subscription not found in database';
     }
 
-    // Update subscription to paused
+    // Update subscription to paused (using INACTIVE status and pausedAt field)
     await prisma.$transaction(async (tx) => {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'PAUSED' as SubscriptionStatus,
-          autoRenewal: false,
+          status: 'INACTIVE' as SubscriptionStatus,
+          pausedAt: new Date(),
+          autoRenew: false,
         },
       });
 
@@ -843,7 +842,7 @@ export class WebhookService {
           actor: 'WEBHOOK',
           actorId: 'razorpay',
           previousState: { status: subscription.status },
-          newState: { status: 'PAUSED' },
+          newState: { status: 'INACTIVE', pausedAt: new Date() },
           reason: 'Webhook: subscription.paused',
         },
       });
@@ -893,9 +892,36 @@ export class WebhookService {
     }
 
     // Record failed payment
+    // Determine userId - required field
+    let userId: string | null = null;
+    if (subscription) {
+      userId = subscription.userId;
+    } else if (customerId) {
+      // Try to find user by customer_id if no subscription found
+      const user = await prisma.user.findUnique({
+        where: { razorpayCustomerId: customerId },
+        select: { id: true },
+      });
+      if (user) {
+        userId = user.id;
+      }
+    }
+
+    // Skip payment record if we can't identify the user
+    // (userId is required in Payment model)
+    if (!userId) {
+      logger.warn('Cannot record failed payment: user not found', {
+        razorpayPaymentId: paymentData.id,
+        customerId,
+      });
+      return `Payment failed but user not found: ${paymentData.id}`;
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.payment.create({
         data: {
+          userId,
+          ...(subscription && { subscriptionId: subscription.id }),
           razorpayPaymentId: paymentData.id,
           razorpayOrderId: paymentData.order_id || '',
           amount: paymentData.amount,
@@ -904,16 +930,12 @@ export class WebhookService {
           method: paymentData.method?.toUpperCase() as any,
           email: paymentData.email,
           contact: paymentData.contact,
-          failureReason: paymentData.error_description || paymentData.error_code || 'Unknown',
+          errorReason: paymentData.error_description || paymentData.error_code || 'Unknown',
           metadata: {
             webhookEventId,
             errorCode: paymentData.error_code,
             errorDescription: paymentData.error_description,
           },
-          ...(subscription && {
-            subscriptionId: subscription.id,
-            userId: subscription.userId,
-          }),
         },
       });
 
@@ -993,7 +1015,7 @@ export class WebhookService {
       await tx.payment.update({
         where: { id: payment.id },
         data: {
-          refundAmount: refundData.amount,
+          refundedAmount: refundData.amount,
           refundedAt: new Date(),
           status: refundData.amount >= payment.amount ? 'REFUNDED' : payment.status,
         },
@@ -1018,7 +1040,7 @@ export class WebhookService {
             userId: payment.subscription.userId,
             subscriptionId: payment.subscription.id,
             paymentId: refundData.payment_id,
-            action: 'REFUNDED',
+            action: 'REFUND_ISSUED',
             actor: 'WEBHOOK',
             actorId: 'razorpay',
             reason: 'Webhook: refund.processed',
