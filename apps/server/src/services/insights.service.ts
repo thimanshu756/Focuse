@@ -564,21 +564,28 @@ export class InsightsService {
     const previousWeekEnd = new Date(weekStart);
     previousWeekEnd.setTime(previousWeekEnd.getTime() - 1);
 
-    // Get previous week's last day to check streak
-    const previousWeekLastSession = await prisma.focusSession.findFirst({
-      where: {
-        userId,
-        startTime: {
-          gte: previousWeekStart,
-          lte: previousWeekEnd,
-        },
-        status: 'COMPLETED',
-      },
-      orderBy: { startTime: 'desc' },
-    });
+    // Calculate streak change during this week
+    // Get unique days with completed sessions in current week
+    const completedSessionDays = new Set(
+      sessions
+        .filter((s) => s.status === 'COMPLETED')
+        .map((s) => new Date(s.startTime).toDateString())
+    );
+    const uniqueDaysWithSessions = completedSessionDays.size;
 
-    // Estimate streak change (this is approximate)
-    const streakChange = user ? user.currentStreak : 0;
+    // Streak change is the contribution from this week
+    // If current streak <= 7, the entire streak might be from this week
+    // Otherwise, only count days that contributed to streak this week
+    let streakChange = 0;
+    if (user) {
+      if (user.currentStreak <= 7) {
+        // Streak is recent, likely built within this week or just before
+        streakChange = Math.min(user.currentStreak, uniqueDaysWithSessions);
+      } else {
+        // Longer streak, count this week's contribution (max 7 days)
+        streakChange = uniqueDaysWithSessions;
+      }
+    }
 
     const streakData: StreakData = {
       currentStreak: user?.currentStreak || 0,

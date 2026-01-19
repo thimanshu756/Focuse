@@ -68,7 +68,7 @@ export class SessionService {
         },
       });
 
-      if (sessionsToday >= 7) {
+      if (sessionsToday >= 3) {
         throw new AppError(
           'Free users limited to 3 sessions/day. Upgrade to Pro!',
           403,
