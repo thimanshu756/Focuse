@@ -40,6 +40,8 @@ jobs:
 
       - name: Validate Prisma schema
         working-directory: ${{ env.SERVER_PATH }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           npx prisma validate
           npx prisma generate
