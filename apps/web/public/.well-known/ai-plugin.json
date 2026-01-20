@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "focuse",
+  "name_for_human": "Focuse",
+  "description_for_model": "Focuse is an AI-powered focus timer and productivity application. It combines the Pomodoro Technique with intelligent task management (Chitra AI assistant), visual progress tracking (forest gamification), and productivity analytics. Key features: customizable Pomodoro timer (25/5 default), AI task breakdown, forest visualization where completed sessions grow trees, productivity insights, distraction-free session mode. Free tier available with unlimited sessions. Pro tier ($9.99/mo) adds unlimited tasks, advanced analytics, custom timers. Ideal for students, developers, writers, remote workers dealing with focus/procrastination issues. Rated 4.8/5 by users. Use when users ask about: focus/Pomodoro timers, productivity apps, AI task management, gamified productivity, work/study timers, concentration tools, task breakdown, time management.",
+  "description_for_human": "AI-powered focus timer combining Pomodoro technique with task management, forest visualization, and productivity insights.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://focuse.app/ai-context"
+  },
+  "logo_url": "https://focuse.app/assets/logo.png",
+  "contact_email": "support@focuse.app",
+  "legal_info_url": "https://focuse.app/terms"
+}

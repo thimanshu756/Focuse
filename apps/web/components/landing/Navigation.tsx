@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Crown } from 'lucide-react';
@@ -77,7 +78,14 @@ export function Navigation({
             href="/"
             className="flex items-center gap-2 text-xl font-bold text-text-primary hover:text-accent transition-colors"
           >
-            <span className="text-2xl">🌳</span>
+            <Image
+              src="/assets/logo.png"
+              alt="Focuse Logo"
+              width={32}
+              height={32}
+              className="w-8 h-8"
+              priority
+            />
             <span>FOCUSE</span>
           </Link>
 

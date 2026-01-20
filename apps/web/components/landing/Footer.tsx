@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Twitter, Linkedin, Github } from 'lucide-react';
 
 interface FooterLink {
@@ -43,7 +44,13 @@ export function Footer() {
               href="/"
               className="flex items-center gap-2 text-xl font-bold text-white mb-4"
             >
-              <span className="text-2xl">🌳</span>
+              <Image
+                src="/assets/logo.png"
+                alt="Focuse Logo"
+                width={32}
+                height={32}
+                className="w-8 h-8"
+              />
               <span>FOCUSE</span>
             </Link>
             <p className="text-sm text-text-muted leading-relaxed">

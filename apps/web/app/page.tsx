@@ -13,6 +13,14 @@ import { FinalCTA } from '@/components/landing/FinalCTA';
 import { Footer } from '@/components/landing/Footer';
 import { isAuthenticated } from '@/lib/auth';
 import { api } from '@/lib/api';
+import {
+  OrganizationSchema,
+  WebsiteSchema,
+  SoftwareAppSchema,
+} from '@/components/seo/StructuredData';
+
+// Note: Page-level metadata is inherited from root layout.tsx
+// The root layout already includes comprehensive SEO metadata
 
 interface UserProfile {
   id: string;
@@ -61,22 +69,29 @@ export default function LandingPage() {
   }, [mounted]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
-      <Navigation
-        userTier={userProfile?.subscriptionTier}
-        userName={userProfile?.name}
-        userAvatar={userProfile?.avatar}
-        userId={userProfile?.id}
-      />
-      <Hero />
-      <HowItWorks />
-      <FeaturesGrid />
-      <ChitraSpotlight />
-      {/* <SocialProof /> */}
-      <Pricing />
-      <FAQ />
-      <FinalCTA />
-      <Footer />
-    </div>
+    <>
+      {/* SEO Structured Data */}
+      <OrganizationSchema />
+      <WebsiteSchema />
+      <SoftwareAppSchema />
+
+      <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
+        <Navigation
+          userTier={userProfile?.subscriptionTier}
+          userName={userProfile?.name}
+          userAvatar={userProfile?.avatar}
+          userId={userProfile?.id}
+        />
+        <Hero />
+        <HowItWorks />
+        <FeaturesGrid />
+        <ChitraSpotlight />
+        {/* <SocialProof /> */}
+        <Pricing />
+        <FAQ />
+        <FinalCTA />
+        <Footer />
+      </div>
+    </>
   );
 }
