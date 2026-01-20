@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Header } from '@/components/shared/Header';
+import { BottomNav } from '@/components/shared/BottomNav';
 import { api } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
 
@@ -100,7 +101,8 @@ export default function DashboardLayout({
           userId={userProfile?.id}
         />
       )}
-      {children}
+      <div className={!isSessionPage ? 'pb-20 md:pb-0' : ''}>{children}</div>
+      {!isSessionPage && <BottomNav />}
     </div>
   );
 }
