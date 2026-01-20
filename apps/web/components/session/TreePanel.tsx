@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  ReactNode,
-  useState,
-  useEffect,
-  useImperativeHandle,
-  forwardRef,
-} from 'react';
+import { ReactNode, useState, useImperativeHandle, forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { TreeAnimation } from '@/components/TreeAnimation';
 
@@ -17,6 +11,8 @@ interface TreePanelProps {
   treeType?: 'basic' | 'premium' | 'elite'; // Tree tier based on duration
   isWithering?: boolean; // For give up flow
   isCelebrating?: boolean; // For completion flow
+  orientation?: 'portrait' | 'landscape'; // Mobile orientation
+  isMobile?: boolean; // Is mobile device
 }
 
 export interface TreePanelRef {
@@ -39,6 +35,8 @@ export const TreePanel = forwardRef<TreePanelRef, TreePanelProps>(
       treeType = 'basic',
       isWithering = false,
       isCelebrating = false,
+      orientation = 'portrait',
+      isMobile = false,
     },
     ref
   ) => {
@@ -58,9 +56,39 @@ export const TreePanel = forwardRef<TreePanelRef, TreePanelProps>(
       },
     }));
 
+    // Dynamic sizing based on orientation and screen size
+    const getContainerClasses = () => {
+      if (!isMobile) {
+        return 'relative h-[calc(100vh-0px)] w-full lg:w-[40%] flex items-center justify-center overflow-hidden p-5 lg:p-10';
+      }
+
+      if (orientation === 'landscape') {
+        // Landscape: side-by-side (50% width, full height)
+        return 'relative h-[calc(100vh-60px)] w-1/2 flex items-center justify-center overflow-hidden p-4';
+      } else {
+        // Portrait: stacked (full width, 45% height - more tree visible)
+        return 'relative h-[45vh] w-full flex items-center justify-center overflow-hidden p-6';
+      }
+    };
+
+    // Dynamic tree scale based on orientation
+    const getTreeScale = () => {
+      if (!isMobile) {
+        return 'scale-150 md:scale-[1.8] lg:scale-[2]';
+      }
+
+      if (orientation === 'landscape') {
+        // Landscape: smaller tree to fit side-by-side
+        return 'scale-[1.3]';
+      } else {
+        // Portrait: larger tree for prominence
+        return 'scale-[1.8]';
+      }
+    };
+
     return (
       <div
-        className="relative h-[calc(40vh-24px)] lg:h-[calc(100vh-0px)] w-full lg:w-[40%] flex items-center justify-center overflow-hidden p-5 lg:p-10"
+        className={getContainerClasses()}
         style={{ background: backgroundGradient }}
       >
         {/* Ambient Animations - Behind tree */}
@@ -74,7 +102,7 @@ export const TreePanel = forwardRef<TreePanelRef, TreePanelProps>(
         <div className="relative z-10 w-full h-full flex items-center justify-center">
           <motion.div
             key={`pulse-${pulseKey}`}
-            className="scale-150 md:scale-[1.8] lg:scale-[2] origin-center"
+            className={`${getTreeScale()} origin-center`}
             animate={
               pulseKey > 0
                 ? {

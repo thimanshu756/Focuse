@@ -26,6 +26,8 @@ interface TimerPanelProps {
   onComplete: () => void;
   onSessionUpdate?: (session: any) => void;
   onProgressUpdate?: (progress: number) => void;
+  orientation?: 'portrait' | 'landscape'; // Mobile orientation
+  isMobile?: boolean; // Is mobile device
 }
 
 /**
@@ -43,6 +45,8 @@ export function TimerPanel({
   onComplete,
   onSessionUpdate,
   onProgressUpdate,
+  orientation = 'portrait',
+  isMobile = false,
 }: TimerPanelProps) {
   const router = useRouter();
   const [isRequestPending, setIsRequestPending] = useState(false);
@@ -246,22 +250,75 @@ export function TimerPanel({
     );
   }
 
+  // Dynamic spacing based on orientation
+  const getContainerClasses = () => {
+    if (!isMobile) {
+      return 'w-full flex flex-col items-center mt-8 md:mt-12 lg:mt-16';
+    }
+
+    if (orientation === 'landscape') {
+      // Landscape: compact spacing
+      return 'w-full flex flex-col items-center mt-2';
+    } else {
+      // Portrait: comfortable spacing
+      return 'w-full flex flex-col items-center mt-4';
+    }
+  };
+
+  const getTaskInfoClasses = () => {
+    if (!isMobile) {
+      return 'mb-6 md:mb-8 max-w-md px-4 text-center';
+    }
+
+    if (orientation === 'landscape') {
+      // Landscape: minimal margins, smaller text
+      return 'mb-2 max-w-sm px-3 text-center';
+    } else {
+      // Portrait: normal margins
+      return 'mb-4 max-w-md px-4 text-center';
+    }
+  };
+
+  const getTitleClasses = () => {
+    if (!isMobile) {
+      return 'text-lg md:text-xl font-semibold text-white mb-2';
+    }
+
+    if (orientation === 'landscape') {
+      // Landscape: smaller text
+      return 'text-sm font-semibold text-white mb-1';
+    } else {
+      // Portrait: medium text
+      return 'text-base font-semibold text-white mb-2';
+    }
+  };
+
+  const getDescriptionClasses = () => {
+    if (!isMobile) {
+      return 'text-sm md:text-base text-white/70 leading-relaxed';
+    }
+
+    if (orientation === 'landscape') {
+      // Landscape: hide description to save space
+      return 'hidden';
+    } else {
+      // Portrait: show description
+      return 'text-xs text-white/70 leading-relaxed line-clamp-2';
+    }
+  };
+
   return (
-    <div className="w-full flex flex-col items-center mt-8 md:mt-12 lg:mt-16">
+    <div className={getContainerClasses()}>
       {/* Task Info */}
       {taskTitle && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 md:mb-8 max-w-md px-4 text-center"
+          className={getTaskInfoClasses()}
         >
-          <h2 className="text-lg md:text-xl font-semibold text-white mb-2">
-            {taskTitle}
-          </h2>
+          <h2 className={getTitleClasses()}>{taskTitle}</h2>
           {taskDescription && (
-            <p className="text-sm md:text-base text-white/70 leading-relaxed">
-              {taskDescription}
-            </p>
+            <p className={getDescriptionClasses()}>{taskDescription}</p>
           )}
         </motion.div>
       )}

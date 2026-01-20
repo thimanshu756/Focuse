@@ -11,6 +11,7 @@ import { TimerPanel } from '@/components/session/TimerPanel';
 import { CompletionModal } from '@/components/session/CompletionModal';
 import { GiveUpModal } from '@/components/session/GiveUpModal';
 import { BackgroundWarning } from '@/components/session/BackgroundWarning';
+import { OrientationToggle } from '@/components/session/OrientationToggle';
 import { Button } from '@/components/ui/Button';
 import { useSessionSync } from '@/hooks/useSessionSync';
 import { useActiveSession } from '@/hooks/useActiveSession';
@@ -39,6 +40,9 @@ export default function SessionPage() {
   const [treeProgress, setTreeProgress] = useState(0);
   const [isGivingUpState, setIsGivingUpState] = useState(false);
   const [isCompletingState, setIsCompletingState] = useState(false);
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>(
+    'portrait'
+  );
 
   const tabHiddenTimeRef = useRef<number | null>(null);
   const treePanelRef = useRef<TreePanelRef>(null);
@@ -387,6 +391,10 @@ export default function SessionPage() {
 
   const durationMinutes = Math.floor((session?.duration || 0) / 60);
 
+  // Determine layout classes based on orientation and screen size
+  const isPortraitMode = isMobile && orientation === 'portrait';
+  const isLandscapeMode = isMobile && orientation === 'landscape';
+
   return (
     <div className="fixed inset-0 overflow-hidden">
       {/* Background Warning */}
@@ -399,9 +407,25 @@ export default function SessionPage() {
         isMobile={isMobile}
       />
 
-      {/* Main Layout Container - Panels adjusted for header height (60px) */}
-      <div className="h-full w-full flex flex-col lg:flex-row">
-        {/* Left Panel - Tree Container (40% width on desktop, 40% height on mobile) */}
+      {/* Orientation Toggle - Only on mobile */}
+      {isMobile && (
+        <OrientationToggle
+          orientation={orientation}
+          onToggle={setOrientation}
+        />
+      )}
+
+      {/* Main Layout Container - Responsive based on orientation */}
+      <div
+        className={`h-full w-full flex ${
+          isLandscapeMode
+            ? 'flex-row'
+            : isPortraitMode
+              ? 'flex-col'
+              : 'flex-col lg:flex-row'
+        }`}
+      >
+        {/* Tree Panel - Adaptive sizing based on orientation */}
         <TreePanel
           ref={treePanelRef}
           backgroundGradient={backgroundGradient}
@@ -409,8 +433,10 @@ export default function SessionPage() {
           treeType={getTreeType()}
           isWithering={isGivingUpState}
           isCelebrating={isCompletingState}
+          orientation={orientation}
+          isMobile={isMobile}
         >
-          {/* Ambient animations for left panel */}
+          {/* Ambient animations for tree panel */}
           <AmbientAnimations
             timeOfDay={timeOfDay}
             reducedMotion={reducedMotion}
@@ -418,9 +444,13 @@ export default function SessionPage() {
           />
         </TreePanel>
 
-        {/* Right Panel - Info Container (60% width on desktop, 60% height on mobile) */}
-        <InfoPanel backgroundGradient={backgroundGradient}>
-          {/* Ambient animations for right panel */}
+        {/* Info Panel - Adaptive sizing based on orientation */}
+        <InfoPanel
+          backgroundGradient={backgroundGradient}
+          orientation={orientation}
+          isMobile={isMobile}
+        >
+          {/* Ambient animations for info panel */}
           <AmbientAnimations
             timeOfDay={timeOfDay}
             reducedMotion={reducedMotion}
@@ -447,6 +477,8 @@ export default function SessionPage() {
               onComplete={handleComplete}
               onSessionUpdate={handleSessionUpdate}
               onProgressUpdate={setTreeProgress}
+              orientation={orientation}
+              isMobile={isMobile}
             />
           )}
         </InfoPanel>
