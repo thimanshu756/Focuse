@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Crown } from 'lucide-react';
@@ -66,7 +67,14 @@ export function Header({
             href="/dashboard"
             className="flex items-center gap-2 text-xl font-bold text-text-primary hover:text-accent transition-colors"
           >
-            <span className="text-2xl">🌳</span>
+            <Image
+              src="/assets/logo.png"
+              alt="Focuse Logo"
+              width={32}
+              height={32}
+              className="w-8 h-8"
+              priority
+            />
             <span>Focuse</span>
           </Link>
 
