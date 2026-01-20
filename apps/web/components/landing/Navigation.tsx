@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Crown } from 'lucide-react';
 
+import Logo from '@/app/public/assets/logo.png';
 interface NavigationProps {
   userTier?: 'FREE' | 'PRO';
   userName?: string;
@@ -79,11 +80,11 @@ export function Navigation({
             className="flex items-center gap-2 text-xl font-bold text-text-primary hover:text-accent transition-colors"
           >
             <Image
-              src="/assets/logo.png"
+              src={Logo}
               alt="Focuse Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8"
+              width={52}
+              height={52}
+              className="w-16 h-16"
               priority
             />
             <span>FOCUSE</span>

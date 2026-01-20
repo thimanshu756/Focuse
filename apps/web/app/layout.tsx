@@ -70,20 +70,20 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/assets/favicon_io/favicon-16x16.png',
+        url: '/public/assets/favicon_io/favicon-16x16.png',
         sizes: '16x16',
         type: 'image/png',
       },
       {
-        url: '/assets/favicon_io/favicon-32x32.png',
+        url: '/public/assets/favicon_io/favicon-32x32.png',
         sizes: '32x32',
         type: 'image/png',
       },
-      { url: '/assets/favicon_io/favicon.ico', sizes: 'any' },
+      { url: '/public/assets/favicon_io/favicon.ico', sizes: 'any' },
     ],
     apple: [
       {
-        url: '/assets/favicon_io/apple-touch-icon.png',
+        url: '/public/assets/favicon_io/apple-touch-icon.png',
         sizes: '180x180',
         type: 'image/png',
       },
@@ -91,15 +91,15 @@ export const metadata: Metadata = {
     other: [
       {
         rel: 'android-chrome-192x192',
-        url: '/assets/favicon_io/android-chrome-192x192.png',
+        url: '/public/assets/favicon_io/android-chrome-192x192.png',
       },
       {
         rel: 'android-chrome-512x512',
-        url: '/assets/favicon_io/android-chrome-512x512.png',
+        url: '/public/assets/favicon_io/android-chrome-512x512.png',
       },
     ],
   },
-  manifest: '/assets/favicon_io/site.webmanifest',
+  manifest: '/public/assets/favicon_io/site.webmanifest',
   robots: {
     index: true,
     follow: true,
