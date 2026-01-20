@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Crown } from 'lucide-react';
+import Logo from '@/app/public/assets/logo.png';
 
 interface HeaderProps {
   userTier?: 'FREE' | 'PRO';
@@ -68,11 +69,11 @@ export function Header({
             className="flex items-center gap-2 text-xl font-bold text-text-primary hover:text-accent transition-colors"
           >
             <Image
-              src="/assets/logo.png"
+              src={Logo}
               alt="Focuse Logo"
-              width={32}
-              height={32}
-              className="w-8 h-8"
+              width={52}
+              height={52}
+              className="w-16 h-16"
               priority
             />
             <span>Focuse</span>
