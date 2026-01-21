@@ -201,38 +201,6 @@ export function SessionHeader({
             </span>
           </div>
         )}
-
-        {/* Streak Indicator */}
-        {isLoadingProfile ? (
-          <>
-            <span className="text-white/30">•</span>
-            <Skeleton
-              variant="rectangular"
-              width={100}
-              height={20}
-              className="bg-white/20 rounded"
-            />
-          </>
-        ) : (
-          <>
-            <span className="text-white/30">•</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm">🔥</span>
-              <span
-                className="text-sm text-white/90 font-medium"
-                style={{
-                  textShadow:
-                    (userStats?.currentStreak ?? 0) > 0
-                      ? '0 0 8px rgba(255, 165, 0, 0.5)'
-                      : 'none',
-                }}
-              >
-                {userStats?.currentStreak ?? '-'} Day
-                {(userStats?.currentStreak ?? 0) !== 1 ? 's' : ''} Streak
-              </span>
-            </div>
-          </>
-        )}
       </div>
 
       {/* Right Section - Action Buttons */}

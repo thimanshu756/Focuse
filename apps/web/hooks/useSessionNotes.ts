@@ -23,6 +23,10 @@ interface UseSessionNotesReturn {
   isSaving: boolean;
   setDraft: (text: string) => void;
   saveNote: (type?: 'idea' | 'task' | 'insight' | 'general') => Promise<void>;
+  saveNoteWithContent: (
+    content: string,
+    type?: 'idea' | 'task' | 'insight' | 'general'
+  ) => Promise<void>;
   deleteNote: (noteId: string) => Promise<void>;
   canSaveMore: boolean;
   clearNotes: () => void; // Cleanup function to delete all notes for session
@@ -231,6 +235,43 @@ export function useSessionNotes({
     [draft, sessionId, isPro, notes.length, maxNotes, saveDraftToStorage]
   );
 
+  // Save note with explicit content (for modal)
+  const saveNoteWithContent = useCallback(
+    async (
+      content: string,
+      type: 'idea' | 'task' | 'insight' | 'general' = 'general'
+    ) => {
+      if (isSavingRef.current || !content.trim() || !sessionId) return;
+
+      // Check FREE limit
+      if (!isPro && notes.length >= maxNotes) {
+        return; // Should be blocked by UI, but double-check
+      }
+
+      isSavingRef.current = true;
+      setIsSaving(true);
+
+      try {
+        const newNote: SessionNote = {
+          id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          sessionId,
+          content: content.trim(),
+          type,
+          createdAt: new Date(),
+        };
+
+        // Add to local state
+        setNotes((prev) => [...prev, newNote]);
+      } catch (error) {
+        console.error('Failed to save note:', error);
+      } finally {
+        isSavingRef.current = false;
+        setIsSaving(false);
+      }
+    },
+    [sessionId, isPro, notes.length, maxNotes]
+  );
+
   // Delete note
   const deleteNote = useCallback(async (noteId: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
@@ -247,6 +288,7 @@ export function useSessionNotes({
     isSaving,
     setDraft,
     saveNote,
+    saveNoteWithContent,
     deleteNote,
     canSaveMore,
     clearNotes,

@@ -158,38 +158,38 @@ export function CompletionModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
             <Button
               variant="ghost"
-              size="md"
+              size="sm"
               onClick={() => router.push('/forest')}
-              className="flex flex-col items-center gap-2 h-auto py-4"
+              className="flex flex-col items-center gap-1.5 h-auto py-2.5"
               aria-label="View Forest"
             >
-              <TreePine size={24} />
-              <span className="text-sm">View Forest</span>
+              <TreePine size={20} />
+              <span className="text-xs">View Forest</span>
             </Button>
 
             <Button
               variant="ghost"
-              size="md"
+              size="sm"
               onClick={() => {
                 onClose();
                 router.push('/dashboard');
               }}
-              className="flex flex-col items-center gap-2 h-auto py-4"
+              className="flex flex-col items-center gap-1.5 h-auto py-2.5"
               aria-label="Take Break"
             >
-              <Coffee size={24} />
-              <span className="text-sm">Take Break</span>
+              <Coffee size={20} />
+              <span className="text-xs">Take Break</span>
             </Button>
 
             <Button
               variant="primary"
-              size="md"
+              size="sm"
               onClick={() => router.push('/dashboard')}
-              className="flex flex-col items-center gap-2 h-auto py-4"
+              className="flex flex-col items-center gap-1.5 h-auto py-2.5"
               aria-label="Start New Session"
             >
-              <RefreshCw size={24} />
-              <span className="text-sm">New Session</span>
+              <RefreshCw size={20} />
+              <span className="text-xs">New Session</span>
             </Button>
           </div>
         </Card>
