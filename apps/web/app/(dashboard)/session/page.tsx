@@ -12,6 +12,7 @@ import { CompletionModal } from '@/components/session/CompletionModal';
 import { GiveUpModal } from '@/components/session/GiveUpModal';
 import { BackgroundWarning } from '@/components/session/BackgroundWarning';
 import { OrientationToggle } from '@/components/session/OrientationToggle';
+import { DraggableNotesContainer } from '@/components/session/DraggableNotesContainer';
 import { Button } from '@/components/ui/Button';
 import { useSessionSync } from '@/hooks/useSessionSync';
 import { useActiveSession } from '@/hooks/useActiveSession';
@@ -508,6 +509,15 @@ export default function SessionPage() {
           progressPercent={progressPercent}
           notesCount={sessionNotes.length}
           willBreakStreak={false} // TODO: Check if this will break streak from backend
+        />
+      )}
+
+      {/* Draggable Notes System */}
+      {session && sessionId && (
+        <DraggableNotesContainer
+          sessionId={sessionId}
+          isPro={isPro}
+          isMobile={isMobile}
         />
       )}
     </div>

@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CircularTimer } from './CircularTimer';
 import { TimerControls } from './TimerControls';
 import { AmbientSoundPanel } from './AmbientSoundPanel';
-import { SessionNotesPanel } from './SessionNotesPanel';
 import { useAccurateSessionTimer } from '@/hooks/useAccurateSessionTimer';
 import { useAmbientSound } from '@/hooks/useAmbientSound';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -389,9 +388,6 @@ export function TimerPanel({
           onUpgradeClick={handleUpgradeClick}
         />
       )}
-
-      {/* Session Notes Panel */}
-      <SessionNotesPanel sessionId={sessionId} isPro={isPro} />
 
       {/* Aria live region for screen readers */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">

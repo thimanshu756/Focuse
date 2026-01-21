@@ -8,11 +8,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Crown } from 'lucide-react';
 
 import Logo from '@/app/public/assets/logo.png';
+import { Skeleton } from '../ui/Skeleton';
 interface NavigationProps {
   userTier?: 'FREE' | 'PRO';
   userName?: string;
   userAvatar?: string | null;
   userId?: string;
+  isLoading?: boolean;
 }
 
 // Generate a consistent color based on user ID
@@ -36,6 +38,7 @@ function getAvatarColor(userId?: string): string {
 }
 
 export function Navigation({
+  isLoading,
   userTier,
   userName,
   userAvatar,
@@ -105,56 +108,62 @@ export function Navigation({
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
-            {isLoggedIn ? (
-              <>
-                {userTier === 'FREE' && (
-                  <button
-                    onClick={() => router.push('/pricing')}
-                    className="px-6 py-2.5 text-sm font-semibold bg-accent text-text-primary rounded-full hover:bg-accent-soft transition-all shadow-sm hover:shadow-md flex items-center gap-2"
-                  >
-                    <Crown size={16} />
-                    Upgrade
-                  </button>
-                )}
-                <button
-                  onClick={() => router.push('/profile')}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-primary hover:text-text-secondary transition-colors"
-                  aria-label="Profile"
-                >
-                  {hasAvatar && !avatarError ? (
-                    <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
-                      <img
-                        src={userAvatar!}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                        onError={() => setAvatarError(true)}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className="h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
-                      style={{ backgroundColor: avatarColor }}
-                    >
-                      {avatarInitial}
-                    </div>
-                  )}
-                  {userName && <span className="text-sm">{userName}</span>}
-                </button>
-              </>
+            {isLoading ? (
+              <Skeleton count={3} />
             ) : (
               <>
-                <Link
-                  href="/login"
-                  className="px-6 py-2.5 text-sm font-medium text-text-primary hover:text-text-secondary transition-colors"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/signup"
-                  className="px-6 py-2.5 text-sm font-semibold bg-accent text-text-primary rounded-full hover:bg-accent-soft transition-all shadow-sm hover:shadow-md"
-                >
-                  Start Free
-                </Link>
+                {isLoggedIn ? (
+                  <>
+                    {userTier === 'FREE' && (
+                      <button
+                        onClick={() => router.push('/pricing')}
+                        className="px-6 py-2.5 text-sm font-semibold bg-accent text-text-primary rounded-full hover:bg-accent-soft transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+                      >
+                        <Crown size={16} />
+                        Upgrade
+                      </button>
+                    )}
+                    <button
+                      onClick={() => router.push('/profile')}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-primary hover:text-text-secondary transition-colors"
+                      aria-label="Profile"
+                    >
+                      {hasAvatar && !avatarError ? (
+                        <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0 border border-gray-200">
+                          <img
+                            src={userAvatar!}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                            onError={() => setAvatarError(true)}
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
+                          style={{ backgroundColor: avatarColor }}
+                        >
+                          {avatarInitial}
+                        </div>
+                      )}
+                      {userName && <span className="text-sm">{userName}</span>}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/login"
+                      className="px-6 py-2.5 text-sm font-medium text-text-primary hover:text-text-secondary transition-colors"
+                    >
+                      Login
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="px-6 py-2.5 text-sm font-semibold bg-accent text-text-primary rounded-full hover:bg-accent-soft transition-all shadow-sm hover:shadow-md"
+                    >
+                      Start Free
+                    </Link>
+                  </>
+                )}
               </>
             )}
           </div>

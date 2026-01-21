@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Loader2, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +22,12 @@ interface AIBreakdownModalProps {
   userTier: 'FREE' | 'PRO';
 }
 
+const GENERATION_STAGES = [
+  { text: 'CHITRA is analyzing your goal...', duration: 1500 },
+  { text: 'CHITRA is planning the workflow...', duration: 1500 },
+  { text: 'CHITRA is creating smart tasks...', duration: 1500 },
+  { text: 'CHITRA is optimizing your plan...', duration: 1000 },
+];
 export function AIBreakdownModal({
   isOpen,
   onClose,
@@ -35,6 +41,21 @@ export function AIBreakdownModal({
     new Set()
   );
   const [isCreating, setIsCreating] = useState(false);
+  const [currentStage, setCurrentStage] = useState(0);
+
+  // Cycle through quick stages during generation
+  useEffect(() => {
+    if (!isGenerating) {
+      setCurrentStage(0);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCurrentStage((prev) => (prev + 1) % GENERATION_STAGES.length);
+    }, GENERATION_STAGES[currentStage].duration);
+
+    return () => clearInterval(timer);
+  }, [isGenerating, currentStage]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -45,6 +66,8 @@ export function AIBreakdownModal({
     }
 
     setIsGenerating(true);
+    setCurrentStage(0);
+
     try {
       const deadline = new Date();
       deadline.setDate(deadline.getDate() + 7); // Default 7 days
@@ -155,11 +178,11 @@ export function AIBreakdownModal({
               <Sparkles className="h-5 w-5 text-accent" />
               <h2 className="text-xl font-semibold text-text-primary">
                 {generatedTasks.length > 0
-                  ? 'AI-Generated Task Plan'
-                  : 'Create with AI'}
+                  ? 'Chitra-Generated Task Plan'
+                  : 'Create with Chitra'}
               </h2>
               {userTier === 'PRO' && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-accent">
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-text-primary">
                   PRO
                 </span>
               )}
@@ -218,17 +241,53 @@ export function AIBreakdownModal({
                     variant="primary"
                     size="lg"
                     onClick={handleGenerate}
-                    isLoading={isGenerating}
                     disabled={
                       !prompt.trim() || isGenerating || userTier === 'FREE'
                     }
-                    className="flex-1"
+                    className="flex-1 justify-center items-center min-h-[44px]"
                   >
                     {isGenerating ? (
-                      <>
-                        <Loader2 className="animate-spin mr-2" size={16} />
-                        Generating...
-                      </>
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="relative flex-shrink-0">
+                          <Loader2
+                            className="animate-spin text-black"
+                            size={18}
+                          />
+                          <motion.div
+                            className="absolute inset-0"
+                            animate={{ rotate: 360 }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              ease: 'linear',
+                            }}
+                          >
+                            <Sparkles
+                              className="text-black/60"
+                              size={10}
+                              style={{
+                                position: 'absolute',
+                                top: -2,
+                                right: -2,
+                              }}
+                            />
+                          </motion.div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <AnimatePresence mode="wait">
+                            <motion.p
+                              key={currentStage}
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -10 }}
+                              transition={{ duration: 0.3 }}
+                              className="text-sm font-medium text-black truncate"
+                            >
+                              {GENERATION_STAGES[currentStage].text}
+                            </motion.p>
+                          </AnimatePresence>
+                        </div>
+                      </div>
                     ) : (
                       <>
                         <Sparkles size={16} className="mr-2" />

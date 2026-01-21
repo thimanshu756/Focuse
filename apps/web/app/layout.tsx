@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || 'https://focuse.app'
+    process.env.NEXT_PUBLIC_APP_URL || 'https://focuse.rakriai.com'
   ),
   alternates: {
     canonical: '/',

@@ -8,7 +8,7 @@ interface AIProductSchemaProps {
 }
 
 export function AIProductSchema({
-  url = 'https://focuse.app',
+  url = 'https://focuse.rakriai.com',
 }: AIProductSchemaProps) {
   const schema = {
     '@context': 'https://schema.org',
@@ -137,7 +137,7 @@ interface AIHowToSchemaProps {
 }
 
 export function AIHowToSchema({
-  url = 'https://focuse.app',
+  url = 'https://focuse.rakriai.com',
 }: AIHowToSchemaProps) {
   const schema = {
     '@context': 'https://schema.org',
@@ -167,7 +167,7 @@ export function AIHowToSchema({
         '@type': 'HowToStep',
         position: 1,
         name: 'Create Account',
-        text: 'Visit focuse.app and sign up for free using email or Google OAuth. No credit card required.',
+        text: 'Visit focuse.rakriai.com and sign up for free using email or Google OAuth. No credit card required.',
         url: `${url}/signup`,
       },
       {
@@ -219,7 +219,7 @@ interface AIServiceSchemaProps {
 }
 
 export function AIServiceSchema({
-  url = 'https://focuse.app',
+  url = 'https://focuse.rakriai.com',
 }: AIServiceSchemaProps) {
   const schema = {
     '@context': 'https://schema.org',
@@ -279,7 +279,7 @@ export function AIServiceSchema({
 }
 
 // Export all AI schemas together
-export function AIEnhancedSchemas({ url = 'https://focuse.app' }) {
+export function AIEnhancedSchemas({ url = 'https://focuse.rakriai.com' }) {
   return (
     <>
       <AIProductSchema url={url} />
