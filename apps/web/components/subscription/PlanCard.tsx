@@ -96,7 +96,7 @@ export function PlanCard({
       <button
         onClick={() => onSubscribe(plan.planId)}
         disabled={isCurrentPlan || isSubscribing}
-        className={`w-full py-3.5 rounded-full mt-auto font-semibold text-[15px] transition-all duration-200
+        className={`w-full py-3.5 rounded-full mt-20 font-semibold text-[15px] transition-all duration-200
           ${
             plan.isPopular
               ? 'bg-[#D7F50A] text-[#0F172A] hover:bg-[#E9FF6A] hover:scale-[1.02]'

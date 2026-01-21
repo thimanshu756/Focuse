@@ -213,4 +213,55 @@ export const pageMetadata = {
       follow: false,
     },
   } as Metadata,
+
+  privacy: {
+    title: 'Privacy Policy',
+    description:
+      'Learn how Focuse collects, uses, and protects your personal information. Our commitment to your privacy and data security.',
+    keywords: [
+      'focuse privacy policy',
+      'data protection',
+      'user privacy',
+      'GDPR compliance',
+      'data security',
+    ],
+    openGraph: {
+      title: 'Privacy Policy - Focuse',
+      description:
+        'Our commitment to protecting your privacy and personal data.',
+      url: `${baseUrl}/privacy`,
+    },
+    twitter: {
+      title: 'Privacy Policy - Focuse',
+      description: 'Our commitment to protecting your privacy and data.',
+    },
+    alternates: {
+      canonical: '/privacy',
+    },
+  } as Metadata,
+
+  terms: {
+    title: 'Terms of Service',
+    description:
+      'Terms and conditions for using Focuse. Understand your rights and responsibilities when using our AI-powered focus timer and productivity platform.',
+    keywords: [
+      'focuse terms of service',
+      'terms and conditions',
+      'user agreement',
+      'service terms',
+      'legal terms',
+    ],
+    openGraph: {
+      title: 'Terms of Service - Focuse',
+      description: 'Terms and conditions for using our platform.',
+      url: `${baseUrl}/terms`,
+    },
+    twitter: {
+      title: 'Terms of Service - Focuse',
+      description: 'Terms and conditions for using Focuse.',
+    },
+    alternates: {
+      canonical: '/terms',
+    },
+  } as Metadata,
 };

@@ -32,7 +32,7 @@ interface UserProfile {
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -43,11 +43,13 @@ export default function LandingPage() {
 
     if (!isAuthenticated()) {
       setUserProfile(null);
+      setIsLoading(false);
       return;
     }
 
     const fetchUserProfile = async () => {
       try {
+        setIsLoading(true);
         const response = await api.get('/auth/me');
         if (response.data.success && response.data.data) {
           // Handle both response formats
@@ -59,7 +61,9 @@ export default function LandingPage() {
             avatar: user.avatar || null,
           });
         }
+        setIsLoading(false);
       } catch (error) {
+        setIsLoading(false);
         // Silently fail - user might not be authenticated or token expired
         setUserProfile(null);
       }
@@ -77,6 +81,7 @@ export default function LandingPage() {
 
       <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
         <Navigation
+          isLoading={isLoading}
           userTier={userProfile?.subscriptionTier}
           userName={userProfile?.name}
           userAvatar={userProfile?.avatar}
