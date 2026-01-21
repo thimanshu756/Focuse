@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://focuse.app';
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || 'https://focuse.rakriai.com';
 
   return [
     {
@@ -27,12 +28,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/ai-context`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.95, // High priority for AI crawlers
     },
     // Dashboard pages are excluded (noindex set in metadata)
     // Private pages like /verify-email, /reset-password are excluded

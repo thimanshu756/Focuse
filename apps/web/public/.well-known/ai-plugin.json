@@ -9,9 +9,9 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://focuse.app/ai-context"
+    "url": "https://focuse.rakriai.com/ai-context"
   },
-  "logo_url": "https://focuse.app/assets/logo.png",
-  "contact_email": "support@focuse.app",
-  "legal_info_url": "https://focuse.app/terms"
+  "logo_url": "https://focuse.rakriai.com/assets/logo.png",
+  "contact_email": "connect@rakriai.com",
+  "legal_info_url": "https://focuse.rakriai.com/terms"
 }

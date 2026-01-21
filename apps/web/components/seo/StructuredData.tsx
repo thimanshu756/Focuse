@@ -8,7 +8,7 @@ interface OrganizationSchemaProps {
 }
 
 export function OrganizationSchema({
-  url = 'https://focuse.app',
+  url = 'https://focuse.rakriai.com',
 }: OrganizationSchemaProps) {
   const schema = {
     '@context': 'https://schema.org',
@@ -25,7 +25,7 @@ export function OrganizationSchema({
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'Customer Support',
-      email: 'support@focuse.app',
+      email: 'connect@rakriai.com',
     },
   };
 
@@ -42,7 +42,7 @@ interface WebsiteSchemaProps {
 }
 
 export function WebsiteSchema({
-  url = 'https://focuse.app',
+  url = 'https://focuse.rakriai.com',
 }: WebsiteSchemaProps) {
   const schema = {
     '@context': 'https://schema.org',
@@ -74,7 +74,7 @@ interface SoftwareAppSchemaProps {
 }
 
 export function SoftwareAppSchema({
-  url = 'https://focuse.app',
+  url = 'https://focuse.rakriai.com',
 }: SoftwareAppSchemaProps) {
   const schema = {
     '@context': 'https://schema.org',
@@ -127,7 +127,7 @@ export function ProductSchema({
   description,
   price,
   currency,
-  url = 'https://focuse.app',
+  url = 'https://focuse.rakriai.com',
 }: ProductSchemaProps) {
   const schema = {
     '@context': 'https://schema.org',

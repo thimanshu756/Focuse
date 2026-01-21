@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://focuse.app';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://focuse.rakriai.com';
 
 export const pageMetadata = {
   login: {
