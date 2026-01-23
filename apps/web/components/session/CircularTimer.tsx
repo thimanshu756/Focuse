@@ -6,9 +6,9 @@ interface CircularTimerProps {
   progress: number; // 0-100
   timeRemaining: string; // Formatted time (MM:SS)
   ringColor: string; // Color for the progress ring
-  percentComplete: number; // Percentage complete (0-100)
   isUrgent?: boolean;
   ariaLabel?: string;
+  size?: number;
 }
 
 /**
@@ -18,11 +18,11 @@ export function CircularTimer({
   progress,
   timeRemaining,
   ringColor,
-  percentComplete,
   isUrgent = false,
   ariaLabel,
+  size = 280,
 }: CircularTimerProps) {
-  const size = 280; // Larger for hero display
+  // Larger for hero display
   const strokeWidth = 12;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -79,7 +79,7 @@ export function CircularTimer({
         {/* Timer text */}
         <div className="absolute inset-0 flex items-center justify-center">
           <span
-            className="text-6xl md:text-7xl font-bold text-white font-mono tracking-tight"
+            className={`${size < 200 ? 'text-4xl' : 'text-6xl md:text-7xl'} font-bold text-white font-mono tracking-tight`}
             style={{
               textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
             }}
@@ -88,18 +88,6 @@ export function CircularTimer({
           </span>
         </div>
       </div>
-
-      {/* Percent Complete Label */}
-      <motion.div
-        className="mt-6 text-center"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <p className="text-lg md:text-xl text-white/90 font-medium">
-          {percentComplete}% complete
-        </p>
-      </motion.div>
     </div>
   );
 }

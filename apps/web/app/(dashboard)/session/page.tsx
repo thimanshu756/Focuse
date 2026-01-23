@@ -10,12 +10,14 @@ import { SessionHeader } from '@/components/session/SessionHeader';
 import { TimerPanel } from '@/components/session/TimerPanel';
 import { CompletionModal } from '@/components/session/CompletionModal';
 import { GiveUpModal } from '@/components/session/GiveUpModal';
+import { WakeLockWarningModal } from '@/components/session/WakeLockWarningModal';
 import { BackgroundWarning } from '@/components/session/BackgroundWarning';
-import { OrientationToggle } from '@/components/session/OrientationToggle';
 import { DraggableNotesContainer } from '@/components/session/DraggableNotesContainer';
 import { Button } from '@/components/ui/Button';
 import { useSessionSync } from '@/hooks/useSessionSync';
 import { useActiveSession } from '@/hooks/useActiveSession';
+import { useWakeLock } from '@/hooks/useWakeLock';
+import { useFullScreen } from '@/hooks/useFullScreen';
 import { useTimeOfDay } from '@/hooks/useTimeOfDay';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useMilestoneCelebrations } from '@/hooks/useMilestoneCelebrations';
@@ -52,6 +54,26 @@ export default function SessionPage() {
   const { timeOfDay } = useTimeOfDay();
   const { user } = useUserProfile();
   const isPro = user?.subscriptionTier === 'PRO';
+
+  // Wake Lock and Full Screen
+  const { request: requestWakeLock, error: wakeLockError } = useWakeLock();
+  const { isFullscreen, toggleFullScreen } = useFullScreen();
+
+  // Show wake lock warning if there's an error, but control it with a state to allow dismissal
+  const [showWakeLockWarning, setShowWakeLockWarning] = useState(false);
+
+  useEffect(() => {
+    if (wakeLockError) {
+      setShowWakeLockWarning(true);
+    }
+  }, [wakeLockError]);
+
+  // Request wake lock on mount/session start
+  useEffect(() => {
+    if (mounted && sessionId) {
+      requestWakeLock();
+    }
+  }, [mounted, sessionId, requestWakeLock]);
 
   // Check for reduced motion preference and screen size
   useEffect(() => {
@@ -153,9 +175,13 @@ export default function SessionPage() {
         clearSessionNotes();
       }, 1000);
     } catch (error: any) {
-      toast.error(
-        error.response?.data?.error?.message || 'Failed to complete session'
-      );
+      // Suppress error if session is already completed (idempotency)
+      const errorCode = error.response?.data?.error?.code;
+      if (errorCode !== 'SESSION_ALREADY_COMPLETED') {
+        toast.error(
+          error.response?.data?.error?.message || 'Failed to complete session'
+        );
+      }
       // Still show modal optimistically
       setShowCompletionModal(true);
 
@@ -396,25 +422,33 @@ export default function SessionPage() {
   const isPortraitMode = isMobile && orientation === 'portrait';
   const isLandscapeMode = isMobile && orientation === 'landscape';
 
+  const handleOrientationChange = (
+    newOrientation: 'portrait' | 'landscape'
+  ) => {
+    setOrientation(newOrientation);
+  };
+
   return (
     <div className="fixed inset-0 overflow-hidden">
       {/* Background Warning */}
       <BackgroundWarning isVisible={showBackgroundWarning} />
+
+      {/* Wake Lock Warning */}
+      <WakeLockWarningModal
+        isVisible={showWakeLockWarning}
+        onClose={() => setShowWakeLockWarning(false)}
+      />
 
       {/* Session Header */}
       <SessionHeader
         sessionDuration={session?.duration || 0}
         onGiveUp={() => setShowGiveUpModal(true)}
         isMobile={isMobile}
+        isFullscreen={isFullscreen}
+        onToggleFullScreen={toggleFullScreen}
+        orientation={orientation}
+        onToggleOrientation={handleOrientationChange}
       />
-
-      {/* Orientation Toggle - Only on mobile */}
-      {isMobile && (
-        <OrientationToggle
-          orientation={orientation}
-          onToggle={setOrientation}
-        />
-      )}
 
       {/* Main Layout Container - Responsive based on orientation */}
       <div

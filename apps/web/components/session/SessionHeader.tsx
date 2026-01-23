@@ -3,7 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, MoreVertical, Music, Plus } from 'lucide-react';
+import {
+  ArrowLeft,
+  MoreVertical,
+  Music,
+  Plus,
+  Maximize,
+  Minimize,
+} from 'lucide-react';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/Skeleton';
 
@@ -11,6 +18,10 @@ interface SessionHeaderProps {
   sessionDuration: number; // Duration in seconds
   onGiveUp: () => void;
   isMobile?: boolean;
+  isFullscreen?: boolean;
+  orientation?: 'portrait' | 'landscape';
+  onToggleOrientation?: (orientation: 'portrait' | 'landscape') => void;
+  onToggleFullScreen?: () => void;
 }
 
 interface UserStats {
@@ -27,6 +38,10 @@ export function SessionHeader({
   sessionDuration,
   onGiveUp,
   isMobile = false,
+  isFullscreen = false,
+  orientation,
+  onToggleOrientation,
+  onToggleFullScreen,
 }: SessionHeaderProps) {
   const router = useRouter();
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -205,6 +220,18 @@ export function SessionHeader({
 
       {/* Right Section - Action Buttons */}
       <div className="flex-1 flex items-center justify-end gap-2 md:gap-3">
+        {/* Full Screen Button - Hidden on mobile if needed, but requested to be available */}
+        {onToggleFullScreen && (
+          <button
+            onClick={onToggleFullScreen}
+            className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-transparent min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+            title={isFullscreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+          >
+            {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+          </button>
+        )}
+
         {/* Give Up Button */}
         <button
           onClick={onGiveUp}
@@ -256,6 +283,34 @@ export function SessionHeader({
                   <Music size={16} />
                   <span>Background Music</span>
                 </button>
+                <div className="h-px bg-white/10 my-1" />
+                <div className="px-3 py-2">
+                  <p className="text-xs text-white/50 mb-2 uppercase tracking-wider font-medium">
+                    Orientation
+                  </p>
+                  <div className="flex bg-black/20 rounded-lg p-1">
+                    <button
+                      onClick={() => onToggleOrientation?.('portrait')}
+                      className={`flex-1 flex items-center justify-center py-1.5 rounded-md text-xs font-medium transition-all ${
+                        orientation === 'portrait'
+                          ? 'bg-white/10 text-white'
+                          : 'text-white/60 hover:text-white'
+                      }`}
+                    >
+                      Portrait
+                    </button>
+                    <button
+                      onClick={() => onToggleOrientation?.('landscape')}
+                      className={`flex-1 flex items-center justify-center py-1.5 rounded-md text-xs font-medium transition-all ${
+                        orientation === 'landscape'
+                          ? 'bg-white/10 text-white'
+                          : 'text-white/60 hover:text-white'
+                      }`}
+                    >
+                      Landscape
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
