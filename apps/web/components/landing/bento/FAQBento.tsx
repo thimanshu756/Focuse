@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
 
 const faqs = [
@@ -50,18 +49,6 @@ export const FAQBento = () => {
             <p className="text-text-secondary leading-relaxed">{faq.answer}</p>
           </div>
         ))}
-      </div>
-
-      <div className="text-center mt-12">
-        <p className="text-text-secondary">
-          Still have questions?{' '}
-          <a
-            href="mailto:support@focuse.app"
-            className="text-accent-dark font-semibold underline decoration-2 underline-offset-4"
-          >
-            Chat with us
-          </a>
-        </p>
       </div>
     </section>
   );

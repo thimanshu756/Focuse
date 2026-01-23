@@ -102,7 +102,9 @@ export const HeroBento = () => {
                 '/people/chahar.jpeg',
                 '/people/grover.jpeg',
                 '/people/himanshu.jpeg',
+                '/people/hitakshi.jpeg',
                 '/people/hridyesh.jpeg',
+                '/people/prashant.jpeg',
               ].map((avatar, i) => (
                 <div
                   key={i}
@@ -111,8 +113,8 @@ export const HeroBento = () => {
                   <Image
                     src={avatar}
                     alt={`Member ${i + 1}`}
-                    width={48}
-                    height={48}
+                    width={100}
+                    height={100}
                     className="w-full h-full object-cover"
                   />
                 </div>

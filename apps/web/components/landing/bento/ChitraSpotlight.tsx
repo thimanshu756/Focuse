@@ -103,7 +103,7 @@ export function ChitraSpotlight() {
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
               className="relative z-10 p-8"
             >
-              <div className="relative w-full max-w-[500px] drop-shadow-2xl">
+              <div className="relative w-full max-w-[600px] drop-shadow-2xl">
                 <Image
                   src="/Chitra_spotlight_hero.png"
                   alt="Chitra Mascot"

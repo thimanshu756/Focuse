@@ -1,7 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
-
 const companies = [
   'TechFlow',
   'Studio Girth',
