@@ -2,19 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Navigation } from '@/components/landing/Navigation';
-import { Hero } from '@/components/landing/Hero';
-import { HowItWorks } from '@/components/landing/HowItWorks';
-import { FeaturesGrid } from '@/components/landing/FeaturesGrid';
-import { ChitraSpotlight } from '@/components/landing/ChitraSpotlight';
-import { SocialProof } from '@/components/landing/SocialProof';
-import { Pricing } from '@/components/landing/Pricing';
-import { FAQ } from '@/components/landing/FAQ';
-import { FinalCTA } from '@/components/landing/FinalCTA';
+import { ChitraSpotlight } from '@/components/landing/bento/ChitraSpotlight';
 import { Footer } from '@/components/landing/Footer';
 import { HeroBento } from '@/components/landing/bento/HeroBento';
 import { FeaturesBento } from '@/components/landing/bento/FeaturesBento';
 import { HowItWorksBento } from '@/components/landing/bento/HowItWorksBento';
-import { TrustBento } from '@/components/landing/bento/TrustBento';
 import { PricingBento } from '@/components/landing/bento/PricingBento';
 import { FAQBento } from '@/components/landing/bento/FAQBento';
 import { FinalCTABento } from '@/components/landing/bento/FinalCTABento';
