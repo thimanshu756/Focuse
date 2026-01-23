@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Music } from 'lucide-react';
 import { CircularTimer } from './CircularTimer';
 import { TimerControls } from './TimerControls';
 import { AmbientSoundPanel } from './AmbientSoundPanel';
@@ -252,7 +253,8 @@ export function TimerPanel({
   // Dynamic spacing based on orientation
   const getContainerClasses = () => {
     if (!isMobile) {
-      return 'w-full flex flex-col items-center mt-8 md:mt-12 lg:mt-16';
+      // Desktop: Center vertically in the panel
+      return 'w-full flex-1 flex flex-col items-center justify-center';
     }
 
     if (orientation === 'landscape') {
@@ -265,17 +267,8 @@ export function TimerPanel({
   };
 
   const getTaskInfoClasses = () => {
-    if (!isMobile) {
-      return 'mb-6 md:mb-8 max-w-md px-4 text-center';
-    }
-
-    if (orientation === 'landscape') {
-      // Landscape: minimal margins, smaller text
-      return 'mb-2 max-w-sm px-3 text-center';
-    } else {
-      // Portrait: normal margins
-      return 'mb-4 max-w-md px-4 text-center';
-    }
+    // Hidden on small screens to prevent scrolling, visible on md+ (tablet/desktop)
+    return 'hidden md:block mb-6 md:mb-8 max-w-md px-4 text-center';
   };
 
   const getTitleClasses = () => {
@@ -355,10 +348,39 @@ export function TimerPanel({
         progress={progress}
         timeRemaining={formattedTime}
         ringColor={ringColor}
-        percentComplete={progress}
         isUrgent={isUrgent}
         ariaLabel={ariaLabel}
+        size={isMobile ? 180 : 280}
       />
+
+      {/* Progress & Music - Mobile Layout */}
+      {isMobile ? (
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSoundPanel(!showSoundPanel)}
+            className={`rounded-full w-10 h-10 ${isSoundPlaying ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white bg-white/5'}`}
+            aria-label="Background sound"
+          >
+            <Music size={18} />
+          </Button>
+          <p className="text-lg text-white/90 font-medium">
+            {progress}% complete
+          </p>
+        </div>
+      ) : (
+        <motion.div
+          className="mt-6 text-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <p className="text-xl text-white/90 font-medium">
+            {progress}% complete
+          </p>
+        </motion.div>
+      )}
 
       {/* Controls */}
       <TimerControls

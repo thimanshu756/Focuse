@@ -79,10 +79,10 @@ export const TreePanel = forwardRef<TreePanelRef, TreePanelProps>(
 
       if (orientation === 'landscape') {
         // Landscape: smaller tree to fit side-by-side
-        return 'scale-[1.3]';
+        return 'scale-[1.1]';
       } else {
         // Portrait: larger tree for prominence
-        return 'scale-[1.8]';
+        return 'scale-[0.95]';
       }
     };
 

@@ -106,7 +106,7 @@ export function Footer() {
         <div className="border-t border-white/10 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-text-muted text-center md:text-left">
-              © 2026 FOCUSE. Built By RakrAI.
+              © 2026 FOCUSE. Built By RakriAI.
             </p>
             <div className="flex items-center gap-6">
               <Link

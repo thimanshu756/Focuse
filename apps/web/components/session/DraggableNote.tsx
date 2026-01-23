@@ -14,8 +14,8 @@ interface DraggableNoteProps {
 }
 
 /**
- * Draggable note component that can be positioned anywhere on screen
- * with improved visibility and color coding
+ * Draggable note component aligned with design.json
+ * Uses soft colors, rounded shapes, and clean card aesthetic
  */
 export function DraggableNote({
   note,
@@ -34,49 +34,46 @@ export function DraggableNote({
   const dragStartPos = useRef({ x: 0, y: 0 });
   const noteRef = useRef<HTMLDivElement>(null);
 
-  // Get color scheme based on note type
+  // Design System Colors from design.json (Implied/Approximate)
+  // Using Soft Pastels to match "Modern soft productivity UI"
   const getColorScheme = () => {
     switch (note.type) {
       case 'idea':
         return {
-          bg: 'bg-gradient-to-br from-yellow-400 to-yellow-500',
-          border: 'border-yellow-300',
-          text: 'text-gray-900',
+          bg: 'bg-[#111111]', // Card Dark
+          border: 'border-yellow-500/30',
+          accent: 'text-yellow-400',
           icon: '💡',
           label: 'Idea',
-          shadow: 'shadow-yellow-500/50',
         };
       case 'task':
         return {
-          bg: 'bg-gradient-to-br from-blue-400 to-blue-500',
-          border: 'border-blue-300',
-          text: 'text-white',
+          bg: 'bg-[#111111]',
+          border: 'border-blue-500/30',
+          accent: 'text-blue-400',
           icon: '📋',
           label: 'Task',
-          shadow: 'shadow-blue-500/50',
         };
       case 'insight':
         return {
-          bg: 'bg-gradient-to-br from-purple-400 to-purple-500',
-          border: 'border-purple-300',
-          text: 'text-white',
+          bg: 'bg-[#111111]',
+          border: 'border-purple-500/30',
+          accent: 'text-purple-400',
           icon: '🔖',
           label: 'Insight',
-          shadow: 'shadow-purple-500/50',
         };
       default:
         return {
-          bg: 'bg-gradient-to-br from-green-400 to-green-500',
-          border: 'border-green-300',
-          text: 'text-gray-900',
+          bg: 'bg-[#111111]',
+          border: 'border-green-500/30',
+          accent: 'text-green-400',
           icon: '📝',
           label: 'Note',
-          shadow: 'shadow-green-500/50',
         };
     }
   };
 
-  const colorScheme = getColorScheme();
+  const scheme = getColorScheme();
 
   // Handle drag start
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -104,12 +101,14 @@ export function DraggableNote({
       const newX = clientX - dragStartPos.current.x;
       const newY = clientY - dragStartPos.current.y;
 
-      // Constrain to viewport
-      const maxX = window.innerWidth - (noteRef.current?.offsetWidth || 300);
-      const maxY = window.innerHeight - (noteRef.current?.offsetHeight || 200);
+      // Constrain to viewport (with some padding)
+      const maxX =
+        window.innerWidth - (noteRef.current?.offsetWidth || 300) - 20;
+      const maxY =
+        window.innerHeight - (noteRef.current?.offsetHeight || 200) - 20;
 
-      const constrainedX = Math.max(0, Math.min(newX, maxX));
-      const constrainedY = Math.max(0, Math.min(newY, maxY));
+      const constrainedX = Math.max(20, Math.min(newX, maxX));
+      const constrainedY = Math.max(80, Math.min(newY, maxY)); // Keep below header
 
       setPosition({ x: constrainedX, y: constrainedY });
     };
@@ -139,34 +138,39 @@ export function DraggableNote({
   return (
     <motion.div
       ref={noteRef}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
       style={{
         position: 'fixed',
         left: position.x,
         top: position.y,
         zIndex: isDragging ? 60 : 50,
       }}
-      className={`${colorScheme.bg} ${colorScheme.border} border-2 rounded-2xl shadow-2xl ${colorScheme.shadow} ${
-        isDragging ? 'cursor-grabbing' : 'cursor-default'
-      }`}
+      className={`
+        rounded-[24px] border shadow-[0_12px_32px_rgba(15,23,42,0.12)] backdrop-blur-md
+        ${scheme.bg} ${scheme.border}
+        ${isDragging ? 'cursor-grabbing scale-[1.02]' : 'cursor-default'}
+        transition-shadow duration-200
+      `}
     >
-      <div className="w-[280px] md:w-[320px]">
+      <div className="w-[280px] md:w-[320px] overflow-hidden rounded-[24px]">
         {/* Header with drag handle */}
         <div
-          className={`flex items-center justify-between p-3 border-b ${colorScheme.border} cursor-grab active:cursor-grabbing`}
+          className={`flex items-center justify-between p-4 border-b ${scheme.border} cursor-grab active:cursor-grabbing bg-white/5`}
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
         >
-          <div className="flex items-center gap-2">
-            <GripVertical size={16} className={colorScheme.text} />
-            <span className="text-2xl">{colorScheme.icon}</span>
+          <div className="flex items-center gap-3">
+            <GripVertical size={16} className="text-white/20" />
+            <span className="text-xl">{scheme.icon}</span>
             <div className="flex flex-col">
-              <span className={`text-sm font-semibold ${colorScheme.text}`}>
-                {colorScheme.label}
+              <span
+                className={`text-sm font-semibold ${scheme.accent} tracking-wide`}
+              >
+                {scheme.label}
               </span>
-              <span className={`text-xs ${colorScheme.text} opacity-70`}>
+              <span className="text-[10px] text-white/40 font-medium">
                 {timeAgo}
               </span>
             </div>
@@ -174,14 +178,14 @@ export function DraggableNote({
           <div className="flex items-center gap-1">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className={`p-1.5 ${colorScheme.text} hover:bg-black/10 rounded-lg transition-colors`}
+              className="p-1.5 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-colors"
               aria-label={isExpanded ? 'Minimize' : 'Expand'}
             >
               {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
             <button
               onClick={() => onDelete(note.id)}
-              className={`p-1.5 ${colorScheme.text} hover:bg-red-500 hover:text-white rounded-lg transition-colors`}
+              className="p-1.5 text-white/40 hover:text-red-400 hover:bg-white/10 rounded-full transition-colors"
               aria-label="Delete note"
             >
               <X size={16} />
@@ -192,15 +196,13 @@ export function DraggableNote({
         {/* Content */}
         {isExpanded && (
           <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="p-4">
-              <p
-                className={`text-sm ${colorScheme.text} whitespace-pre-wrap break-words leading-relaxed`}
-              >
+            <div className="p-5">
+              <p className="text-sm text-white/80 whitespace-pre-wrap break-words leading-relaxed font-light">
                 {note.content}
               </p>
             </div>

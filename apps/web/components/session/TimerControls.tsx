@@ -91,7 +91,7 @@ export function TimerControls({
             size="md"
             onClick={onSoundClick}
             disabled={isRequestPending || status === 'COMPLETED'}
-            className={`text-white/80 hover:text-white hover:bg-white/10 min-w-[100px] flex items-center justify-center gap-2 ${
+            className={`hidden md:flex text-white/80 hover:text-white hover:bg-white/10 min-w-[100px] items-center justify-center gap-2 ${
               isSoundPlaying ? 'bg-accent/20 ring-2 ring-accent/30' : ''
             }`}
             aria-label="Background sound"

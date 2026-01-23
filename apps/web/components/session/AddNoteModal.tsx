@@ -2,7 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Lightbulb, CheckSquare, BookOpen } from 'lucide-react';
+import {
+  X,
+  Save,
+  Lightbulb,
+  CheckSquare,
+  BookOpen,
+  Sparkles,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import toast from 'react-hot-toast';
 
@@ -21,6 +28,7 @@ interface AddNoteModalProps {
 
 /**
  * Modal for adding a new session note
+ * Aligned with .cursor/design/design.json (Modern soft productivity)
  */
 export function AddNoteModal({
   isOpen,
@@ -40,7 +48,9 @@ export function AddNoteModal({
   // Focus textarea when modal opens
   useEffect(() => {
     if (isOpen && textareaRef.current) {
-      textareaRef.current.focus();
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
     }
   }, [isOpen]);
 
@@ -141,30 +151,36 @@ export function AddNoteModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
           />
 
-          {/* Modal Container - Centers the modal */}
+          {/* Modal Container */}
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-lg bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl shadow-2xl border border-white/20 overflow-hidden pointer-events-auto"
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', bounce: 0.3, duration: 0.5 }}
+              className="w-full max-w-lg bg-[#111111] rounded-[24px] border border-white/10 shadow-[0_12px_32px_rgba(15,23,42,0.12)] overflow-hidden pointer-events-auto"
             >
               {/* Header */}
-              <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between">
+              <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-semibold text-white">Add Note</h3>
+                  <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-primary-accent">
+                    <Sparkles size={16} className="text-[#D7F50A]" />
+                  </div>
+                  <h3 className="text-xl font-medium text-white tracking-wide">
+                    Add Note
+                  </h3>
                   {!isPro && (
-                    <span className="text-sm text-white/70 px-3 py-1 bg-white/10 rounded-full">
+                    <span className="text-xs font-medium text-white/50 px-2.5 py-1 bg-white/5 rounded-full border border-white/5">
                       {noteCount}/{maxNotes}
                     </span>
                   )}
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                  className="p-2 text-white/40 hover:text-white hover:bg-white/10 rounded-full transition-all"
                   aria-label="Close modal"
                 >
                   <X size={20} />
@@ -172,13 +188,9 @@ export function AddNoteModal({
               </div>
 
               {/* Content */}
-              <div className="px-6 py-6">
-                <p className="text-sm text-white/70 mb-4">
-                  Capture your thoughts without breaking focus
-                </p>
-
+              <div className="p-6">
                 {/* Textarea */}
-                <div className="relative mb-4">
+                <div className="relative mb-6 group">
                   <textarea
                     ref={textareaRef}
                     value={content}
@@ -187,49 +199,41 @@ export function AddNoteModal({
                     placeholder="Type your note here..."
                     disabled={isAtLimit}
                     maxLength={2000}
-                    className="w-full h-40 px-4 py-3 bg-slate-900/50 border border-white/20 rounded-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary-accent focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="w-full h-48 px-5 py-5 bg-white/5 border border-white/5 rounded-[18px] text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-[#D7F50A]/50 focus:bg-white/10 resize-none disabled:opacity-50 disabled:cursor-not-allowed transition-all font-light text-lg leading-relaxed"
                     aria-label="Note content"
                   />
-                  {content.length > 0 && (
-                    <div className="absolute bottom-3 right-3 text-xs text-white/40">
-                      {content.length}/2000
-                    </div>
-                  )}
+
+                  {/* Character Count */}
+                  <div className="absolute bottom-4 right-4 text-xs text-white/20 font-mono pointer-events-none transition-opacity group-focus-within:text-white/40">
+                    {content.length}/2000
+                  </div>
                 </div>
 
-                {/* Quick Templates */}
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                  <span className="text-sm text-white/60">Quick add:</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertTemplate('idea')}
-                    disabled={isAtLimit}
-                    className="text-yellow-300 hover:text-yellow-200 hover:bg-yellow-500/10 border border-yellow-500/20"
-                  >
-                    <Lightbulb size={14} />
-                    <span>Idea</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertTemplate('task')}
-                    disabled={isAtLimit}
-                    className="text-blue-300 hover:text-blue-200 hover:bg-blue-500/10 border border-blue-500/20"
-                  >
-                    <CheckSquare size={14} />
-                    <span>Task</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => insertTemplate('insight')}
-                    disabled={isAtLimit}
-                    className="text-purple-300 hover:text-purple-200 hover:bg-purple-500/10 border border-purple-500/20"
-                  >
-                    <BookOpen size={14} />
-                    <span>Insight</span>
-                  </Button>
+                {/* Quick Templates - Styled as Pills */}
+                <div className="mb-8">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => insertTemplate('idea')}
+                      disabled={isAtLimit}
+                      className="px-4 py-2 bg-[#D7F50A]/10 text-[#D7F50A] hover:bg-[#D7F50A]/20 rounded-full transition-colors text-sm font-medium border border-[#D7F50A]/20"
+                    >
+                      💡 Idea
+                    </button>
+                    <button
+                      onClick={() => insertTemplate('task')}
+                      disabled={isAtLimit}
+                      className="px-4 py-2 bg-blue-400/10 text-blue-400 hover:bg-blue-400/20 rounded-full transition-colors text-sm font-medium border border-blue-400/20"
+                    >
+                      📋 Task
+                    </button>
+                    <button
+                      onClick={() => insertTemplate('insight')}
+                      disabled={isAtLimit}
+                      className="px-4 py-2 bg-purple-400/10 text-purple-400 hover:bg-purple-400/20 rounded-full transition-colors text-sm font-medium border border-purple-400/20"
+                    >
+                      🔖 Insight
+                    </button>
+                  </div>
                 </div>
 
                 {/* FREE Limit Warning */}
@@ -237,10 +241,10 @@ export function AddNoteModal({
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl border border-yellow-400/30"
+                    className="mb-6 p-4 bg-yellow-500/10 rounded-2xl border border-yellow-500/10"
                   >
-                    <p className="text-sm text-yellow-100 mb-3 text-center">
-                      ⭐ Limit reached — Upgrade to PRO for unlimited notes
+                    <p className="text-xs text-yellow-200/90 mb-3 text-center">
+                      Limit reached — Upgrade to PRO for unlimited notes
                     </p>
                     <Button
                       variant="primary"
@@ -248,7 +252,7 @@ export function AddNoteModal({
                       onClick={() => {
                         window.location.href = '/profile?upgrade=true';
                       }}
-                      className="w-full"
+                      className="w-full bg-[#D7F50A] text-black border-none hover:bg-[#E9FF6A]"
                     >
                       Upgrade to PRO
                     </Button>
@@ -256,11 +260,11 @@ export function AddNoteModal({
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pt-2">
                   <Button
                     variant="ghost"
                     onClick={onClose}
-                    className="flex-1 text-white/70 hover:text-white hover:bg-white/10"
+                    className="flex-1 py-6 rounded-full text-white/60 hover:text-white hover:bg-white/5"
                   >
                     Cancel
                   </Button>
@@ -268,7 +272,7 @@ export function AddNoteModal({
                     variant="primary"
                     onClick={handleSave}
                     disabled={!canSaveMore || !content.trim() || isSaving}
-                    className="flex-1 flex items-center justify-center gap-2"
+                    className="flex-[2] py-6 rounded-full bg-white text-black hover:bg-white/90 border-none shadow-lg shadow-white/5 flex items-center justify-center gap-2 font-semibold"
                   >
                     {isSaving ? (
                       <>
@@ -277,20 +281,12 @@ export function AddNoteModal({
                       </>
                     ) : (
                       <>
-                        <Save size={16} />
+                        <Save size={18} />
                         <span>Save Note</span>
                       </>
                     )}
                   </Button>
                 </div>
-
-                {/* Keyboard Shortcut Hint */}
-                <p className="text-xs text-white/40 text-center mt-4">
-                  Press{' '}
-                  <kbd className="px-2 py-0.5 bg-white/10 rounded">Cmd</kbd> +{' '}
-                  <kbd className="px-2 py-0.5 bg-white/10 rounded">Enter</kbd>{' '}
-                  to save
-                </p>
               </div>
             </motion.div>
           </div>
