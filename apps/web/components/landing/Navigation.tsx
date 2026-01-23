@@ -87,7 +87,7 @@ export function Navigation({
               alt="Focuse Logo"
               width={52}
               height={52}
-              className="w-16 h-16"
+              className="w-10 h-10"
               priority
             />
             <span>FOCUSE</span>

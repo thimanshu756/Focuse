@@ -11,6 +11,13 @@ import { Pricing } from '@/components/landing/Pricing';
 import { FAQ } from '@/components/landing/FAQ';
 import { FinalCTA } from '@/components/landing/FinalCTA';
 import { Footer } from '@/components/landing/Footer';
+import { HeroBento } from '@/components/landing/bento/HeroBento';
+import { FeaturesBento } from '@/components/landing/bento/FeaturesBento';
+import { HowItWorksBento } from '@/components/landing/bento/HowItWorksBento';
+import { TrustBento } from '@/components/landing/bento/TrustBento';
+import { PricingBento } from '@/components/landing/bento/PricingBento';
+import { FAQBento } from '@/components/landing/bento/FAQBento';
+import { FinalCTABento } from '@/components/landing/bento/FinalCTABento';
 import { isAuthenticated } from '@/lib/auth';
 import { api } from '@/lib/api';
 import {
@@ -79,7 +86,7 @@ export default function LandingPage() {
       <WebsiteSchema />
       <SoftwareAppSchema />
 
-      <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8]">
+      <div className="min-h-screen bg-[#FAFAFA] pt-14">
         <Navigation
           isLoading={isLoading}
           userTier={userProfile?.subscriptionTier}
@@ -87,14 +94,18 @@ export default function LandingPage() {
           userAvatar={userProfile?.avatar}
           userId={userProfile?.id}
         />
-        <Hero />
-        <HowItWorks />
-        <FeaturesGrid />
-        <ChitraSpotlight />
-        {/* <SocialProof /> */}
-        <Pricing />
-        <FAQ />
-        <FinalCTA />
+
+        <main>
+          <HeroBento />
+          <FeaturesBento />
+          <HowItWorksBento />
+          {/* <TrustBento /> */}
+          <PricingBento />
+          <ChitraSpotlight />
+          <FAQBento />
+          <FinalCTABento />
+        </main>
+
         <Footer />
       </div>
     </>
