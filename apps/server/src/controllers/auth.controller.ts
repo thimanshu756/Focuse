@@ -18,7 +18,7 @@ import {
 export class AuthController {
   private authService = new AuthService();
 
-  register = async (req: AuthRequest, res: Response, next: NextFunction) => {
+      register = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const data: RegisterInput = req.body;
       const result = await this.authService.register(data);
