@@ -12,39 +12,45 @@ export const HeroBento = () => {
   const members = [
     {
       name: 'Chahar',
-      role: 'Engineer',
+      role: 'Cloud Engineer',
       image: '/people/chahar.jpeg',
-      quote: 'Finally found a tool that keeps me in the flow.',
+      quote:
+        'Chitra helps me lock in during deployments. My flow state has never been this consistent.',
     },
     {
-      name: 'Grover',
+      name: 'Himakshi',
       role: 'Product Designer',
       image: '/people/grover.jpeg',
-      quote: 'The gamification makes work actually fun.',
+      quote:
+        "Chitra turns my design sprints into a game. I'm actually addicted to clearing my tasks.",
     },
     {
       name: 'Himanshu',
       role: 'Founder',
       image: '/people/himanshu.jpeg',
-      quote: 'Building the future of focus for everyone.',
+      quote:
+        'I built Chitra to be the focus coach I needed. It runs my day so I can run the company.',
     },
     {
       name: 'Hitakshi',
-      role: 'Medical Student',
+      role: 'Engineer Delloite',
       image: '/people/hitakshi.jpeg',
-      quote: 'Helped me organize my study schedule perfectly.',
+      quote:
+        'Chitra plans my study sessions perfectly. Balancing work and prep is so much easier.',
     },
     {
       name: 'Hridyesh',
       role: 'Developer',
       image: '/people/hridyesh.jpeg',
-      quote: 'Deep work sessions have never been easier.',
+      quote:
+        'Chitra breaks down complex code logic into manageable steps. No more dev paralysis.',
     },
     {
       name: 'Prashant',
       role: 'Doctor',
       image: '/people/prashant.jpeg',
-      quote: 'Chitra transformed my work and increased my productivity 2x',
+      quote:
+        'Chitra transformed my workflow. I finish my patient logs 2x faster now.',
     },
   ];
 
@@ -173,10 +179,7 @@ export const HeroBento = () => {
                     transition={{ duration: 0.2 }}
                     className="absolute bottom-16 w-[200px] bg-white rounded-xl p-3 shadow-xl z-[100] pointer-events-none"
                     style={{
-                      // 8px (pl-2) + 24px (half-width) + index * 32px (stride)
-                      left: `calc(32px + ${hoveredIndex * 32}px)`,
-                      transform: 'translateX(-50%)',
-                      x: '-45%', // Framer Motion override
+                      left: `calc(8px + ${hoveredIndex * 37}px)`,
                     }}
                   >
                     <div className="text-left">
@@ -191,7 +194,7 @@ export const HeroBento = () => {
                       </p>
                     </div>
                     {/* Arrow */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 -mt-2 border-b border-r border-gray-100/50" />
+                    <div className="absolute top-full left-6 -translate-x-1/2 w-4 h-4 bg-white rotate-45 -mt-2 border-b border-r border-gray-100/50" />
                   </motion.div>
                 )}
               </AnimatePresence>
