@@ -92,7 +92,7 @@ export const FeaturesBento = () => {
             <p className="text-gray-400 text-sm">Mobile. Desktop. Tablet.</p>
           </div>
           <div className="flex items-center gap-2 text-accent text-sm font-medium mt-4 group-hover:translate-x-2 transition-transform cursor-pointer">
-            <span>Download Apps</span>
+            <span>Fully Responsive</span>
             <ArrowUpRight className="w-4 h-4" />
           </div>
 

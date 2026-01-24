@@ -1,11 +1,53 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Sprout } from 'lucide-react';
 
 export const HeroBento = () => {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  const members = [
+    {
+      name: 'Chahar',
+      role: 'Engineer',
+      image: '/people/chahar.jpeg',
+      quote: 'Finally found a tool that keeps me in the flow.',
+    },
+    {
+      name: 'Grover',
+      role: 'Product Designer',
+      image: '/people/grover.jpeg',
+      quote: 'The gamification makes work actually fun.',
+    },
+    {
+      name: 'Himanshu',
+      role: 'Founder',
+      image: '/people/himanshu.jpeg',
+      quote: 'Building the future of focus for everyone.',
+    },
+    {
+      name: 'Hitakshi',
+      role: 'Medical Student',
+      image: '/people/hitakshi.jpeg',
+      quote: 'Helped me organize my study schedule perfectly.',
+    },
+    {
+      name: 'Hridyesh',
+      role: 'Developer',
+      image: '/people/hridyesh.jpeg',
+      quote: 'Deep work sessions have never been easier.',
+    },
+    {
+      name: 'Prashant',
+      role: 'Doctor',
+      image: '/people/prashant.jpeg',
+      quote: 'Chitra transformed my work and increased my productivity 2x',
+    },
+  ];
+
   return (
     <section className="w-full px-4 py-8 lg:py-16 mx-auto max-w-7xl">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 min-h-[600px]">
@@ -97,28 +139,63 @@ export const HeroBento = () => {
         {/* Trust Block */}
         <div className="md:col-span-5 bg-[#111111] rounded-3xl p-8 shadow-card flex flex-col justify-center text-white relative overflow-hidden group">
           <div className="relative z-10">
-            <div className="flex -space-x-4 mb-6 pl-2">
-              {[
-                '/people/chahar.jpeg',
-                '/people/grover.jpeg',
-                '/people/himanshu.jpeg',
-                '/people/hitakshi.jpeg',
-                '/people/hridyesh.jpeg',
-                '/people/prashant.jpeg',
-              ].map((avatar, i) => (
+            <div className="flex -space-x-4 mb-6 pl-2 items-center relative">
+              {members.map((member, i) => (
                 <div
                   key={i}
-                  className="w-12 h-12 rounded-full border-2 border-[#111] bg-slate-700 overflow-hidden relative"
+                  className="relative group/avatar w-12 h-12 flex-shrink-0"
+                  onMouseEnter={() => setHoveredIndex(i)}
+                  onMouseLeave={() => setHoveredIndex(null)}
                 >
-                  <Image
-                    src={avatar}
-                    alt={`Member ${i + 1}`}
-                    width={100}
-                    height={100}
-                    className="w-full h-full object-cover"
-                  />
+                  <motion.div
+                    className="w-12 h-12 rounded-full border-2 border-[#111] bg-slate-700 overflow-hidden relative z-0 cursor-pointer"
+                    whileHover={{ scale: 1.25, zIndex: 50 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    <Image
+                      src={member.image}
+                      alt={member.name}
+                      width={100}
+                      height={100}
+                      className="w-full h-full object-cover"
+                    />
+                  </motion.div>
                 </div>
               ))}
+
+              {/* Shared Tooltip */}
+              <AnimatePresence>
+                {hoveredIndex !== null && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute bottom-16 w-[200px] bg-white rounded-xl p-3 shadow-xl z-[100] pointer-events-none"
+                    style={{
+                      // 8px (pl-2) + 24px (half-width) + index * 32px (stride)
+                      left: `calc(32px + ${hoveredIndex * 32}px)`,
+                      transform: 'translateX(-50%)',
+                      x: '-45%', // Framer Motion override
+                    }}
+                  >
+                    <div className="text-left">
+                      <p className="text-black font-bold text-sm leading-tight mb-1 flex items-center justify-between">
+                        {members[hoveredIndex].name}
+                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-normal border border-gray-200">
+                          {members[hoveredIndex].role}
+                        </span>
+                      </p>
+                      <p className="text-xs text-text-secondary leading-snug italic border-l-2 border-accent pl-2 relative">
+                        "{members[hoveredIndex].quote}"
+                      </p>
+                    </div>
+                    {/* Arrow */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 -mt-2 border-b border-r border-gray-100/50" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="w-12 h-12 rounded-full border-2 border-[#111] bg-accent flex items-center justify-center text-black font-bold text-xs relative z-10">
                 12k+
               </div>
