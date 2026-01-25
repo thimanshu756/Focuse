@@ -13,6 +13,9 @@
     "start:server": "pnpm --filter server start",
     "lint": "pnpm --filter web lint",
     "lint:server": "pnpm --filter server lint",
+    "android": "pnpm --filter @forest/android android",
+    "ios": "pnpm --filter @forest/android ios",
+    "dev:android": "pnpm --filter @forest/android start",
     "prepare": "husky"
   },
   "devDependencies": {
