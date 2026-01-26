@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "95a13180-b5e0-4f99-96e4-dca3bea017d2"
+      }
+    },
+    "android": {
+      "package": "com.webzenithsolutions.mymonorepo"
+    }
+  }
+}

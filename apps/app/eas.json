@@ -4,31 +4,64 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "node": "20.18.0",
+      "pnpm": "8.15.0"
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ENVIRONMENT": "development"
+      },
       "ios": {
-        "resourceClass": "m-medium"
+        "resourceClass": "m-medium",
+        "simulator": true
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "development",
+      "buildArtifactPaths": ["apps/app/**"]
     },
     "preview": {
+      "extends": "base",
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ENVIRONMENT": "staging"
+      },
       "ios": {
-        "simulator": true,
+        "simulator": false,
         "resourceClass": "m-medium"
       },
       "android": {
         "buildType": "apk"
-      }
+      },
+      "channel": "staging"
     },
     "production": {
-      "ios": {
-        "resourceClass": "m-medium"
+      "extends": "base",
+      "env": {
+        "EXPO_PUBLIC_ENVIRONMENT": "production"
       },
-      "autoIncrement": true
+      "ios": {
+        "resourceClass": "m-medium",
+        "simulator": false
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "autoIncrement": true,
+      "channel": "production"
+    },
+    "production-apk": {
+      "extends": "production",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
     }
   },
   "submit": {

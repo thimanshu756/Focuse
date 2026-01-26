@@ -58,6 +58,7 @@
       "eas": {
         "projectId": "your-project-id"
       }
-    }
+    },
+    "owner": "webzenithsolutions"
   }
 }

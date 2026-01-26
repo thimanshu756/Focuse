@@ -1,0 +1,56 @@
+# Dependencies (will be installed by EAS)
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.expo/
+dist/
+build/
+*.apk
+*.aab
+*.ipa
+
+# Development
+.env.local
+.env*.local
+*.log
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.nyc_output/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Git
+.git/
+.gitignore
+
+# Other
+.cache/
+temp/
+tmp/
+
+# Exclude other apps in monorepo (but keep root workspace files)
+../web/
+../server/
+../../packages/
+
+# Important: Don't exclude these monorepo files
+!../../package.json
+!../../pnpm-workspace.yaml
+!../../pnpm-lock.yaml
