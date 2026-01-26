@@ -1,0 +1,64 @@
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  estimatedMinutes: number;
+  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  dueDate?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Session {
+  id: string;
+  taskId: string;
+  duration: number;
+  actualMinutes: number;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
+  startTime: string;
+  endTime?: string;
+  treeType?: string;
+  createdAt: string;
+}
+
+export interface Tree {
+  id: string;
+  sessionId: string;
+  type: string;
+  plantedAt: string;
+  growthStage: number;
+}
+
+export interface Insight {
+  totalFocusTime: number;
+  totalSessions: number;
+  averageSessionLength: number;
+  currentStreak: number;
+  longestStreak: number;
+  completedTasks: number;
+  focusTimeByDay: {
+    date: string;
+    minutes: number;
+  }[];
+}
