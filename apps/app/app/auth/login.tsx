@@ -7,20 +7,40 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/theme';
+import { authService } from '@/services/auth.service';
+import { AxiosError } from 'axios';
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    // TODO: Implement login logic
-    console.log('Login with:', email, password);
-    router.replace('/(tabs)');
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await authService.login({ email, password });
+      router.replace('/(tabs)');
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message: string }>;
+      Alert.alert(
+        'Login Failed',
+        axiosError.response?.data?.message || 'Something went wrong'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -46,6 +66,7 @@ export default function Login() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isLoading}
             />
 
             <TextInput
@@ -55,15 +76,25 @@ export default function Login() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              editable={!isLoading}
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-              <Text style={styles.buttonText}>Sign In</Text>
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={COLORS.text.primary} />
+              ) : (
+                <Text style={styles.buttonText}>Sign In</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => router.push('/auth/signup')}
               style={styles.linkButton}
+              disabled={isLoading}
             >
               <Text style={styles.linkText}>
                 Don&apos;t have an account?{' '}
@@ -84,6 +115,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 8,
     padding: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: COLORS.text.primary,

@@ -8,21 +8,41 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/theme';
+import { authService } from '@/services/auth.service';
+import { AxiosError } from 'axios';
 
 export default function Signup() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSignup = async () => {
-    // TODO: Implement signup logic
-    console.log('Signup with:', name, email, password);
-    router.replace('/(tabs)');
+    if (!name || !email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await authService.register({ name, email, password });
+      router.replace('/(tabs)');
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message: string }>;
+      Alert.alert(
+        'Signup Failed',
+        axiosError.response?.data?.message || 'Something went wrong'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -47,6 +67,7 @@ export default function Signup() {
                 placeholderTextColor={COLORS.text.muted}
                 value={name}
                 onChangeText={setName}
+                editable={!isLoading}
               />
 
               <TextInput
@@ -57,6 +78,7 @@ export default function Signup() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={!isLoading}
               />
 
               <TextInput
@@ -66,15 +88,25 @@ export default function Signup() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
+                editable={!isLoading}
               />
 
-              <TouchableOpacity style={styles.button} onPress={handleSignup}>
-                <Text style={styles.buttonText}>Create Account</Text>
+              <TouchableOpacity
+                style={[styles.button, isLoading && styles.buttonDisabled]}
+                onPress={handleSignup}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={COLORS.text.primary} />
+                ) : (
+                  <Text style={styles.buttonText}>Create Account</Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => router.back()}
                 style={styles.linkButton}
+                disabled={isLoading}
               >
                 <Text style={styles.linkText}>
                   Already have an account?{' '}
@@ -96,6 +128,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 8,
     padding: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: COLORS.text.primary,

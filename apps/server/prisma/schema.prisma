@@ -139,7 +139,7 @@ model Task {
   @@index([userId, priority, status]) // Filter by priority
   @@index([createdAt])
   @@index([deletedAt])
-  @@index([clientId]) // For sync operations
+
   @@map("tasks")
 }
 
@@ -194,7 +194,7 @@ model FocusSession {
   @@index([taskId]) // Sessions per task
   @@index([startTime, endTime]) // Date range queries
   @@index([status, updatedAt]) // Cleanup failed/stuck sessions
-  @@index([clientId]) // For sync operations
+
   @@map("focus_sessions")
 }
 

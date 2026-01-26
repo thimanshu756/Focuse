@@ -43,14 +43,14 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', async (req: Request, res: Response) => {
   try {
     // Test database connection
-    res.json({ 
-      status: 'ok', 
+    res.json({
+      status: 'ok',
       message: 'Server is running',
       database: 'connected'
     });
   } catch (error) {
-    res.status(503).json({ 
-      status: 'error', 
+    res.status(503).json({
+      status: 'error',
       message: 'Server is running but database connection failed',
       database: 'disconnected'
     });
@@ -70,7 +70,7 @@ app.use('/api/v1/subscription', subscriptionRoutes);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
-  res.json({ 
+  res.json({
     message: 'Forest Focus Timer API',
     version: '1.0.0',
     endpoints: {
@@ -98,9 +98,9 @@ process.on('beforeExit', async () => {
 });
 
 // Start server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+  console.log(`📊 Health check: http://0.0.0.0:${PORT}/health`);
   console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Configured' : 'Not configured'}`);
 });
 

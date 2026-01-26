@@ -1,8 +1,11 @@
 import Constants from 'expo-constants';
 
+const debuggerHost = Constants.expoConfig?.hostUri;
+const localhost = debuggerHost?.split(':')[0] || 'localhost';
+
 const ENV = {
   dev: {
-    apiUrl: 'http://localhost:8080/api',
+    apiUrl: process.env.EXPO_PUBLIC_API_URL || `http://${localhost}:8080/api`,
   },
   staging: {
     apiUrl: 'https://staging-api.forest.app/api',

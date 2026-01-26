@@ -29,20 +29,44 @@ class ApiService {
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+
+        if (__DEV__) {
+          console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+          if (config.data) console.log('[API] Data:', JSON.stringify(config.data, null, 2));
+        }
+
         return config;
       },
       (error: AxiosError) => {
+        if (__DEV__) {
+          console.error('[API] Request Error:', error.message);
+        }
         return Promise.reject(error);
       }
     );
 
     // Response interceptor - Handle errors and token refresh
     this.api.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        if (__DEV__) {
+          console.log(`[API] ${response.status} ${response.config.url}`);
+        }
+        return response;
+      },
       async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & {
           _retry?: boolean;
         };
+
+        if (__DEV__) {
+          console.error(
+            `[API] Error ${error.response?.status} ${error.config?.url}:`,
+            error.message
+          );
+          if (error.response?.data) {
+            console.log('[API] Error Data:', error.response.data);
+          }
+        }
 
         // Handle 401 Unauthorized - Try to refresh token
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -82,6 +106,8 @@ class ApiService {
   }
 
   public getAxiosInstance(): AxiosInstance {
+    console.log('API URL:', config.apiUrl);
+    console.log('API Instance:', this.api);
     return this.api;
   }
 }
