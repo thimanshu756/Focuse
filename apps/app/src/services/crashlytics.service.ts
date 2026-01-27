@@ -5,7 +5,16 @@
  * Provides a unified interface for error logging across the app.
  */
 
-import * as Sentry from '@sentry/react-native';
+// Conditional Sentry import - only load if not in dev mode
+let Sentry: any = null;
+try {
+  if (!__DEV__) {
+    Sentry = require('@sentry/react-native');
+  }
+} catch (error) {
+  console.warn('[Crashlytics] Sentry not available:', error);
+}
+
 import * as Application from 'expo-application';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
@@ -40,6 +49,12 @@ class CrashlyticsService {
       return;
     }
 
+    if (!Sentry) {
+      console.warn('[Crashlytics] Sentry module not loaded. Crash reporting disabled.');
+      this.initialized = true;
+      return;
+    }
+
     const dsn = Constants.expoConfig?.extra?.sentryDsn;
 
     if (!dsn) {
@@ -54,14 +69,14 @@ class CrashlyticsService {
         environment: Constants.expoConfig?.extra?.environment || 'production',
         enableAutoSessionTracking: true,
         sessionTrackingIntervalMillis: 30000, // 30 seconds
-        
+
         // Release versioning
         release: `${Application.applicationId}@${Application.nativeApplicationVersion}`,
         dist: Application.nativeBuildVersion || undefined,
 
         // Performance monitoring
         tracesSampleRate: __DEV__ ? 1.0 : 0.2, // 20% of transactions in production
-        
+
         // Integrations (optional - comment out if not available in your Sentry version)
         // integrations: [],
 
@@ -96,6 +111,7 @@ class CrashlyticsService {
    * Set device context for better debugging
    */
   private setDeviceContext(): void {
+    if (!Sentry) return;
     Sentry.setContext('device', {
       manufacturer: Device.manufacturer,
       model: Device.modelName,
@@ -111,7 +127,7 @@ class CrashlyticsService {
    * Set user context (call after login)
    */
   setUser(user: UserContext): void {
-    if (!this.initialized) return;
+    if (!this.initialized || !Sentry) return;
 
     Sentry.setUser({
       id: user.id,
@@ -126,7 +142,7 @@ class CrashlyticsService {
    * Clear user context (call after logout)
    */
   clearUser(): void {
-    if (!this.initialized) return;
+    if (!this.initialized || !Sentry) return;
 
     Sentry.setUser(null);
     console.log('[Crashlytics] User context cleared');
@@ -136,7 +152,7 @@ class CrashlyticsService {
    * Log a non-fatal error
    */
   logError(error: Error, metadata?: ErrorMetadata): void {
-    if (!this.initialized) {
+    if (!this.initialized || !Sentry) {
       console.error('[Crashlytics] Not initialized. Error:', error, metadata);
       return;
     }
@@ -158,7 +174,7 @@ class CrashlyticsService {
     level: 'info' | 'warning' | 'error' = 'info',
     metadata?: ErrorMetadata
   ): void {
-    if (!this.initialized) {
+    if (!this.initialized || !Sentry) {
       console.log(`[Crashlytics] Not initialized. ${level.toUpperCase()}: ${message}`, metadata);
       return;
     }
@@ -177,7 +193,7 @@ class CrashlyticsService {
    * Add breadcrumb for debugging
    */
   addBreadcrumb(message: string, category: string, data?: Record<string, any>): void {
-    if (!this.initialized) return;
+    if (!this.initialized || !Sentry) return;
 
     Sentry.addBreadcrumb({
       message,
