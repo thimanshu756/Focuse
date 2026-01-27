@@ -1,12 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '@/services/api.service';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+import { User } from '@/types/api.types';
 
 interface AuthState {
   user: User | null;
@@ -17,13 +12,17 @@ interface AuthState {
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  setUser: (user: User) => void;
 }
+
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: true,
   error: null,
+
+  setUser: (user: User) => set({ user }),
 
   login: async (email: string, password: string) => {
     try {
@@ -106,8 +105,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (token) {
         // Verify token by fetching user profile
         const { data } = await api.get('/auth/me');
+        // Handle potential nested structure { data: { user: ... } }
+        const validUser = data.data.user || data.data;
         set({
-          user: data.data,
+          user: validUser,
           isAuthenticated: true,
           isLoading: false,
         });

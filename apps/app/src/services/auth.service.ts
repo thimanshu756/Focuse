@@ -54,6 +54,34 @@ class AuthService {
         }
     }
 
+    async updateProfile(data: Partial<User>): Promise<User> {
+        const { data: response } = await api.patch<ApiResponse<User>>(
+            '/auth/update-profile',
+            data
+        );
+        const user = response.data;
+        await SecureStore.setItemAsync('user', JSON.stringify(user));
+        return user;
+    }
+
+    async changePassword(data: { currentPassword?: string; newPassword?: string }): Promise<void> {
+        await api.post('/auth/change-password', data);
+    }
+
+    async deleteAccount(): Promise<void> {
+        await api.delete('/auth/delete-account');
+        await this.logout();
+    }
+
+    async getMe(): Promise<User> {
+        const { data: response } = await api.get<ApiResponse<{ user: User }>>('/auth/me');
+        // Handle both structure possibilities based on web hook findings
+        const user = (response.data as any).user || response.data;
+
+        await SecureStore.setItemAsync('user', JSON.stringify(user));
+        return user;
+    }
+
     async getCurrentUser(): Promise<User | null> {
         const userStr = await SecureStore.getItemAsync('user');
         if (userStr) {

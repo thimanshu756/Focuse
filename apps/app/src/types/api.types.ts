@@ -68,6 +68,18 @@ export interface User {
   email: string;
   name: string;
   avatar?: string;
+  subscriptionTier?: 'FREE' | 'PRO';
+  subscriptionStatus?: 'ACTIVE' | 'INACTIVE' | 'CANCELED'; // Added
+  emailVerified?: boolean; // Added
+  userType?: string; // Added
+  preferredFocusTime?: string; // Added
+  onboardingCompleted?: boolean; // Added
+  currentStreak?: number;
+  longestStreak?: number; // Added
+  totalFocusTime?: number; // Added
+  totalSessions?: number;
+  completedSessions?: number; // Added
+  timezone?: string;
   createdAt: string;
 }
 
@@ -85,8 +97,20 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface UpdateProfileRequest {
+  name?: string;
+  avatar?: string;
+  timezone?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
 }
+
