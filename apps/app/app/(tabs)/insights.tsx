@@ -1,21 +1,107 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '@/constants/theme';
+import { COLORS, SPACING, FONT_SIZES } from '@/constants/theme';
+import { useInsightsData, InsightPeriod } from '@/hooks/useInsightsData';
+import { PeriodSelector } from '@/components/insights/PeriodSelector';
+import { InsightCard } from '@/components/insights/InsightCard';
+import { FocusTrendChart } from '@/components/insights/FocusTrendChart';
+import { formatHours } from '@/utils/date.utils';
 
 export default function Insights() {
+  const [period, setPeriod] = useState<InsightPeriod>('week');
+  const { stats, isLoading, refetch } = useInsightsData(period);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
+
+  const totalFocusFormatted = stats ? formatHours(stats.totalFocusTime) : '0';
+
+  // Calculate completion rate
+  const completionRate = stats && stats.totalSessions > 0
+    ? Math.round((stats.completedSessions / stats.totalSessions) * 100)
+    : 0;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Insights</Text>
-          <Text style={styles.subtitle}>Track your progress</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Insights</Text>
+        <Text style={styles.subtitle}>Track your productivity</Text>
+      </View>
+
+      <PeriodSelector value={period} onChange={setPeriod} />
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary.accent}
+            colors={[COLORS.primary.accent]}
+          />
+        }
+      >
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          <View style={styles.row}>
+            <InsightCard
+              label="Focus Hours"
+              value={totalFocusFormatted}
+              icon="time"
+              color={COLORS.info}
+              isLoading={isLoading}
+            />
+            <InsightCard
+              label="Sessions"
+              value={stats?.totalSessions || 0}
+              icon="bar-chart"
+              color={COLORS.success}
+              isLoading={isLoading}
+            />
+          </View>
+          <View style={styles.row}>
+            <InsightCard
+              label="Completion"
+              value={`${completionRate}%`}
+              icon="checkmark-circle"
+              color={COLORS.warning} // Using warning color (orange/yellow) for visibility
+              isLoading={isLoading}
+            />
+            <InsightCard
+              label="Streak"
+              value={stats?.currentStreak || 0}
+              icon="flame"
+              color={COLORS.error}
+              isLoading={isLoading}
+            />
+          </View>
         </View>
 
-        <View style={styles.content}>
-          <Text style={styles.placeholder}>
-            Insights content coming soon...
+        {/* Focus Trend Chart */}
+        <View style={styles.section}>
+          <FocusTrendChart
+            data={stats?.dailyBreakdown || []}
+            period={period}
+            isLoading={isLoading}
+          />
+        </View>
+
+        {/* Coming Soon Section (Placeholder for AI/Advanced insights) */}
+        <View style={styles.comingSoon}>
+          <Text style={styles.comingSoonTitle}>🤖 AI Insights</Text>
+          <Text style={styles.comingSoonText}>
+            Advanced AI analytics are analyzing your patterns.
+            Detailed reports coming soon!
           </Text>
         </View>
+
+        <View style={{ height: SPACING.xxxl }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -26,29 +112,53 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background.gradient,
     flex: 1,
   },
-  content: {
-    flex: 1,
-  },
   header: {
-    marginBottom: 24,
-  },
-  placeholder: {
-    color: COLORS.text.muted,
-    fontSize: 16,
-    marginTop: 40,
-    textAlign: 'center',
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  subtitle: {
-    color: COLORS.text.secondary,
-    fontSize: 16,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.lg,
+    paddingBottom: SPACING.md,
   },
   title: {
     color: COLORS.text.primary,
     fontSize: 32,
     fontWeight: '600',
     marginBottom: 4,
+  },
+  subtitle: {
+    color: COLORS.text.secondary,
+    fontSize: 16,
+  },
+  scrollContent: {
+    padding: SPACING.xl,
+  },
+  statsGrid: {
+    gap: SPACING.md,
+    marginBottom: SPACING.xxl,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  section: {
+    marginBottom: SPACING.xxl,
+  },
+  comingSoon: {
+    backgroundColor: COLORS.background.card,
+    borderRadius: 24,
+    padding: SPACING.xl,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  comingSoonTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.sm,
+  },
+  comingSoonText: {
+    fontSize: FONT_SIZES.md,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
