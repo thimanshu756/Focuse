@@ -137,8 +137,8 @@ export default function Dashboard() {
   };
 
   // Handle task start session
-  const handleStartSession = (taskId: string) => {
-    router.push(`/session?taskId=${taskId}` as any);
+  const handleStartSession = (task: Task) => {
+    router.push(`/session?taskId=${task.id}` as any);
   };
 
   // Calculate stats
@@ -244,11 +244,7 @@ export default function Dashboard() {
                   {tasks.slice(0, 5).map((task) => (
                     <TaskCard
                       key={task.id}
-                      id={task.id}
-                      title={task.title}
-                      priority={task.priority}
-                      status={task.status}
-                      dueDate={task.dueDate}
+                      task={task}
                       onPress={() => handleOpenTaskModal(task)}
                       onStartSession={handleStartSession}
                     />

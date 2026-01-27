@@ -14,7 +14,7 @@ import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/constants/theme';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Task } from '@/types/api.types';
 
-interface TaskFormData {
+export interface TaskFormData {
     title: string;
     description?: string;
     priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
@@ -25,7 +25,7 @@ interface TaskFormData {
 interface TaskModalProps {
     visible: boolean;
     onClose: () => void;
-    onSubmit: (data: TaskFormData) => Promise<void>;
+    onSubmit: (data: TaskFormData) => Promise<any>;
     task?: Task | null;
     isLoading?: boolean;
 }
