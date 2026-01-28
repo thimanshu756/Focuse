@@ -3,8 +3,8 @@
  * Container for tree visualization with gradient background and animations
  */
 
-import React, { useState, useImperativeHandle, forwardRef, ReactNode } from 'react';
-import { View, StyleSheet, useWindowDimensions, Text } from 'react-native';
+import React, { useImperativeHandle, forwardRef, ReactNode } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -21,8 +21,6 @@ interface TreePanelProps {
   backgroundGradient: { colors: string[]; locations?: number[] };
   progress?: number;
   treeType?: TreeType;
-  isWithering?: boolean;
-  isCelebrating?: boolean;
   orientation?: 'portrait' | 'landscape';
   isMobile?: boolean;
 }
@@ -44,22 +42,14 @@ export const TreePanel = forwardRef<TreePanelRef, TreePanelProps>(
       backgroundGradient,
       progress = 0,
       treeType = 'basic',
-      isWithering = false,
-      isCelebrating = false,
       orientation = 'portrait',
       isMobile = true,
     },
     ref
   ) => {
-    const { width, height } = useWindowDimensions();
-    const [pulseKey, setPulseKey] = useState(0);
-    const [glowKey, setGlowKey] = useState(0);
-    const [witherKey, setWitherKey] = useState(0);
-
     // Shared values for animations
     const scale = useSharedValue(1);
     const opacity = useSharedValue(1);
-    const brightness = useSharedValue(1);
 
     // Expose imperative methods
     useImperativeHandle(ref, () => ({
@@ -69,27 +59,26 @@ export const TreePanel = forwardRef<TreePanelRef, TreePanelProps>(
           withTiming(1.1, { duration: 250, easing: Easing.out(Easing.cubic) }),
           withTiming(1, { duration: 250, easing: Easing.out(Easing.cubic) })
         );
-        setPulseKey((prev) => prev + 1);
       },
       glow: () => {
-        // Glow animation for completion (brightness increase)
-        brightness.value = withSequence(
-          withTiming(1.3, { duration: 600, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) })
+        // Glow animation for completion (scale bounce)
+        scale.value = withSequence(
+          withTiming(1.15, { duration: 400, easing: Easing.out(Easing.cubic) }),
+          withTiming(1.05, { duration: 200, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1.1, { duration: 200, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 400, easing: Easing.out(Easing.cubic) })
         );
-        setGlowKey((prev) => prev + 1);
       },
       wither: () => {
-        // Wither animation for give up (fade and darken)
-        opacity.value = withTiming(0.5, {
+        // Wither animation for give up (fade out)
+        opacity.value = withTiming(0.3, {
           duration: 1000,
           easing: Easing.out(Easing.cubic),
         });
-        brightness.value = withTiming(0.3, {
+        scale.value = withTiming(0.9, {
           duration: 1000,
           easing: Easing.out(Easing.cubic),
         });
-        setWitherKey((prev) => prev + 1);
       },
     }));
 
@@ -137,7 +126,6 @@ export const TreePanel = forwardRef<TreePanelRef, TreePanelProps>(
             </View>
           </Animated.View>
         </View>
-        <Text style={{ color: 'white' }}>TimerPanel</Text>
       </View>
     );
   }
