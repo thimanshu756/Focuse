@@ -27,8 +27,13 @@ export function useActiveSession(): ActiveSessionReturn {
 
                 const response = await api.get('/sessions/active');
 
+                console.log(
+                "session ->",response.data
+                );
+                
                 if (response.data.success && response.data.data) {
-                    const sessionData = response.data.data;
+                    const sessionData = response.data.data.session;
+
                     setSession({
                         id: sessionData.id,
                         taskTitle: sessionData.task?.title,

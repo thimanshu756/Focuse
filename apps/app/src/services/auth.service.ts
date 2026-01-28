@@ -92,3 +92,16 @@ class AuthService {
 }
 
 export const authService = new AuthService();
+
+/**
+ * Check if user is authenticated (has valid access token)
+ */
+export async function isAuthenticated(): Promise<boolean> {
+    try {
+        const accessToken = await SecureStore.getItemAsync('accessToken');
+        return !!accessToken;
+    } catch (error) {
+        console.error('Error checking authentication:', error);
+        return false;
+    }
+}

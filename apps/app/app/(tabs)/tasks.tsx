@@ -21,6 +21,7 @@ import { Task } from '@/types/api.types';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/Button';
+import { api } from '@/services/api.service';
 
 const STATUS_FILTERS = [
   { label: 'All', value: 'ALL' },
@@ -130,8 +131,23 @@ export default function Tasks() {
     }
   }
 
-  const handleStartSession = (task: Task) => {
-    router.push(`/session?taskId=${task.id}` as any);
+  const handleStartSession = async (task: Task) => {
+    try {
+      const response = await api.post('/sessions', {
+        taskId: task.id,
+        duration: 25, // Default 25 minute session
+      });
+      if (response.data.success && response.data.data?.session) {
+        router.push(`/session/${response.data.data.session.id}` as any);
+      }
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Failed to start session'
+      );
+    }
   };
 
   const renderItem = ({ item }: { item: Task }) => (

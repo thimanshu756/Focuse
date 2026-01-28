@@ -28,6 +28,7 @@ import { getTimeBasedGreeting, formatHours } from '@/utils/date.utils';
 import * as SecureStore from 'expo-secure-store';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Task } from '@/types/api.types';
+import { api } from '@/services/api.service';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -136,9 +137,25 @@ export default function Dashboard() {
     }
   };
 
-  // Handle task start session
-  const handleStartSession = (task: Task) => {
-    router.push(`/session?taskId=${task.id}` as any);
+  // Handle task start session - navigate to dashboard with task preselected
+  // The actual session creation happens in QuickStartSession component
+  const handleStartSession = async (task: Task) => {
+    try {
+      const response = await api.post('/sessions', {
+        taskId: task.id,
+        duration: 25, // Default 25 minute session
+      });
+      if (response.data.success && response.data.data?.session) {
+        router.push(`/session/${response.data.data.session.id}` as any);
+      }
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Failed to start session'
+      );
+    }
   };
 
   // Calculate stats

@@ -37,6 +37,9 @@ interface QuickStartSessionProps {
 const DURATIONS = [15, 25, 50];
 
 export function QuickStartSession({ tasks, activeSession }: QuickStartSessionProps) {
+
+    console.log("activeSession", activeSession);
+
     const router = useRouter();
     const [selectedTask, setSelectedTask] = useState<string>('');
     const [selectedDuration, setSelectedDuration] = useState<number | null>(25);
@@ -73,7 +76,7 @@ export function QuickStartSession({ tasks, activeSession }: QuickStartSessionPro
                     variant="primary"
                     size="lg"
                     fullWidth
-                    onPress={() => router.push('/session' as any)}
+                    onPress={() => router.push(`/session/${activeSession.id}` as any)}
                 />
             </Card>
         );
@@ -96,7 +99,7 @@ export function QuickStartSession({ tasks, activeSession }: QuickStartSessionPro
             });
 
             if (response.data.success && response.data.data?.session) {
-                router.push(`/session?sessionId=${response.data.data.session.id}` as any);
+                router.push(`/session/${response.data.data.session.id}` as any);
             }
         } catch (error: any) {
             Alert.alert(
