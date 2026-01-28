@@ -82,14 +82,16 @@ class ApiService {
                 }
               );
 
-              const { accessToken } = data.data;
-              await SecureStore.setItemAsync('accessToken', accessToken);
+              if (data.success && data.data) {
+                await SecureStore.setItemAsync('accessToken', data.data.accessToken);
+                await SecureStore.setItemAsync('refreshToken', data.data.refreshToken);
 
-              // Retry original request
-              if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                // Retry original request
+                if (originalRequest.headers) {
+                  originalRequest.headers.Authorization = `Bearer ${data.data.accessToken}`;
+                }
+                return this.api(originalRequest);
               }
-              return this.api(originalRequest);
             }
           } catch (refreshError) {
             // Refresh failed - Clear tokens and redirect to login

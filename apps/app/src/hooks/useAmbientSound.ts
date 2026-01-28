@@ -21,10 +21,10 @@ interface SoundConfig {
 // Available sounds
 export const AMBIENT_SOUNDS: SoundConfig[] = [
     { id: 'silent', label: 'Silent', isPro: false, source: null },
-    { id: 'forest', label: 'Forest', isPro: false, source: null }, // TODO: Add actual audio file
-    { id: 'ocean', label: 'Ocean', isPro: true, source: null },
-    { id: 'cafe', label: 'Café', isPro: true, source: null },
-    { id: 'birds', label: 'Birds', isPro: true, source: null },
+    { id: 'forest', label: 'Forest', isPro: false, source: require('@/assets/audio/forest.mp3') },
+    { id: 'ocean', label: 'Ocean', isPro: true, source: require('@/assets/audio/ocean.mp3') },
+    { id: 'cafe', label: 'Café', isPro: true, source: require('@/assets/audio/cafe.mp3') },
+    { id: 'birds', label: 'Birds', isPro: true, source: require('@/assets/audio/birds.mp3') },
 ];
 
 // Storage key

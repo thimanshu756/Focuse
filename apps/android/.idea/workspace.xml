@@ -6,6 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="07c1b0dd-4744-4b36-85dd-ebbd593f2be6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/app/session/[id].tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/app/session/[id].tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/components/session/CircularTimer.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/components/session/CircularTimer.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/components/session/SessionHeader.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/components/session/SessionHeader.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/components/session/TimerPanel.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/components/session/TimerPanel.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/components/session/TreePanel.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/components/session/TreePanel.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../app/src/constants/theme.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../app/src/constants/theme.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/services/api.service';
 
 interface ActiveSessionData {
@@ -18,20 +18,24 @@ export function useActiveSession(): ActiveSessionReturn {
     const [session, setSession] = useState<ActiveSessionData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const isInitialLoad = useRef(true);
 
     useEffect(() => {
         const fetchActiveSession = async () => {
             try {
-                setIsLoading(true);
+                // Only show loading state on initial load, not during polls
+                if (isInitialLoad.current) {
+                    setIsLoading(true);
+                }
                 setError(null);
 
                 const response = await api.get('/sessions/active');
 
                 console.log(
-                "session ->",response.data
+                    "session ->", response.data
                 );
-                
-                if (response.data.success && response.data.data) {
+
+                if (response.data.success && response.data.data?.session) {
                     const sessionData = response.data.data.session;
 
                     setSession({
@@ -56,11 +60,19 @@ export function useActiveSession(): ActiveSessionReturn {
                     setSession(null);
                 }
             } finally {
-                setIsLoading(false);
+                if (isInitialLoad.current) {
+                    setIsLoading(false);
+                    isInitialLoad.current = false;
+                }
             }
         };
 
         fetchActiveSession();
+
+        // Poll every 30 seconds for cross-device sync
+        const interval = setInterval(fetchActiveSession, 30000);
+
+        return () => clearInterval(interval);
     }, []);
 
     return { session, isLoading, error };

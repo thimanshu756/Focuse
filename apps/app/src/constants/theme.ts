@@ -20,6 +20,21 @@ export const COLORS = {
   error: '#EF4444',
   warning: '#F59E0B',
   info: '#3B82F6',
+  // Session-specific dark theme (premium, calm feel)
+  session: {
+    background: '#0C1220', // Deep navy instead of pure black
+    backgroundSecondary: '#141E30', // Slightly lighter navy
+    card: 'rgba(255, 255, 255, 0.06)', // Subtle glass effect
+    cardBorder: 'rgba(255, 255, 255, 0.08)',
+    textPrimary: '#FFFFFF',
+    textSecondary: 'rgba(255, 255, 255, 0.7)',
+    textMuted: 'rgba(255, 255, 255, 0.4)',
+    ring: {
+      background: 'rgba(255, 255, 255, 0.1)',
+      active: '#D7F50A',
+      urgent: '#EF4444',
+    },
+  },
 } as const;
 
 export const SPACING = {

@@ -12,7 +12,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import NetInfo from '@react-native-community/netinfo';
-import { COLORS, SPACING } from '@/constants/theme';
+import { COLORS, SPACING, FONT_SIZES } from '@/constants/theme';
 
 // Components
 import { TimerPanel } from '@/components/session/TimerPanel';
@@ -368,7 +368,6 @@ export default function FocusSession() {
 
         {/* Session Header */}
         <SessionHeader
-          taskTitle={session.task?.title}
           isOffline={isOffline}
           isSoundEnabled={isSoundPlaying && currentSound !== 'silent'}
           onClose={handleClose}
@@ -390,11 +389,11 @@ export default function FocusSession() {
             orientation === 'landscape' ? styles.landscapeLayout : styles.portraitLayout,
           ]}
         >
-          {/* Tree Panel with Ambient Animations */}
+          {/* Tree Panel with Ambient Animations - fills remaining space */}
           <View
             style={[
               styles.treePanelContainer,
-              orientation === 'portrait' && styles.treePortrait,
+              orientation === 'landscape' && styles.treeLandscape,
             ]}
           >
             <TreePanel
@@ -408,7 +407,7 @@ export default function FocusSession() {
             {/* <AmbientAnimations timeOfDay={timeOfDay} enabled={!isPaused} /> */}
           </View>
 
-          {/* Timer Panel */}
+          {/* Timer Panel - takes natural height in portrait, flex in landscape */}
           <View
             style={[
               styles.timerContainer,
@@ -495,7 +494,7 @@ export default function FocusSession() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#000',
+    backgroundColor: COLORS.session.background,
     flex: 1,
   },
   mainLayout: {
@@ -510,40 +509,45 @@ const styles = StyleSheet.create({
   treePanelContainer: {
     flex: 1,
     position: 'relative',
+    minHeight: 280, // Increased for better tree visibility
+  },
+  treeLandscape: {
+    flex: 1,
+    minHeight: undefined,
   },
   timerContainer: {
     backgroundColor: 'transparent',
   },
   timerPortrait: {
-    flex: 1.1,
+    flexShrink: 0,
+    paddingBottom: SPACING.lg,
   },
   timerLandscape: {
     flex: 1,
-  },
-  treePortrait: {
-    flex: 0.9,
   },
   centerContent: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
     padding: SPACING.xl,
+    backgroundColor: COLORS.session.background,
   },
   loadingText: {
-    color: COLORS.text.white,
-    fontSize: 16,
+    color: COLORS.session.textSecondary,
+    fontSize: FONT_SIZES.md,
     marginTop: SPACING.lg,
+    fontWeight: '500',
   },
   errorTitle: {
-    color: COLORS.text.white,
-    fontSize: 24,
+    color: COLORS.session.textPrimary,
+    fontSize: FONT_SIZES.xl,
     fontWeight: '600',
     marginBottom: SPACING.sm,
     textAlign: 'center',
   },
   errorText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 16,
+    color: COLORS.session.textSecondary,
+    fontSize: FONT_SIZES.md,
     marginBottom: SPACING.xxl,
     textAlign: 'center',
   },

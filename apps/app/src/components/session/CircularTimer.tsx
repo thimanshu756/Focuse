@@ -1,6 +1,7 @@
 /**
  * CircularTimer Component
- * SVG-based circular progress ring with centered time display
+ * Premium SVG-based circular progress ring with centered time display
+ * Design matches the app's premium, calm aesthetic
  */
 
 import React, { useEffect } from 'react';
@@ -8,11 +9,14 @@ import { View, Text, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedProps,
+  useAnimatedStyle,
   withTiming,
+  withRepeat,
+  withSequence,
   Easing,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
-import { COLORS, FONT_SIZES } from '@/constants/theme';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { COLORS, SPACING } from '@/constants/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -37,23 +41,23 @@ export function CircularTimer({
   formattedTime,
   ringColor,
   isUrgent = false,
-  size = 280,
+  size = 220,
 }: CircularTimerProps) {
-  const strokeWidth = 12;
+  // Premium design: thicker stroke for better visibility
+  const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  // Shared value for animated stroke
+  // Shared values
   const strokeDashoffset = useSharedValue(circumference);
+  const pulseOpacity = useSharedValue(0);
+  const glowScale = useSharedValue(1);
 
-  // Shared value for pulse animation
-  const pulseScale = useSharedValue(1);
-
-  // Animate progress
+  // Animate progress smoothly
   useEffect(() => {
     const offset = circumference - (progress / 100) * circumference;
     strokeDashoffset.value = withTiming(offset, {
-      duration: 500,
+      duration: 800,
       easing: Easing.out(Easing.cubic),
     });
   }, [progress, circumference]);
@@ -61,47 +65,89 @@ export function CircularTimer({
   // Pulse animation when urgent
   useEffect(() => {
     if (isUrgent) {
-      // Pulse effect
-      pulseScale.value = withTiming(
-        1.05,
-        { duration: 600, easing: Easing.inOut(Easing.ease) },
-        (finished) => {
-          if (finished) {
-            pulseScale.value = withTiming(1, {
-              duration: 600,
-              easing: Easing.inOut(Easing.ease),
-            });
-          }
-        }
+      pulseOpacity.value = withRepeat(
+        withSequence(
+          withTiming(0.4, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0, { duration: 800, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        false
+      );
+      glowScale.value = withRepeat(
+        withSequence(
+          withTiming(1.02, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) })
+        ),
+        -1,
+        false
       );
     } else {
-      pulseScale.value = 1;
+      pulseOpacity.value = withTiming(0);
+      glowScale.value = withTiming(1);
     }
-  }, [isUrgent, timeRemaining]);
+  }, [isUrgent]);
 
   // Animated props for the progress circle
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: strokeDashoffset.value,
   }));
 
+  // Animated style for urgent pulse
+  const pulseStyle = useAnimatedStyle(() => ({
+    opacity: pulseOpacity.value,
+    transform: [{ scale: glowScale.value }],
+  }));
+
+  // Calculate remaining time label
+  const getTimeLabel = () => {
+    if (timeRemaining <= 0) return 'Complete';
+    if (timeRemaining < 60) return 'Almost there!';
+    if (timeRemaining < 300) return 'Final stretch';
+    return 'remaining';
+  };
+
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      {/* Background Circle */}
+      {/* Outer glow ring for urgent state */}
+      {isUrgent && (
+        <Animated.View
+          style={[
+            styles.urgentGlow,
+            {
+              width: size + 20,
+              height: size + 20,
+              borderRadius: (size + 20) / 2,
+            },
+            pulseStyle,
+          ]}
+        />
+      )}
+
+      {/* SVG Ring */}
       <Svg width={size} height={size} style={styles.svg}>
+        <Defs>
+          <LinearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor={ringColor} stopOpacity="1" />
+            <Stop offset="100%" stopColor={COLORS.primary.soft} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Background Circle - subtle track */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={COLORS.background.card}
+          stroke={COLORS.session.ring.background}
           strokeWidth={strokeWidth}
           fill="none"
         />
-        {/* Progress Circle */}
+
+        {/* Progress Circle - with gradient */}
         <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={ringColor}
+          stroke={isUrgent ? COLORS.session.ring.urgent : 'url(#progressGradient)'}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
@@ -112,13 +158,14 @@ export function CircularTimer({
         />
       </Svg>
 
-      {/* Centered Time Display */}
-      <View style={styles.timeContainer}>
+      {/* Centered Content */}
+      <View style={styles.contentContainer}>
+        {/* Time Display */}
         <Text
           style={[
             styles.timeText,
-            isUrgent && styles.urgentText,
-            { fontSize: size * 0.18 },
+            isUrgent && styles.urgentTimeText,
+            { fontSize: size * 0.2 },
           ]}
           accessibilityLabel={`Time remaining: ${formattedTime}`}
           accessibilityRole="timer"
@@ -126,9 +173,18 @@ export function CircularTimer({
         >
           {formattedTime}
         </Text>
-        <Text style={[styles.progressText, { fontSize: size * 0.08 }]}>
-          {progress}% complete
+
+        {/* Status Label */}
+        <Text style={[styles.statusLabel, { fontSize: size * 0.06 }]}>
+          {getTimeLabel()}
         </Text>
+
+        {/* Progress Percentage */}
+        <View style={styles.progressBadge}>
+          <Text style={[styles.progressText, { fontSize: size * 0.055 }]}>
+            {Math.round(progress)}%
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -143,21 +199,43 @@ const styles = StyleSheet.create({
   svg: {
     position: 'absolute',
   },
-  timeContainer: {
+  urgentGlow: {
+    position: 'absolute',
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: COLORS.error,
+  },
+  contentContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
   timeText: {
-    fontWeight: '600',
-    letterSpacing: -1,
-    color: COLORS.text.primary,
+    fontWeight: '700',
+    letterSpacing: -1.5,
+    color: COLORS.session.textPrimary,
+    fontVariant: ['tabular-nums'],
   },
-  urgentText: {
+  urgentTimeText: {
     color: COLORS.error,
   },
-  progressText: {
-    marginTop: 8,
-    color: COLORS.text.secondary,
+  statusLabel: {
+    color: COLORS.session.textMuted,
     fontWeight: '500',
+    marginTop: SPACING.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  progressBadge: {
+    marginTop: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    backgroundColor: COLORS.session.card,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.session.cardBorder,
+  },
+  progressText: {
+    color: COLORS.primary.accent,
+    fontWeight: '600',
   },
 });
