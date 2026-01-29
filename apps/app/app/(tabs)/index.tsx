@@ -18,7 +18,6 @@ import { QuickStartSession } from '@/components/dashboard/QuickStartSession';
 import { WeeklyChart } from '@/components/dashboard/WeeklyChart';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { TaskModal } from '@/components/tasks/TaskModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useWeeklyStats } from '@/hooks/useWeeklyStats';

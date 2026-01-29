@@ -89,6 +89,14 @@ class AuthService {
         }
         return null;
     }
+
+    async forgotPassword(email: string): Promise<void> {
+        await api.post('/auth/forgot-password', { email: email.toLowerCase().trim() });
+    }
+
+    async resetPassword(token: string, newPassword: string): Promise<void> {
+        await api.post('/auth/reset-password', { token, newPassword });
+    }
 }
 
 export const authService = new AuthService();
