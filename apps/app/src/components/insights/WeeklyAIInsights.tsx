@@ -19,8 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/constants/theme';
 import { useWeeklyInsights } from '@/hooks/useWeeklyInsights';
 import type {
-    WeeklyInsight,
-    WeeklyRecommendation,
+    WeeklyInsightResponse,
 } from '@/types/weekly-insights.types';
 
 // Enable LayoutAnimation on Android
@@ -69,8 +68,8 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
     };
 
     // Get insight icon based on type
-    const getInsightIcon = (type: WeeklyInsight['type']): keyof typeof Ionicons.glyphMap => {
-        const icons: Record<WeeklyInsight['type'], keyof typeof Ionicons.glyphMap> = {
+    const getInsightIcon = (type: string): keyof typeof Ionicons.glyphMap => {
+        const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
             completion_rate: 'checkmark-circle',
             best_time_of_day: 'time',
             session_length: 'resize',
@@ -639,7 +638,7 @@ const styles = StyleSheet.create({
         width: 20,
         height: 20,
         borderRadius: 10,
-        backgroundColor: COLORS.background.secondary,
+        backgroundColor: COLORS.background.cardBlue,
     },
     progressText: {
         fontSize: FONT_SIZES.sm,
@@ -818,7 +817,7 @@ const styles = StyleSheet.create({
         borderRadius: BORDER_RADIUS.lg,
         padding: SPACING.lg,
         borderWidth: 2,
-        borderColor: COLORS.background.secondary,
+        borderColor: COLORS.background.cardBlue,
     },
     recommendationHeader: {
         flexDirection: 'row',
@@ -864,7 +863,7 @@ const styles = StyleSheet.create({
     impactContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        backgroundColor: COLORS.background.secondary,
+        backgroundColor: COLORS.background.cardBlue,
         borderRadius: BORDER_RADIUS.sm,
         padding: SPACING.md,
         gap: SPACING.xs,
