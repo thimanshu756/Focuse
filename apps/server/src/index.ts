@@ -8,6 +8,9 @@ import authRoutes from './routes/auth.routes.js';
 import taskRoutes from './routes/task.routes.js';
 import sessionRoutes from './routes/session.routes.js';
 import syncRoutes from './routes/sync.routes.js';
+import syncV2Routes from './routes/sync-v2.routes.js';
+import deviceRoutes from './routes/device.routes.js';
+import healthRoutes from './routes/health.routes.js';
 import insightsRoutes from './routes/insights.routes.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
@@ -40,14 +43,14 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', async (req: Request, res: Response) => {
   try {
     // Test database connection
-    res.json({ 
-      status: 'ok', 
+    res.json({
+      status: 'ok',
       message: 'Server is running',
       database: 'connected'
     });
   } catch (error) {
-    res.status(503).json({ 
-      status: 'error', 
+    res.status(503).json({
+      status: 'error',
       message: 'Server is running but database connection failed',
       database: 'disconnected'
     });
@@ -58,13 +61,16 @@ app.get('/health', async (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/sessions', sessionRoutes);
-app.use('/api/sync', syncRoutes);
+app.use('/api/sync', syncRoutes); // Legacy sync (read-only)
+app.use('/api/v2/sync', syncV2Routes); // New bidirectional sync for mobile
+app.use('/api/devices', deviceRoutes);
+app.use('/api/health', healthRoutes);
 app.use('/api/insights', insightsRoutes);
 app.use('/api/v1/subscription', subscriptionRoutes);
 
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
-  res.json({ 
+  res.json({
     message: 'Forest Focus Timer API',
     version: '1.0.0',
     endpoints: {
@@ -73,6 +79,9 @@ app.get('/', (req: Request, res: Response) => {
       tasks: '/api/tasks',
       sessions: '/api/sessions',
       sync: '/api/sync',
+      syncV2: '/api/v2/sync',
+      devices: '/api/devices',
+      apiHealth: '/api/health',
       insights: '/api/insights',
       subscription: '/api/v1/subscription',
       webhooks: '/api/v1/webhooks',
@@ -89,9 +98,9 @@ process.on('beforeExit', async () => {
 });
 
 // Start server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+const server = app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+  console.log(`📊 Health check: http://0.0.0.0:${PORT}/health`);
   console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Configured' : 'Not configured'}`);
 });
 

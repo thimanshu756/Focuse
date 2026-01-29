@@ -6,13 +6,18 @@
   "scripts": {
     "dev": "pnpm --filter web dev",
     "dev:server": "pnpm --filter server dev",
+    "dev:app": "pnpm --filter app dev",
     "dev:all": "pnpm --parallel --filter web --filter server dev",
     "build": "pnpm --filter web build",
     "build:server": "pnpm --filter server build",
     "start": "pnpm --filter web start",
     "start:server": "pnpm --filter server start",
+    "start:app": "pnpm --filter app start",
     "lint": "pnpm --filter web lint",
     "lint:server": "pnpm --filter server lint",
+    "lint:app": "pnpm --filter app lint",
+    "app:ios": "pnpm --filter app ios",
+    "app:android": "pnpm --filter app android",
     "prepare": "husky"
   },
   "devDependencies": {

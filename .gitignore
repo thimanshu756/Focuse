@@ -45,3 +45,17 @@ next-env.d.ts
 # pnpm
 pnpm-lock.yaml
 
+# React Native / Android / iOS
+**/*.jsbundle
+**/android/build/
+**/android/.gradle/
+**/android/local.properties
+**/android/app/build/
+**/ios/Pods/
+**/ios/build/
+**/ios/DerivedData/
+**/ios/*.xcworkspace
+**/ios/.xcode.env.local
+**/ios/*.xcuserstate
+.metro-health-check*
+
