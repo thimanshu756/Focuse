@@ -1,9 +1,4 @@
-/**
- * AmbientSoundPanel
- * Modal for selecting ambient sounds during focus sessions
- */
-
-import React from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,6 +6,7 @@ import {
     Modal,
     TouchableOpacity,
     FlatList,
+    PanResponder,
 } from 'react-native';
 import {
     X,
@@ -23,8 +19,6 @@ import {
     Waves,
     Coffee,
     Bird,
-    Minus,
-    Plus,
 } from 'lucide-react-native';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/constants/theme';
 import type { AmbientSoundType } from '@/hooks/useAmbientSound';
@@ -70,16 +64,65 @@ export function AmbientSoundPanel({
     onTogglePlay,
     onClose,
     onUpgrade,
-}: AmbientSoundPanelProps) {
-    const handleVolumeDecrease = () => {
-        const newVolume = Math.max(0, volume - 0.1);
-        onVolumeChange(newVolume);
-    };
 
-    const handleVolumeIncrease = () => {
-        const newVolume = Math.min(1, volume + 0.1);
-        onVolumeChange(newVolume);
-    };
+}: AmbientSoundPanelProps) {
+    console.log('AmbientSoundPanel', { visible, currentSound, volume, isPlaying, availableSounds, isPro });
+    console.log('availableSounds', availableSounds);
+    const sliderWidth = useRef(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const [localVolume, setLocalVolume] = useState(volume);
+    const lastVolumeUpdate = useRef(0);
+    const volumeUpdateInterval = 50; // Update audio volume max every 50ms
+
+    // Throttled volume change to prevent audio stuttering
+    const throttledVolumeChange = useCallback((newVolume: number) => {
+        const now = Date.now();
+        if (now - lastVolumeUpdate.current >= volumeUpdateInterval) {
+            onVolumeChange(newVolume);
+            lastVolumeUpdate.current = now;
+        }
+    }, [onVolumeChange]);
+
+    // Update local volume when prop changes (but not during drag)
+    React.useEffect(() => {
+        if (!isDragging) {
+            setLocalVolume(volume);
+        }
+    }, [volume, isDragging]);
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onStartShouldSetPanResponder: () => true,
+            onMoveShouldSetPanResponder: () => true,
+            onPanResponderGrant: (event) => {
+                setIsDragging(true);
+                const locationX = event.nativeEvent.locationX;
+                if (sliderWidth.current > 0) {
+                    const newVolume = Math.max(0, Math.min(1, locationX / sliderWidth.current));
+                    setLocalVolume(newVolume); // Update UI immediately
+                    throttledVolumeChange(newVolume); // Throttled audio update
+                }
+            },
+            onPanResponderMove: (event) => {
+                const locationX = event.nativeEvent.locationX;
+                if (sliderWidth.current > 0) {
+                    const newVolume = Math.max(0, Math.min(1, locationX / sliderWidth.current));
+                    setLocalVolume(newVolume); // Update UI immediately
+                    throttledVolumeChange(newVolume); // Throttled audio update
+                }
+            },
+            onPanResponderRelease: () => {
+                setIsDragging(false);
+                // Final update with exact value
+                onVolumeChange(localVolume);
+            },
+            onPanResponderTerminate: () => {
+                setIsDragging(false);
+                // Final update with exact value
+                onVolumeChange(localVolume);
+            },
+        })
+    ).current;
 
     const renderSoundOption = ({ item }: { item: SoundOption }) => {
         const Icon = SOUND_ICONS[item.id];
@@ -170,33 +213,38 @@ export function AmbientSoundPanel({
                         <View style={styles.volumeContainer}>
                             <View style={styles.volumeHeader}>
                                 <Text style={styles.volumeLabel}>Volume</Text>
-                                <Text style={styles.volumeValue}>{Math.round(volume * 100)}%</Text>
+                                <Text style={styles.volumeValue}>{Math.round(localVolume * 100)}%</Text>
                             </View>
                             <View style={styles.sliderRow}>
-                                <TouchableOpacity
-                                    style={styles.volumeButton}
-                                    onPress={handleVolumeDecrease}
-                                    activeOpacity={0.7}
+                                <VolumeX size={18} color="rgba(255, 255, 255, 0.4)" />
+                                <View
+                                    {...panResponder.panHandlers}
+                                    style={styles.volumeBarContainer}
+                                    onLayout={(event) => {
+                                        sliderWidth.current = event.nativeEvent.layout.width;
+                                    }}
                                 >
-                                    <Minus size={18} color="rgba(255, 255, 255, 0.6)" />
-                                </TouchableOpacity>
-                                <View style={styles.volumeBarContainer}>
-                                    <View style={styles.volumeBarBackground}>
+                                    <View style={[
+                                        styles.volumeBarBackground,
+                                        isDragging && styles.volumeBarBackgroundActive
+                                    ]}>
                                         <View
                                             style={[
                                                 styles.volumeBarFill,
-                                                { width: `${volume * 100}%` },
+                                                { width: `${localVolume * 100}%` },
+                                                isDragging && styles.volumeBarFillActive
+                                            ]}
+                                        />
+                                        <View
+                                            style={[
+                                                styles.volumeThumb,
+                                                { left: `${localVolume * 100}%` },
+                                                isDragging && styles.volumeThumbActive
                                             ]}
                                         />
                                     </View>
                                 </View>
-                                <TouchableOpacity
-                                    style={styles.volumeButton}
-                                    onPress={handleVolumeIncrease}
-                                    activeOpacity={0.7}
-                                >
-                                    <Plus size={18} color="rgba(255, 255, 255, 0.6)" />
-                                </TouchableOpacity>
+                                <Volume2 size={18} color="rgba(255, 255, 255, 0.4)" />
                             </View>
 
                             {/* Play/Pause Button */}
@@ -363,29 +411,47 @@ const styles = StyleSheet.create({
         gap: SPACING.md,
         marginBottom: SPACING.lg,
     },
-    volumeButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     volumeBarContainer: {
         flex: 1,
-        height: 8,
+        height: 32,
+        justifyContent: 'center',
     },
     volumeBarBackground: {
-        flex: 1,
         height: 8,
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         borderRadius: 4,
-        overflow: 'hidden',
+        position: 'relative',
+        overflow: 'visible',
+    },
+    volumeBarBackgroundActive: {
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
     },
     volumeBarFill: {
         height: '100%',
         backgroundColor: COLORS.primary.accent,
         borderRadius: 4,
+    },
+    volumeBarFillActive: {
+        backgroundColor: COLORS.primary.light,
+    },
+    volumeThumb: {
+        position: 'absolute',
+        top: '50%',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: COLORS.text.white,
+        marginTop: -10,
+        marginLeft: -10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    volumeThumbActive: {
+        transform: [{ scale: 1.3 }],
+        shadowOpacity: 0.5,
     },
     playPauseButton: {
         flexDirection: 'row',

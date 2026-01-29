@@ -42,6 +42,9 @@ import { api } from '@/services/api.service';
 import { getTreeType } from '@/utils/session-helpers';
 import { getGradientForTime } from '@/utils/time-gradients';
 
+// Stores
+import { useAuthStore } from '@/stores/auth.store';
+
 // Types
 import type { NoteType, NotesDraft } from '@/types/notes.types';
 
@@ -49,6 +52,10 @@ export default function FocusSession() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { width, height } = useWindowDimensions();
+
+  // User state
+  const { user } = useAuthStore();
+  const isPro = user?.subscriptionTier === 'PRO';
 
   // Core state
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -111,7 +118,7 @@ export default function FocusSession() {
     saveDraft,
   } = useSessionNotes({
     sessionId: sessionId || '',
-    isPro: false, // TODO: Get from user context
+    isPro,
   });
 
   // Ambient sound
@@ -128,7 +135,7 @@ export default function FocusSession() {
     fadeIn,
     fadeOut,
   } = useAmbientSound({
-    isPro: false, // TODO: Get from user context
+    isPro,
     sessionActive: !isPaused && mounted,
   });
 
@@ -445,7 +452,7 @@ export default function FocusSession() {
           canAddNote={canAddNote}
           noteCount={noteCount}
           maxNotes={maxNotes}
-          isPro={false}
+          isPro={isPro}
           onAddNote={handleAddNote}
           onDeleteNote={deleteNote}
           onDraftChange={handleDraftChange}
@@ -481,7 +488,7 @@ export default function FocusSession() {
           volume={volume}
           isPlaying={isSoundPlaying}
           availableSounds={availableSounds}
-          isPro={false}
+          isPro={isPro}
           onSelectSound={setSound}
           onVolumeChange={setVolume}
           onTogglePlay={handleSoundToggle}

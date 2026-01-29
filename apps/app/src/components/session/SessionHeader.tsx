@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     position: 'absolute',
-    top: 0,
+    top: 30,
     left: 0,
     right: 0,
     zIndex: 100,

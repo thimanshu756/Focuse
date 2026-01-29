@@ -60,6 +60,7 @@ export function useAmbientSound(options: UseAmbientSoundOptions = {}): UseAmbien
 
     const soundRef = useRef<Audio.Sound | null>(null);
     const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const volumeSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Filter available sounds based on PRO status
     const availableSounds = AMBIENT_SOUNDS.map((sound) => ({
@@ -125,10 +126,13 @@ export function useAmbientSound(options: UseAmbientSoundOptions = {}): UseAmbien
             if (fadeIntervalRef.current) {
                 clearInterval(fadeIntervalRef.current);
             }
+            if (volumeSaveTimeoutRef.current) {
+                clearTimeout(volumeSaveTimeoutRef.current);
+            }
         };
     }, []);
 
-    // Load and play sound when currentSound changes
+    // Load sound when currentSound changes (paused by default)
     useEffect(() => {
         const loadSound = async () => {
             if (currentSound === 'silent') {
@@ -156,19 +160,19 @@ export function useAmbientSound(options: UseAmbientSoundOptions = {}): UseAmbien
                     await soundRef.current.unloadAsync();
                 }
 
-                // Create and load new sound
+                // Create and load new sound (paused by default, user must manually play)
                 const { sound } = await Audio.Sound.createAsync(
                     soundConfig.source,
                     {
                         isLooping: true,
                         volume,
-                        shouldPlay: sessionActive,
+                        shouldPlay: false, // Start paused by default
                     },
                     onPlaybackStatusUpdate
                 );
 
                 soundRef.current = sound;
-                setIsPlaying(sessionActive);
+                setIsPlaying(false); // Sound starts paused
             } catch (error) {
                 console.error('Failed to load sound:', error);
             } finally {
@@ -177,7 +181,7 @@ export function useAmbientSound(options: UseAmbientSoundOptions = {}): UseAmbien
         };
 
         loadSound();
-    }, [currentSound, sessionActive, volume]);
+    }, [currentSound, volume]); // Removed sessionActive dependency
 
     // Playback status callback
     const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
@@ -203,26 +207,50 @@ export function useAmbientSound(options: UseAmbientSoundOptions = {}): UseAmbien
         const clampedVolume = Math.max(0, Math.min(1, newVolume));
         setVolumeState(clampedVolume);
 
+        // Update audio volume immediately (this is fast)
         if (soundRef.current) {
-            await soundRef.current.setVolumeAsync(clampedVolume);
+            try {
+                await soundRef.current.setVolumeAsync(clampedVolume);
+            } catch (error) {
+                console.error('Failed to set volume:', error);
+            }
         }
 
-        await AsyncStorage.setItem(VOLUME_PREFERENCE_KEY, clampedVolume.toString());
+        // Debounce AsyncStorage writes (this can be slow)
+        // Only save to storage after user stops changing volume
+        if (volumeSaveTimeoutRef.current) {
+            clearTimeout(volumeSaveTimeoutRef.current);
+        }
+        volumeSaveTimeoutRef.current = setTimeout(async () => {
+            try {
+                await AsyncStorage.setItem(VOLUME_PREFERENCE_KEY, clampedVolume.toString());
+            } catch (error) {
+                console.error('Failed to save volume preference:', error);
+            }
+        }, 500); // Save 500ms after last volume change
     }, []);
 
     // Play sound
     const play = useCallback(async () => {
         if (soundRef.current && currentSound !== 'silent') {
-            await soundRef.current.playAsync();
-            setIsPlaying(true);
+            try {
+                await soundRef.current.playAsync();
+                setIsPlaying(true);
+            } catch (error) {
+                console.error('Failed to play sound:', error);
+            }
         }
     }, [currentSound]);
 
     // Pause sound
     const pause = useCallback(async () => {
         if (soundRef.current) {
-            await soundRef.current.pauseAsync();
-            setIsPlaying(false);
+            try {
+                await soundRef.current.pauseAsync();
+                setIsPlaying(false);
+            } catch (error) {
+                console.error('Failed to pause sound:', error);
+            }
         }
     }, []);
 

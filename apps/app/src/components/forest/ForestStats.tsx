@@ -28,15 +28,7 @@ export function ForestStats({ stats, isLoading }: ForestStatsProps) {
                     isLoading={isLoading}
                 />
             </View>
-            <View style={styles.fullWidth}>
-                <InsightCard
-                    label="Total Focus Time"
-                    value={stats.formattedTime}
-                    icon="time"
-                    color={COLORS.info}
-                    isLoading={isLoading}
-                />
-            </View>
+           
         </View>
     );
 }
