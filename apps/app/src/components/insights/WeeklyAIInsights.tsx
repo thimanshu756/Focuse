@@ -225,6 +225,23 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
                             Week of {formatDate(insight.weekStart)} - {formatDate(insight.weekEnd)}
                         </Text>
                     </View>
+                    {/* Regenerate Button - Only show if week has ended */}
+                    {new Date(insight.weekEnd).getTime() < Date.now() && (
+                        <Pressable
+                            onPress={() => generateInsights({ forceRegenerate: true })}
+                            disabled={isGenerating}
+                            style={[
+                                styles.regenerateButton,
+                                isGenerating && styles.regenerateButtonDisabled,
+                            ]}
+                        >
+                            <Ionicons
+                                name="refresh"
+                                size={20}
+                                color={COLORS.text.primary}
+                            />
+                        </Pressable>
+                    )}
                 </View>
                 <View style={styles.leverContainer}>
                     <Text style={styles.leverText}>{insight.oneLeverToPull}</Text>
@@ -680,6 +697,17 @@ const styles = StyleSheet.create({
     heroSubtitle: {
         fontSize: FONT_SIZES.sm,
         color: COLORS.text.secondary,
+    },
+    regenerateButton: {
+        width: 40,
+        height: 40,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: COLORS.background.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    regenerateButtonDisabled: {
+        opacity: 0.5,
     },
     leverContainer: {
         backgroundColor: COLORS.background.card,

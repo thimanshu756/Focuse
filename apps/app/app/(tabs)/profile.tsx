@@ -41,7 +41,12 @@ export default function ProfileScreen() {
         setLoading(true);
         try {
             const updatedUser = await authService.updateProfile(data);
-            setUser(updatedUser); // Update global store
+            // setUser(updatedUser); // Update global store
+
+            // If timezone was updated, silently refresh user data from server
+            if (data.timezone) {
+                await checkAuth(); // Silently refresh user data
+            }
         } catch (error) {
             throw error;
         } finally {
@@ -69,24 +74,6 @@ export default function ProfileScreen() {
                 onPress: async () => {
                     await authService.logout();
                     router.replace('/auth/login');
-                }
-            }
-        ]);
-    };
-
-    const handleDeleteAccount = async () => {
-        Alert.alert('Delete Account', 'This action is irreversible. Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                    try {
-                        await authService.deleteAccount();
-                        router.replace('/auth/login');
-                    } catch (e) {
-                        Alert.alert("Error", "Failed to delete account");
-                    }
                 }
             }
         ]);

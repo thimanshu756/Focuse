@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, ActivityIndicator } from 'react-native';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/constants/theme';
 import { User } from '@/types/api.types';
 import { Globe, Mail, ChevronDown } from 'lucide-react-native';
@@ -22,11 +22,17 @@ const TIMEZONES = [
 
 export const ProfileDetails = ({ user, onUpdateProfile }: ProfileDetailsProps) => {
     const [timezoneModalVisible, setTimezoneModalVisible] = useState(false);
+    const [isUpdatingTimezone, setIsUpdatingTimezone] = useState(false);
 
     const handleTimezoneSelect = async (timezone: string) => {
         setTimezoneModalVisible(false);
         if (timezone !== user.timezone) {
-            await onUpdateProfile({ timezone });
+            setIsUpdatingTimezone(true);
+            try {
+                await onUpdateProfile({ timezone });
+            } finally {
+                setIsUpdatingTimezone(false);
+            }
         }
     };
 
@@ -53,11 +59,21 @@ export const ProfileDetails = ({ user, onUpdateProfile }: ProfileDetailsProps) =
                     <Text style={styles.label}>Timezone</Text>
                 </View>
                 <TouchableOpacity
-                    style={styles.valueContainer}
-                    onPress={() => setTimezoneModalVisible(true)}
+                    style={[styles.valueContainer, isUpdatingTimezone && styles.valueContainerDisabled]}
+                    onPress={() => !isUpdatingTimezone && setTimezoneModalVisible(true)}
+                    disabled={isUpdatingTimezone}
                 >
-                    <Text style={styles.valueText}>{currentTimezoneLabel}</Text>
-                    <ChevronDown size={16} color={COLORS.text.secondary} />
+                    {isUpdatingTimezone ? (
+                        <>
+                            <ActivityIndicator size="small" color={COLORS.primary.accent} />
+                            <Text style={styles.valueTextMuted}>Updating timezone...</Text>
+                        </>
+                    ) : (
+                        <>
+                            <Text style={styles.valueText}>{currentTimezoneLabel}</Text>
+                            <ChevronDown size={16} color={COLORS.text.secondary} />
+                        </>
+                    )}
                 </TouchableOpacity>
                 <Text style={styles.helperText}>Used for session timestamps</Text>
             </View>
@@ -145,6 +161,10 @@ const styles = StyleSheet.create({
         padding: SPACING.md,
         backgroundColor: '#FFFFFF',
     },
+    valueContainerDisabled: {
+        backgroundColor: '#F9FAFB',
+        opacity: 0.8,
+    },
     readOnly: {
         backgroundColor: '#F3F4F6',
         borderColor: '#E5E7EB',
@@ -152,6 +172,11 @@ const styles = StyleSheet.create({
     valueText: {
         fontSize: FONT_SIZES.md,
         color: COLORS.text.primary,
+    },
+    valueTextMuted: {
+        fontSize: FONT_SIZES.md,
+        color: COLORS.text.secondary,
+        marginLeft: SPACING.sm,
     },
     helperText: {
         fontSize: FONT_SIZES.xs,

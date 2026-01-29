@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api.service';
 import * as SecureStore from 'expo-secure-store';
 import { InteractionManager } from 'react-native';
+import { Session } from '@/types/session.types';
 
 export type InsightPeriod = 'today' | 'week' | 'month' | 'year' | 'all';
 
@@ -11,10 +12,18 @@ interface DailyBreakdown {
     completed: number;
 }
 
+interface TaskBreakdown {
+    taskId: string;
+    taskTitle: string;
+    sessions: number;
+    focusTime: number; // in seconds
+}
+
 interface InsightsStats {
     totalFocusTime: number;
     totalSessions: number;
     dailyBreakdown: DailyBreakdown[];
+    taskBreakdown: TaskBreakdown[];
     completedSessions: number;
     currentStreak: number;
 }
@@ -29,26 +38,32 @@ interface UserProfile {
 interface UseInsightsDataReturn {
     stats: InsightsStats | null;
     userProfile: UserProfile | null;
+    sessions: Session[];
     isLoading: boolean;
     error: string | null;
     refetch: () => Promise<void>;
+    silentRefetch: () => Promise<void>;
 }
 
 export function useInsightsData(period: InsightPeriod): UseInsightsDataReturn {
     const [stats, setStats] = useState<InsightsStats | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [sessions, setSessions] = useState<Session[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (silent = false) => {
         try {
-            setIsLoading(true);
+            if (!silent) {
+                setIsLoading(true);
+            }
             setError(null);
 
-            // Fetch generic stats and user profile in parallel
-            const [statsResponse, userResponse] = await Promise.all([
+            // Fetch stats, user profile, and sessions in parallel
+            const [statsResponse, userResponse, sessionsResponse] = await Promise.all([
                 api.get('/sessions/stats', { params: { period } }),
                 api.get('/auth/me'),
+                api.get('/sessions/forest', { params: { limit: 100 } }),
             ]);
 
             if (statsResponse.data.success && statsResponse.data.data) {
@@ -61,11 +76,19 @@ export function useInsightsData(period: InsightPeriod): UseInsightsDataReturn {
                 setUserProfile(userData);
             }
 
+            if (sessionsResponse.data.success && sessionsResponse.data.data) {
+                setSessions(sessionsResponse.data.data.sessions || sessionsResponse.data.data || []);
+            }
+
         } catch (err: any) {
             console.error('[useInsightsData] Error:', err);
-            setError(err.response?.data?.message || 'Failed to load insights');
+            if (!silent) {
+                setError(err.response?.data?.message || 'Failed to load insights');
+            }
         } finally {
-            setIsLoading(false);
+            if (!silent) {
+                setIsLoading(false);
+            }
         }
     }, [period]);
 
@@ -80,8 +103,11 @@ export function useInsightsData(period: InsightPeriod): UseInsightsDataReturn {
 
     return {
         stats,
+        userProfile,
+        sessions,
         isLoading,
         error,
-        refetch: fetchData,
+        refetch: () => fetchData(false),
+        silentRefetch: () => fetchData(true),
     };
 }
