@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -69,26 +69,35 @@ export function AmbientSoundPanel({
     console.log('AmbientSoundPanel', { visible, currentSound, volume, isPlaying, availableSounds, isPro });
     console.log('availableSounds', availableSounds);
     const sliderWidth = useRef(0);
+    const sliderX = useRef(0);
     const [isDragging, setIsDragging] = useState(false);
     const [localVolume, setLocalVolume] = useState(volume);
-    const lastVolumeUpdate = useRef(0);
-    const volumeUpdateInterval = 50; // Update audio volume max every 50ms
+    const isUpdatingVolumeRef = useRef(false);
+    const currentVolumeRef = useRef(volume);
 
-    // Throttled volume change to prevent audio stuttering
-    const throttledVolumeChange = useCallback((newVolume: number) => {
-        const now = Date.now();
-        if (now - lastVolumeUpdate.current >= volumeUpdateInterval) {
-            onVolumeChange(newVolume);
-            lastVolumeUpdate.current = now;
-        }
-    }, [onVolumeChange]);
-
-    // Update local volume when prop changes (but not during drag)
+    // Keep ref in sync with localVolume
     React.useEffect(() => {
-        if (!isDragging) {
+        currentVolumeRef.current = localVolume;
+    }, [localVolume]);
+
+    // Update local volume when prop changes (but not during drag or volume update)
+    React.useEffect(() => {
+        if (!isDragging && !isUpdatingVolumeRef.current) {
             setLocalVolume(volume);
         }
     }, [volume, isDragging]);
+
+    // Calculate volume from touch position
+    const calculateVolume = React.useCallback((pageX: number) => {
+        if (sliderWidth.current <= 0) return localVolume;
+
+        // Calculate relative position within the slider
+        const relativeX = pageX - sliderX.current;
+        const newVolume = relativeX / sliderWidth.current;
+
+        // Clamp between 0 and 1
+        return Math.max(0, Math.min(1, newVolume));
+    }, [localVolume]);
 
     const panResponder = useRef(
         PanResponder.create({
@@ -96,30 +105,50 @@ export function AmbientSoundPanel({
             onMoveShouldSetPanResponder: () => true,
             onPanResponderGrant: (event) => {
                 setIsDragging(true);
-                const locationX = event.nativeEvent.locationX;
-                if (sliderWidth.current > 0) {
-                    const newVolume = Math.max(0, Math.min(1, locationX / sliderWidth.current));
-                    setLocalVolume(newVolume); // Update UI immediately
-                    throttledVolumeChange(newVolume); // Throttled audio update
-                }
+                const pageX = event.nativeEvent.pageX;
+                const newVolume = calculateVolume(pageX);
+                setLocalVolume(newVolume);
             },
             onPanResponderMove: (event) => {
-                const locationX = event.nativeEvent.locationX;
-                if (sliderWidth.current > 0) {
-                    const newVolume = Math.max(0, Math.min(1, locationX / sliderWidth.current));
-                    setLocalVolume(newVolume); // Update UI immediately
-                    throttledVolumeChange(newVolume); // Throttled audio update
-                }
+                const pageX = event.nativeEvent.pageX;
+                const newVolume = calculateVolume(pageX);
+                setLocalVolume(newVolume);
             },
             onPanResponderRelease: () => {
+                // Capture the current volume from ref before any state changes
+                const finalVolume = currentVolumeRef.current;
+
+                // Prevent useEffect from resetting localVolume
+                isUpdatingVolumeRef.current = true;
+
+                // Update volume with captured value
+                onVolumeChange(finalVolume);
+
+                // Reset drag state
                 setIsDragging(false);
-                // Final update with exact value
-                onVolumeChange(localVolume);
+
+                // Allow useEffect to work again after a delay
+                setTimeout(() => {
+                    isUpdatingVolumeRef.current = false;
+                }, 100);
             },
             onPanResponderTerminate: () => {
+                // Capture the current volume from ref before any state changes
+                const finalVolume = currentVolumeRef.current;
+
+                // Prevent useEffect from resetting localVolume
+                isUpdatingVolumeRef.current = true;
+
+                // Update volume with captured value
+                onVolumeChange(finalVolume);
+
+                // Reset drag state
                 setIsDragging(false);
-                // Final update with exact value
-                onVolumeChange(localVolume);
+
+                // Allow useEffect to work again after a delay
+                setTimeout(() => {
+                    isUpdatingVolumeRef.current = false;
+                }, 100);
             },
         })
     ).current;
@@ -221,7 +250,12 @@ export function AmbientSoundPanel({
                                     {...panResponder.panHandlers}
                                     style={styles.volumeBarContainer}
                                     onLayout={(event) => {
-                                        sliderWidth.current = event.nativeEvent.layout.width;
+                                        const { width } = event.nativeEvent.layout;
+                                        sliderWidth.current = width;
+                                        // Get absolute position on screen
+                                        event.currentTarget.measure((_fx, _fy, _width, _height, px) => {
+                                            sliderX.current = px;
+                                        });
                                     }}
                                 >
                                     <View style={[
@@ -432,7 +466,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     volumeBarFillActive: {
-        backgroundColor: COLORS.primary.light,
+        backgroundColor: COLORS.primary.soft,
     },
     volumeThumb: {
         position: 'absolute',

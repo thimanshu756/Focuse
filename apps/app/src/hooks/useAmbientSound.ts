@@ -181,7 +181,8 @@ export function useAmbientSound(options: UseAmbientSoundOptions = {}): UseAmbien
         };
 
         loadSound();
-    }, [currentSound, volume]); // Removed sessionActive dependency
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentSound]); // Only reload when sound type changes, NOT when volume changes
 
     // Playback status callback
     const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
