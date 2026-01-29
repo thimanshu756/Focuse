@@ -22,7 +22,7 @@ const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 4;
 const TREE_SIZE = (width - (SPACING.xl * 2)) / COLUMN_COUNT - 12;
 
-const Cloud = ({ style, duration, startPos }: { style: any, duration: number, startPos: number }) => {
+const Cloud = React.memo(({ style, duration, startPos }: { style: any, duration: number, startPos: number }) => {
   const translateX = useSharedValue(startPos);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ const Cloud = ({ style, duration, startPos }: { style: any, duration: number, st
       -1,
       false
     );
-  }, []);
+  }, [duration]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }]
@@ -42,7 +42,7 @@ const Cloud = ({ style, duration, startPos }: { style: any, duration: number, st
       ☁️
     </Animated.Text>
   );
-};
+});
 
 export default function Forest() {
   const {
@@ -67,13 +67,13 @@ export default function Forest() {
     setSelectedSession(session);
   };
 
-  const renderTree = ({ item }: { item: Session }) => (
+  const renderTree = React.useCallback(({ item }: { item: Session }) => (
     <TreeItem
       session={item}
       onPress={handleTreePress}
       size={TREE_SIZE}
     />
-  );
+  ), [handleTreePress]);
 
   return (
     <View style={styles.container}>
@@ -103,6 +103,15 @@ export default function Forest() {
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.columnWrapper}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={20}
+          initialNumToRender={20}
+          windowSize={5}
+          getItemLayout={(data, index) => ({
+            length: TREE_SIZE + 32,
+            offset: (TREE_SIZE + 32) * Math.floor(index / COLUMN_COUNT),
+            index,
+          })}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

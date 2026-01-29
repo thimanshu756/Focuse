@@ -38,7 +38,6 @@ const DURATIONS = [15, 25, 50];
 
 export function QuickStartSession({ tasks, activeSession }: QuickStartSessionProps) {
 
-    console.log("activeSession", activeSession);
 
     const router = useRouter();
     const [selectedTask, setSelectedTask] = useState<string>('');
@@ -119,7 +118,7 @@ export function QuickStartSession({ tasks, activeSession }: QuickStartSessionPro
         <Card style={styles.card}>
             <View style={styles.iconHeader}>
                 <View style={[styles.iconContainer, { backgroundColor: '#DBEAFE' }]}>
-                    <Ionicons name="time-outline" size={24} color="#3B82F6" />
+                    <Ionicons name="time-outline" size={ 18} color="#3B82F6" />
                 </View>
                 <Text style={styles.headerTitle}>Quick Start Focus Session</Text>
             </View>
@@ -336,6 +335,7 @@ const styles = StyleSheet.create({
         color: COLORS.text.primary,
         fontSize: FONT_SIZES.lg,
         fontWeight: '600',
+        marginLeft: 15
     },
     helperText: {
         color: COLORS.text.muted,
@@ -345,9 +345,9 @@ const styles = StyleSheet.create({
     iconContainer: {
         alignItems: 'center',
         borderRadius: BORDER_RADIUS.md,
-        height: 48,
+        height: 35,
         justifyContent: 'center',
-        width: 48,
+        width: 35,
     },
     iconHeader: {
         alignItems: 'center',

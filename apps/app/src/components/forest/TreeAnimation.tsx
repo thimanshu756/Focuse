@@ -1,14 +1,10 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import Svg, { Path, Ellipse, Line, Circle, Polygon, Rect } from 'react-native-svg';
 import Animated, {
     useAnimatedProps,
     useSharedValue,
-    withTiming,
     withRepeat,
-    withSequence,
-    withDelay,
-    withSpring,
     Easing,
     interpolate,
     useDerivedValue
@@ -28,13 +24,10 @@ interface TreeAnimationProps {
     isDead?: boolean;
 }
 
-export function TreeAnimation({ treeType, progress = 100, isDead = false }: TreeAnimationProps) {
-    const growth = useSharedValue(0);
 
-    useEffect(() => {
-        // Animate growth from 0 to 1 on mount
-        growth.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) });
-    }, [isDead]);
+export const TreeAnimation = React.memo(function TreeAnimation({ treeType, progress = 100, isDead = false }: TreeAnimationProps) {
+    // Skip animation for performance - show trees immediately at full growth
+    const growth = useSharedValue(1);
 
     // Helper to determine derived values for elements
     // We map the global 'growth' (0-1) to specific start times for elements
@@ -228,4 +221,4 @@ export function TreeAnimation({ treeType, progress = 100, isDead = false }: Tree
 
         </Svg>
     );
-}
+});

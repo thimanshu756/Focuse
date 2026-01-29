@@ -12,7 +12,8 @@ interface TreeItemProps {
     size?: number;
 }
 
-export function TreeItem({ session, onPress, size = 80 }: TreeItemProps) {
+
+export const TreeItem = React.memo(function TreeItem({ session, onPress, size = 80 }: TreeItemProps) {
     const type = getTreeType(session.duration, session.status);
     const isDead = type === 'dead';
 
@@ -33,7 +34,7 @@ export function TreeItem({ session, onPress, size = 80 }: TreeItemProps) {
             </Text> */}
         </Pressable>
     );
-}
+});
 
 const styles = StyleSheet.create({
     container: {
