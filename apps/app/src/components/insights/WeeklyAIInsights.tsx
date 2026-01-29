@@ -336,10 +336,12 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
                     {/* Recommendations Header */}
                     <View style={styles.recommendationsHeader}>
                         <Ionicons name="bulb" size={24} color={COLORS.primary.accent} />
-                        <Text style={styles.recommendationsTitle}>Personalized Recommendations</Text>
-                        <Text style={styles.recommendationsSubtitle}>
-                            {insight.recommendations.length} recommendations to boost your productivity
-                        </Text>
+                        <View style={styles.recommendationsTextContainer}>
+                            <Text style={styles.recommendationsTitle}>Personalized Recommendations</Text>
+                            <Text style={styles.recommendationsSubtitle}>
+                                {insight.recommendations.length} recommendations to boost your productivity
+                            </Text>
+                        </View>
                     </View>
 
                     {/* Recommendations List */}
@@ -797,16 +799,21 @@ const styles = StyleSheet.create({
 
     // Recommendations
     recommendationsHeader: {
+        flexDirection: 'row',
         backgroundColor: COLORS.background.card,
         borderRadius: BORDER_RADIUS.lg,
         padding: SPACING.lg,
         alignItems: 'center',
+        gap: SPACING.md,
+    },
+    recommendationsTextContainer: {
+        flex: 1,
     },
     recommendationsTitle: {
         fontSize: FONT_SIZES.xl,
         fontWeight: '600',
         color: COLORS.text.primary,
-        marginVertical: SPACING.xs,
+        marginBottom: SPACING.xs,
     },
     recommendationsSubtitle: {
         fontSize: FONT_SIZES.sm,
