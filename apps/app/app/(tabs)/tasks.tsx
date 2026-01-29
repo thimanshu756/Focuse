@@ -22,6 +22,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/services/api.service';
+import { AIBreakdownModal } from '@/components/tasks/AIBreakdownModal';
+import { useAuthStore } from '@/stores/auth.store';
 
 const STATUS_FILTERS = [
   { label: 'All', value: 'ALL' },
@@ -37,8 +39,13 @@ export default function Tasks() {
   const debouncedSearch = useDebounce(search, 500);
 
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Get user's Pro status
+  const { user } = useAuthStore();
+  const isPro = user?.subscriptionTier === 'PRO';
 
   // Derive filters for useTasks
   const getFilters = (): TaskFilters => {
@@ -267,6 +274,43 @@ export default function Tasks() {
         task={editingTask}
         isLoading={isCreating || isUpdating}
       />
+
+      {/* AI Breakdown Section */}
+      <View style={styles.aiSection}>
+        <View style={styles.aiSectionContent}>
+          <View style={styles.aiSectionHeader}>
+            <View style={styles.aiSectionTitleRow}>
+              <Text style={styles.aiSectionEmoji}>✨</Text>
+              <Text style={styles.aiSectionTitle}>Create with AI</Text>
+              {isPro && (
+                <View style={styles.proBadge}>
+                  <Text style={styles.proText}>PRO</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.aiSectionDescription}>
+              {isPro
+                ? 'Describe your goal and let AI break it down into actionable tasks'
+                : 'Upgrade to PRO to unlock AI-powered task breakdown'}
+            </Text>
+          </View>
+          <Button
+            title={isPro ? 'Generate Smart Plan' : 'Upgrade to PRO'}
+            variant={isPro ? 'primary' : 'secondary'}
+            onPress={() => setShowAIModal(true)}
+          />
+        </View>
+      </View>
+
+      <AIBreakdownModal
+        visible={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        onSuccess={() => {
+          refetch();
+          setShowAIModal(false);
+        }}
+        isPro={isPro}
+      />
     </SafeAreaView>
   );
 }
@@ -370,5 +414,62 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: SPACING.xxxl * 2,
+  },
+  aiSection: {
+    backgroundColor: COLORS.background.card,
+    marginHorizontal: SPACING.xl,
+    marginBottom: SPACING.xl,
+    borderRadius: BORDER_RADIUS.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  aiSectionContent: {
+    padding: SPACING.lg,
+  },
+  aiSectionHeader: {
+    marginBottom: SPACING.md,
+  },
+  aiSectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.xs,
+  },
+  aiSectionEmoji: {
+    fontSize: FONT_SIZES.lg,
+  },
+  aiSectionTitle: {
+    fontSize: FONT_SIZES.lg,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  proBadge: {
+    backgroundColor: `${COLORS.primary.accent}20`,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  proText: {
+    fontSize: FONT_SIZES.xs,
+    fontWeight: '600',
+    color: COLORS.primary.accent,
+  },
+  aiSectionDescription: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+  },
+  aiButtonTextPro: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  aiButtonText: {
+    fontSize: FONT_SIZES.md,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
   },
 });
