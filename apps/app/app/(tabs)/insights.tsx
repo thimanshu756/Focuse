@@ -3,15 +3,19 @@ import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, FONT_SIZES } from '@/constants/theme';
 import { useInsightsData, InsightPeriod } from '@/hooks/useInsightsData';
+import { useAuthStore } from '@/stores/auth.store';
 import { PeriodSelector } from '@/components/insights/PeriodSelector';
 import { InsightCard } from '@/components/insights/InsightCard';
 import { FocusTrendChart } from '@/components/insights/FocusTrendChart';
+import { WeeklyAIInsights } from '@/components/insights/WeeklyAIInsights';
 import { formatHours } from '@/utils/date.utils';
 
 export default function Insights() {
   const [period, setPeriod] = useState<InsightPeriod>('week');
   const { stats, isLoading, refetch } = useInsightsData(period);
   const [refreshing, setRefreshing] = useState(false);
+  const { user } = useAuthStore();
+  const isPro = user?.subscriptionTier === 'PRO';
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -92,14 +96,8 @@ export default function Insights() {
           />
         </View>
 
-        {/* Coming Soon Section (Placeholder for AI/Advanced insights) */}
-        <View style={styles.comingSoon}>
-          <Text style={styles.comingSoonTitle}>🤖 AI Insights</Text>
-          <Text style={styles.comingSoonText}>
-            Advanced AI analytics are analyzing your patterns.
-            Detailed reports coming soon!
-          </Text>
-        </View>
+        {/* AI Weekly Insights */}
+        <WeeklyAIInsights isPro={isPro} />
 
         <View style={{ height: SPACING.xxxl }} />
       </ScrollView>
@@ -140,25 +138,5 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: SPACING.xxl,
-  },
-  comingSoon: {
-    backgroundColor: COLORS.background.card,
-    borderRadius: 24,
-    padding: SPACING.xl,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
-  comingSoonTitle: {
-    fontSize: FONT_SIZES.lg,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: SPACING.sm,
-  },
-  comingSoonText: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.text.secondary,
-    textAlign: 'center',
-    lineHeight: 22,
   },
 });

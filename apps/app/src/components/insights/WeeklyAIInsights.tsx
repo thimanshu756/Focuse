@@ -1,12 +1,32 @@
+/**
+ * Weekly AI Insights Component - Mobile
+ * React Native component with tab-based navigation for AI-generated weekly insights
+ */
+
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Animated } from 'react-native';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import {
+    View,
+    Text,
+    StyleSheet,
+    Pressable,
+    ScrollView,
+    ActivityIndicator,
+    LayoutAnimation,
+    Platform,
+    UIManager,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/constants/theme';
 import { useWeeklyInsights } from '@/hooks/useWeeklyInsights';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { format } from 'date-fns';
+import type {
+    WeeklyInsight,
+    WeeklyRecommendation,
+} from '@/types/weekly-insights.types';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface WeeklyAIInsightsProps {
     isPro: boolean;
@@ -26,7 +46,9 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
     } = useWeeklyInsights();
 
     const [activeTab, setActiveTab] = useState<TabType>('overview');
-    const [expandedRecommendations, setExpandedRecommendations] = useState<Set<number>>(new Set());
+    const [expandedRecommendations, setExpandedRecommendations] = useState<Set<number>>(
+        new Set()
+    );
 
     useEffect(() => {
         if (insight && !insight.isRead) {
@@ -34,7 +56,9 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
         }
     }, [insight, markAsRead]);
 
+    // Toggle recommendation expansion with animation
     const toggleRecommendation = (index: number) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         const newExpanded = new Set(expandedRecommendations);
         if (newExpanded.has(index)) {
             newExpanded.delete(index);
@@ -44,501 +68,941 @@ export function WeeklyAIInsights({ isPro, onUpgrade }: WeeklyAIInsightsProps) {
         setExpandedRecommendations(newExpanded);
     };
 
+    // Get insight icon based on type
+    const getInsightIcon = (type: WeeklyInsight['type']): keyof typeof Ionicons.glyphMap => {
+        const icons: Record<WeeklyInsight['type'], keyof typeof Ionicons.glyphMap> = {
+            completion_rate: 'checkmark-circle',
+            best_time_of_day: 'time',
+            session_length: 'resize',
+            streak_status: 'flash',
+            productivity_trend: 'trending-up',
+            failure_pattern: 'alert-circle',
+            task_completion: 'checkmark-done',
+            consistency: 'bar-chart',
+        };
+        return icons[type] || 'bulb';
+    };
+
+    // Get priority styling
+    const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
+        const colors = {
+            high: { badge: COLORS.error, icon: COLORS.error },
+            medium: { badge: COLORS.warning, icon: COLORS.warning },
+            low: { badge: COLORS.info, icon: COLORS.info },
+        };
+        return colors[priority];
+    };
+
+    // Loading state
     if (isLoading && !insight) {
         return (
-            <Card style={styles.card}>
+            <View style={styles.card}>
                 <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.primary.accent} />
-                    <Text style={styles.loadingText}>Loading Insights...</Text>
-                </View>
-                <View style={{ gap: 10, marginTop: 20 }}>
-                    <Skeleton width="100%" height={100} />
-                    <Skeleton width="100%" height={80} />
-                </View>
-            </Card>
-        );
-    }
-
-    if (isGenerating && !insight) {
-        return (
-            <Card style={styles.card}>
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.primary.accent} />
-                    <Text style={styles.loadingText}>Generating Your Insights...</Text>
-                    <Text style={styles.loadingSubtext}>AI is analyzing your focus patterns...</Text>
-                </View>
-            </Card>
-        );
-    }
-
-    if (!insight && !error) {
-        return (
-            <Card style={[styles.card, styles.emptyCard]}>
-                <View style={styles.iconCircle}>
-                    <Ionicons name="sparkles" size={32} color={COLORS.text.primary} />
-                </View>
-                <Text style={styles.emptyTitle}>Get Your AI-Powered Insights</Text>
-                <Text style={styles.emptyDesc}>
-                    Let AI analyze your focus patterns and provide personalized recommendations.
-                </Text>
-                <Button
-                    title="Generate Weekly Insights"
-                    onPress={() => generateInsights()}
-                />
-                {!isPro && (
-                    <Text style={styles.emptyFooter}>
-                        Free users: 1 insight per week • Pro users: Unlimited
-                    </Text>
-                )}
-            </Card>
-        );
-    }
-
-    if (error && !insight) {
-        return (
-            <Card style={styles.card}>
-                <View style={styles.loadingContainer}>
-                    <Ionicons name="alert-circle" size={48} color={COLORS.error} />
-                    <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
-                    <Text style={styles.loadingSubtext}>{error}</Text>
-                    <Button
-                        title="Try Again"
-                        onPress={() => generateInsights()}
-                        style={{ marginTop: 16 }}
+                    <View style={styles.sparkleIcon}>
+                        <Ionicons name="sparkles" size={32} color={COLORS.text.primary} />
+                    </View>
+                    <Text style={styles.loadingTitle}>Loading Insights...</Text>
+                    <Text style={styles.loadingSubtitle}>Checking for your weekly insights</Text>
+                    <ActivityIndicator
+                        size="large"
+                        color={COLORS.primary.accent}
+                        style={styles.spinner}
                     />
                 </View>
-            </Card>
+            </View>
+        );
+    }
+
+    // Empty state
+    if (!insight && !isGenerating && !error && !isLoading) {
+        return (
+            <View style={styles.card}>
+                <View style={styles.emptyContainer}>
+                    <View style={styles.sparkleIconLarge}>
+                        <Ionicons name="sparkles" size={48} color={COLORS.text.primary} />
+                    </View>
+                    <Text style={styles.emptyTitle}>Get Your AI-Powered Insights</Text>
+                    <Text style={styles.emptySubtitle}>
+                        Let CHITRA analyze your focus patterns and provide personalized recommendations to
+                        boost your productivity.
+                    </Text>
+                    <Pressable
+                        onPress={() => generateInsights()}
+                        style={styles.generateButton}
+                        disabled={isGenerating}
+                    >
+                        <Ionicons name="sparkles" size={20} color={COLORS.text.primary} />
+                        <Text style={styles.generateButtonText}>Generate Weekly Insights</Text>
+                    </Pressable>
+                    {!isPro && (
+                        <Text style={styles.limitText}>
+                            Free users: 1 insight per week • Pro users: Unlimited
+                        </Text>
+                    )}
+                </View>
+            </View>
+        );
+    }
+
+    // Error state
+    if (error && !insight) {
+        return (
+            <View style={styles.card}>
+                <View style={styles.errorContainer}>
+                    <Ionicons name="alert-circle" size={64} color={COLORS.error} />
+                    <Text style={styles.errorTitle}>{error}</Text>
+                    <Pressable
+                        onPress={() => generateInsights()}
+                        style={styles.retryButton}
+                        disabled={isGenerating}
+                    >
+                        <Text style={styles.retryButtonText}>
+                            {isGenerating ? 'Generating...' : 'Try Again'}
+                        </Text>
+                    </Pressable>
+                </View>
+            </View>
+        );
+    }
+
+    // Generating state
+    if (isGenerating && !insight) {
+        return (
+            <View style={styles.card}>
+                <View style={styles.generatingContainer}>
+                    <View style={styles.sparkleIcon}>
+                        <Ionicons name="sparkles" size={32} color={COLORS.text.primary} />
+                    </View>
+                    <Text style={styles.generatingTitle}>Generating Your Insights...</Text>
+                    <Text style={styles.generatingSubtitle}>
+                        CHITRA is analyzing your focus patterns. This may take 5-10 seconds.
+                    </Text>
+                    <View style={styles.progressContainer}>
+                        <View style={styles.progressItem}>
+                            <View style={styles.progressIconCompleted}>
+                                <Ionicons name="checkmark" size={12} color={COLORS.text.primary} />
+                            </View>
+                            <Text style={styles.progressText}>Analyzing your focus sessions</Text>
+                        </View>
+                        <View style={styles.progressItem}>
+                            <ActivityIndicator size="small" color={COLORS.primary.accent} />
+                            <Text style={styles.progressText}>Identifying patterns and trends</Text>
+                        </View>
+                        <View style={styles.progressItem}>
+                            <View style={styles.progressIconPending} />
+                            <Text style={styles.progressText}>Creating personalized recommendations</Text>
+                        </View>
+                    </View>
+                </View>
+            </View>
         );
     }
 
     if (!insight) return null;
 
+    // Main insight view with tabs
     const tabs = [
-        { id: 'overview' as TabType, label: 'Overview', icon: 'bar-chart' },
-        { id: 'action-plan' as TabType, label: 'Action Plan', icon: 'list' },
-        { id: 'next-week' as TabType, label: 'Next Week', icon: 'calendar' },
-    ] as const;
+        { id: 'overview' as TabType, label: 'Overview', icon: 'bar-chart' as const },
+        { id: 'action-plan' as TabType, label: 'Action Plan', icon: 'ellipse-outline' as const },
+        { id: 'next-week' as TabType, label: 'Next Week', icon: 'calendar' as const },
+    ];
+
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
 
     return (
-        <View style={styles.container}>
-            {/* Hero Section */}
-            <Card style={styles.heroCard}>
+        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+            {/* Hero Section - One Lever to Pull */}
+            <View style={styles.heroCard}>
                 <View style={styles.heroHeader}>
-                    <View style={styles.heroIcon}>
-                        <Ionicons name="trophy" size={20} color={COLORS.text.primary} />
+                    <View style={styles.heroIconContainer}>
+                        <Ionicons name="ellipse-outline" size={24} color={COLORS.text.primary} />
                     </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
+                    <View style={styles.heroTitleContainer}>
                         <Text style={styles.heroTitle}>Your #1 Priority</Text>
-                        <Text style={styles.heroDate}>
-                            Week of {format(new Date(insight.weekStart), 'MMM d')} - {format(new Date(insight.weekEnd), 'MMM d')}
+                        <Text style={styles.heroSubtitle}>
+                            Week of {formatDate(insight.weekStart)} - {formatDate(insight.weekEnd)}
                         </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        {!isPro && (
-                            <Button title="Upgrade" onPress={onUpgrade} size="sm" variant="ghost" />
-                        )}
-                        {new Date(insight.weekEnd).getTime() < Date.now() && (
-                            <Pressable
-                                onPress={() => generateInsights({ forceRegenerate: true })}
-                                disabled={isGenerating}
-                                style={styles.refreshButton}
-                            >
-                                <Ionicons name="refresh" size={18} color={COLORS.text.primary} />
-                            </Pressable>
-                        )}
                     </View>
                 </View>
                 <View style={styles.leverContainer}>
                     <Text style={styles.leverText}>{insight.oneLeverToPull}</Text>
                 </View>
-            </Card>
-
-            {/* Tabs */}
-            <View style={styles.tabContainer}>
-                {tabs.map(tab => (
-                    <Pressable
-                        key={tab.id}
-                        style={[
-                            styles.tabItem,
-                            activeTab === tab.id && styles.activeTabItem,
-                        ]}
-                        onPress={() => setActiveTab(tab.id)}
-                    >
-                        <Ionicons
-                            name={tab.icon as any}
-                            size={16}
-                            color={activeTab === tab.id ? COLORS.text.primary : COLORS.text.secondary}
-                        />
-                        <Text
-                            style={[
-                                styles.tabText,
-                                activeTab === tab.id && styles.activeTabText,
-                            ]}
-                        >
-                            {tab.label}
-                        </Text>
-                    </Pressable>
-                ))}
             </View>
 
-            {/* Content */}
-            <View style={styles.contentContainer}>
-                {activeTab === 'overview' && (
-                    <View>
-                        <Card style={styles.sectionCard}>
-                            <View style={[styles.cardHeader, { backgroundColor: '#F3E8FF' }]}>
-                                <Ionicons name="sparkles" size={16} color="#9333EA" />
-                                <Text style={styles.cardTitle}>CHITRA Analysis</Text>
-                            </View>
-                            <Text style={styles.bodyText}>{insight.narrative}</Text>
-                        </Card>
+            {/* Tab Navigation */}
+            <View style={styles.tabContainer}>
+                {tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <Pressable
+                            key={tab.id}
+                            onPress={() => {
+                                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                                setActiveTab(tab.id);
+                            }}
+                            style={[styles.tab, isActive && styles.tabActive]}
+                        >
+                            <Ionicons
+                                name={tab.icon}
+                                size={18}
+                                color={isActive ? COLORS.text.primary : COLORS.text.secondary}
+                            />
+                            <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                                {tab.label}
+                            </Text>
+                        </Pressable>
+                    );
+                })}
+            </View>
 
-                        <View style={styles.grid}>
-                            {insight.insights
-                                .filter(i => !['streak_status', 'task_completion', 'best_time_of_day'].includes(i.type))
-                                .map((item, index) => (
-                                    <Card key={index} style={styles.insightItem}>
-                                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-                                            <Ionicons name="analytics" size={24} color={COLORS.text.secondary} />
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.insightMessage}>{item.message}</Text>
-                                                {item.metric && (
-                                                    <Text style={styles.insightMetric}>
-                                                        {item.metric.current}
-                                                        {item.metric.change && (
-                                                            <Text style={{
-                                                                color: item.metric.trend === 'up' ? COLORS.success : COLORS.error,
-                                                                fontSize: 14,
-                                                                fontWeight: 'normal'
-                                                            }}>
-                                                                {' '}{item.metric.trend === 'up' ? '↑' : '↓'} {Math.abs(item.metric.change)}%
-                                                            </Text>
-                                                        )}
-                                                    </Text>
+            {/* Tab Content */}
+            {activeTab === 'overview' && (
+                <View style={styles.tabContent}>
+                    {/* AI Narrative */}
+                    <View style={styles.narrativeCard}>
+                        <View style={styles.narrativeHeader}>
+                            <Ionicons name="sparkles" size={20} color={COLORS.primary.accent} />
+                            <Text style={styles.narrativeTitle}>CHITRA Analysis</Text>
+                        </View>
+                        <Text style={styles.narrativeText}>{insight.narrative}</Text>
+                    </View>
+
+                    {/* Key Metrics */}
+                    {insight.insights
+                        .filter(
+                            (item) =>
+                                item.type !== 'streak_status' &&
+                                item.type !== 'task_completion' &&
+                                item.type !== 'best_time_of_day'
+                        )
+                        .map((item, index) => {
+                            const Icon = getInsightIcon(item.type);
+                            const severityColors = {
+                                critical: { bg: '#FEE2E2', border: '#FCA5A5' },
+                                warning: { bg: '#FEF3C7', border: '#FCD34D' },
+                                info: { bg: '#DBEAFE', border: '#93C5FD' },
+                            };
+                            const colors = severityColors[item.severity || 'info'];
+
+                            return (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.insightCard,
+                                        { backgroundColor: colors.bg, borderColor: colors.border },
+                                    ]}
+                                >
+                                    <View style={styles.insightIconContainer}>
+                                        <Ionicons name={Icon} size={24} color={COLORS.text.primary} />
+                                    </View>
+                                    <View style={styles.insightContent}>
+                                        <Text style={styles.insightMessage}>{item.message}</Text>
+                                        {item.metric && (
+                                            <View style={styles.metricContainer}>
+                                                <Text style={styles.metricValue}>{item.metric.current}</Text>
+                                                {item.metric.change !== undefined && (
+                                                    <View style={styles.metricChange}>
+                                                        <Ionicons
+                                                            name={item.metric.trend === 'up' ? 'trending-up' : 'trending-down'}
+                                                            size={16}
+                                                            color={item.metric.trend === 'up' ? COLORS.success : COLORS.error}
+                                                        />
+                                                        <Text
+                                                            style={[
+                                                                styles.metricChangeText,
+                                                                {
+                                                                    color:
+                                                                        item.metric.trend === 'up' ? COLORS.success : COLORS.error,
+                                                                },
+                                                            ]}
+                                                        >
+                                                            {Math.abs(item.metric.change)}%
+                                                        </Text>
+                                                    </View>
                                                 )}
                                             </View>
-                                        </View>
-                                    </Card>
-                                ))}
-                        </View>
+                                        )}
+                                    </View>
+                                </View>
+                            );
+                        })}
+                </View>
+            )}
+
+            {activeTab === 'action-plan' && (
+                <View style={styles.tabContent}>
+                    {/* Recommendations Header */}
+                    <View style={styles.recommendationsHeader}>
+                        <Ionicons name="bulb" size={24} color={COLORS.primary.accent} />
+                        <Text style={styles.recommendationsTitle}>Personalized Recommendations</Text>
+                        <Text style={styles.recommendationsSubtitle}>
+                            {insight.recommendations.length} recommendations to boost your productivity
+                        </Text>
                     </View>
-                )}
 
-                {activeTab === 'action-plan' && (
-                    <View>
-                        <Card style={[styles.sectionCard, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE', borderWidth: 1 }]}>
-                            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                                <Ionicons name="bulb" size={20} color="#4F46E5" />
-                                <Text style={[styles.cardTitle, { color: COLORS.text.primary }]}>Recommendations</Text>
-                            </View>
-                            <Text style={styles.smallText}>{insight.recommendations.length} recommendations available</Text>
-                        </Card>
+                    {/* Recommendations List */}
+                    {insight.recommendations
+                        .sort((a, b) => {
+                            const priorityOrder = { high: 0, medium: 1, low: 2 };
+                            return priorityOrder[a.priority] - priorityOrder[b.priority];
+                        })
+                        .map((rec, index) => {
+                            const isExpanded = expandedRecommendations.has(index);
+                            const priorityColors = getPriorityColor(rec.priority);
 
-                        <View style={{ gap: 12, marginTop: 12 }}>
-                            {insight.recommendations.map((rec, index) => {
-                                const isExpanded = expandedRecommendations.has(index);
-                                return (
-                                    <Pressable key={index} onPress={() => toggleRecommendation(index)}>
-                                        <Card style={styles.recCard}>
-                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <Text style={styles.recAction}>{rec.action}</Text>
-                                                <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={20} color={COLORS.text.muted} />
+                            return (
+                                <Pressable
+                                    key={index}
+                                    onPress={() => toggleRecommendation(index)}
+                                    style={styles.recommendationCard}
+                                >
+                                    <View style={styles.recommendationHeader}>
+                                        <Text style={styles.recommendationAction}>{rec.action}</Text>
+                                        <View style={styles.recommendationBadgeContainer}>
+                                            <View
+                                                style={[
+                                                    styles.priorityBadge,
+                                                    { backgroundColor: priorityColors.badge + '20' },
+                                                ]}
+                                            >
+                                                <Text
+                                                    style={[styles.priorityBadgeText, { color: priorityColors.badge }]}
+                                                >
+                                                    {rec.priority}
+                                                </Text>
                                             </View>
-                                            <View style={[styles.badge, { alignSelf: 'flex-start', marginTop: 8 }]}>
-                                                <Text style={styles.badgeText}>{rec.priority}</Text>
-                                            </View>
+                                            <Ionicons
+                                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                                size={18}
+                                                color={COLORS.text.secondary}
+                                            />
+                                        </View>
+                                    </View>
 
-                                            {isExpanded && (
-                                                <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 12 }}>
-                                                    <Text style={styles.recReason}>{rec.reason}</Text>
-                                                    <View style={styles.impactBox}>
-                                                        <Text style={styles.impactLabel}>Impact:</Text>
-                                                        <Text style={styles.impactText}>{rec.expectedImpact}</Text>
-                                                    </View>
+                                    {isExpanded && (
+                                        <View style={styles.recommendationDetails}>
+                                            <View style={styles.recommendationReason}>
+                                                <Ionicons
+                                                    name="information-circle"
+                                                    size={16}
+                                                    color={COLORS.text.secondary}
+                                                />
+                                                <Text style={styles.recommendationReasonText}>{rec.reason}</Text>
+                                            </View>
+                                            <View style={styles.impactContainer}>
+                                                <Ionicons name="flash" size={16} color={COLORS.success} />
+                                                <View>
+                                                    <Text style={styles.impactLabel}>Expected Impact</Text>
+                                                    <Text style={styles.impactText}>{rec.expectedImpact}</Text>
                                                 </View>
-                                            )}
-                                        </Card>
-                                    </Pressable>
-                                );
-                            })}
+                                            </View>
+                                        </View>
+                                    )}
+                                </Pressable>
+                            );
+                        })}
+                </View>
+            )}
+
+            {activeTab === 'next-week' && (
+                <View style={styles.tabContent}>
+                    {/* Week Goal */}
+                    <View style={styles.goalCard}>
+                        <View style={styles.goalIconContainer}>
+                            <Ionicons name="radio-button-on" size={24} color={COLORS.success} />
+                        </View>
+                        <View style={styles.goalContent}>
+                            <Text style={styles.goalLabel}>Goal for Next Week</Text>
+                            <Text style={styles.goalText}>{insight.nextWeekPlan.goal}</Text>
+
+                            {/* Stats */}
+                            <View style={styles.goalStats}>
+                                <View style={styles.goalStat}>
+                                    <Text style={styles.goalStatLabel}>Sessions</Text>
+                                    <Text style={styles.goalStatValue}>
+                                        {insight.nextWeekPlan.suggestedSessions}
+                                    </Text>
+                                </View>
+                                <View style={styles.goalStat}>
+                                    <Text style={styles.goalStatLabel}>Duration</Text>
+                                    <Text style={styles.goalStatValue}>
+                                        {insight.nextWeekPlan.suggestedDuration}
+                                        <Text style={styles.goalStatUnit}> min</Text>
+                                    </Text>
+                                </View>
+                            </View>
                         </View>
                     </View>
-                )}
 
-                {activeTab === 'next-week' && (
-                    <View>
-                        <Card style={[styles.sectionCard, { backgroundColor: '#ECFDF5', borderColor: '#34D399', borderWidth: 1 }]}>
-                            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                                <Ionicons name="flag" size={20} color="#059669" />
-                                <Text style={[styles.cardTitle, { color: '#047857' }]}>Goal for Next Week</Text>
+                    {/* Best Time Slots */}
+                    {insight.nextWeekPlan.bestTimeSlots.length > 0 && (
+                        <View style={styles.sectionCard}>
+                            <View style={styles.sectionHeader}>
+                                <Ionicons name="time" size={20} color={COLORS.info} />
+                                <Text style={styles.sectionTitle}>Best Time Slots</Text>
                             </View>
-                            <Text style={[styles.heroTitle, { fontSize: 18 }]}>{insight.nextWeekPlan.goal}</Text>
-
-                            <View style={{ flexDirection: 'row', gap: 16, marginTop: 16 }}>
-                                <View>
-                                    <Text style={styles.smallText}>Sessions</Text>
-                                    <Text style={styles.metricValue}>{insight.nextWeekPlan.suggestedSessions}</Text>
-                                </View>
-                                <View>
-                                    <Text style={styles.smallText}>Duration</Text>
-                                    <Text style={styles.metricValue}>{insight.nextWeekPlan.suggestedDuration}m</Text>
-                                </View>
+                            <Text style={styles.sectionSubtitle}>Based on your most productive times</Text>
+                            <View style={styles.timeSlots}>
+                                {insight.nextWeekPlan.bestTimeSlots.map((slot, i) => (
+                                    <View key={i} style={styles.timeSlot}>
+                                        <Text style={styles.timeSlotText}>{slot}</Text>
+                                    </View>
+                                ))}
                             </View>
-                        </Card>
+                        </View>
+                    )}
 
-                        {insight.nextWeekPlan.bestTimeSlots.length > 0 && (
-                            <Card style={styles.sectionCard}>
-                                <Text style={styles.cardTitle}>Best Time Slots</Text>
-                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                                    {insight.nextWeekPlan.bestTimeSlots.map((slot, i) => (
-                                        <View key={i} style={styles.timeSlotBadge}>
-                                            <Text style={styles.timeSlotText}>{slot}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </Card>
-                        )}
-                    </View>
-                )}
+                    {/* Focus Areas */}
+                    {insight.nextWeekPlan.focusAreas.length > 0 && (
+                        <View style={styles.sectionCard}>
+                            <View style={styles.sectionHeader}>
+                                <Ionicons name="radio-button-on" size={20} color={COLORS.primary.accent} />
+                                <Text style={styles.sectionTitle}>Focus Areas</Text>
+                            </View>
+                            <Text style={styles.sectionSubtitle}>Key areas to concentrate on</Text>
+                            <View style={styles.focusAreas}>
+                                {insight.nextWeekPlan.focusAreas.map((area, i) => (
+                                    <View key={i} style={styles.focusArea}>
+                                        <Ionicons name="arrow-forward" size={16} color={COLORS.primary.accent} />
+                                        <Text style={styles.focusAreaText}>{area}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
+                    )}
+                </View>
+            )}
+
+            {/* Footer */}
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>
+                    Analyzed by CHITRA in {(insight.generationLatencyMs / 1000).toFixed(1)}s
+                </Text>
             </View>
-        </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: SPACING.xxl,
+        flex: 1,
     },
     card: {
+        backgroundColor: COLORS.background.card,
+        borderRadius: BORDER_RADIUS.lg,
         padding: SPACING.xl,
-        marginBottom: SPACING.md,
+        marginBottom: SPACING.lg,
     },
-    emptyCard: {
-        alignItems: 'center',
-        backgroundColor: '#F0F9FF', // Light blue tint
-    },
+
+    // Loading states
     loadingContainer: {
         alignItems: 'center',
-        padding: SPACING.xl,
+        paddingVertical: SPACING.xxl,
     },
-    loadingText: {
-        marginTop: SPACING.md,
-        fontSize: FONT_SIZES.lg,
-        fontWeight: '600',
-        color: COLORS.text.primary,
-    },
-    loadingSubtext: {
-        fontSize: FONT_SIZES.sm,
-        color: COLORS.text.secondary,
-        textAlign: 'center',
-        marginTop: 4,
-    },
-    iconCircle: {
+    sparkleIcon: {
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: COLORS.primary.accent, // Using accent color as background
-        justifyContent: 'center',
+        backgroundColor: COLORS.primary.accent,
         alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: SPACING.md,
+    },
+    sparkleIconLarge: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: COLORS.primary.accent,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: SPACING.lg,
-        opacity: 0.2, // Make it subtle
+    },
+    loadingTitle: {
+        fontSize: FONT_SIZES.xl,
+        fontWeight: '600',
+        color: COLORS.text.primary,
+        marginBottom: SPACING.xs,
+    },
+    loadingSubtitle: {
+        fontSize: FONT_SIZES.sm,
+        color: COLORS.text.secondary,
+        marginBottom: SPACING.lg,
+    },
+    spinner: {
+        marginTop: SPACING.md,
+    },
+
+    // Empty state
+    emptyContainer: {
+        alignItems: 'center',
+        paddingVertical: SPACING.xxl,
     },
     emptyTitle: {
         fontSize: FONT_SIZES.xl,
-        fontWeight: 'bold',
+        fontWeight: '600',
         color: COLORS.text.primary,
-        marginBottom: SPACING.sm,
+        marginBottom: SPACING.md,
         textAlign: 'center',
     },
-    emptyDesc: {
+    emptySubtitle: {
         fontSize: FONT_SIZES.md,
         color: COLORS.text.secondary,
         textAlign: 'center',
         marginBottom: SPACING.xl,
         lineHeight: 22,
+        paddingHorizontal: SPACING.md,
     },
-    emptyFooter: {
-        fontSize: FONT_SIZES.xs,
+    generateButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primary.accent,
+        paddingHorizontal: SPACING.xl,
+        paddingVertical: SPACING.md,
+        borderRadius: BORDER_RADIUS.sm,
+        gap: SPACING.sm,
+    },
+    generateButtonText: {
+        fontSize: FONT_SIZES.md,
+        fontWeight: '600',
+        color: COLORS.text.primary,
+    },
+    limitText: {
+        fontSize: FONT_SIZES.sm,
         color: COLORS.text.muted,
         marginTop: SPACING.md,
+        textAlign: 'center',
+    },
+
+    // Error state
+    errorContainer: {
+        alignItems: 'center',
+        paddingVertical: SPACING.xxl,
     },
     errorTitle: {
         fontSize: FONT_SIZES.lg,
         fontWeight: '600',
         color: COLORS.text.primary,
+        marginVertical: SPACING.md,
+        textAlign: 'center',
+    },
+    retryButton: {
+        backgroundColor: COLORS.primary.accent,
+        paddingHorizontal: SPACING.xl,
+        paddingVertical: SPACING.md,
+        borderRadius: BORDER_RADIUS.sm,
         marginTop: SPACING.md,
+    },
+    retryButtonText: {
+        fontSize: FONT_SIZES.md,
+        fontWeight: '600',
+        color: COLORS.text.primary,
+    },
+
+    // Generating state
+    generatingContainer: {
+        alignItems: 'center',
+        paddingVertical: SPACING.xxl,
+    },
+    generatingTitle: {
+        fontSize: FONT_SIZES.xl,
+        fontWeight: '600',
+        color: COLORS.text.primary,
         marginBottom: SPACING.xs,
     },
+    generatingSubtitle: {
+        fontSize: FONT_SIZES.sm,
+        color: COLORS.text.secondary,
+        textAlign: 'center',
+        marginBottom: SPACING.xl,
+    },
+    progressContainer: {
+        width: '100%',
+        gap: SPACING.md,
+    },
+    progressItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+    },
+    progressIconCompleted: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: COLORS.primary.accent,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    progressIconPending: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: COLORS.background.secondary,
+    },
+    progressText: {
+        fontSize: FONT_SIZES.sm,
+        color: COLORS.text.secondary,
+    },
+
+    // Hero section
     heroCard: {
         backgroundColor: COLORS.primary.accent,
-        padding: SPACING.lg,
-        marginBottom: SPACING.md,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: SPACING.xl,
+        marginBottom: SPACING.lg,
     },
     heroHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: SPACING.lg,
+        gap: SPACING.md,
     },
-    heroIcon: {
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        padding: 8,
-        borderRadius: 12,
+    heroIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: COLORS.background.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    heroTitleContainer: {
+        flex: 1,
     },
     heroTitle: {
-        fontSize: FONT_SIZES.lg,
-        fontWeight: 'bold',
+        fontSize: FONT_SIZES.xl,
+        fontWeight: '700',
         color: COLORS.text.primary,
+        marginBottom: 4,
     },
-    heroDate: {
-        fontSize: FONT_SIZES.xs,
+    heroSubtitle: {
+        fontSize: FONT_SIZES.sm,
         color: COLORS.text.secondary,
     },
-    refreshButton: {
-        padding: 8,
-    },
     leverContainer: {
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        padding: SPACING.md,
+        backgroundColor: COLORS.background.card,
         borderRadius: BORDER_RADIUS.md,
+        padding: SPACING.lg,
     },
     leverText: {
-        fontSize: FONT_SIZES.md,
+        fontSize: FONT_SIZES.lg,
         color: COLORS.text.primary,
         lineHeight: 24,
     },
+
+    // Tabs
     tabContainer: {
         flexDirection: 'row',
         backgroundColor: COLORS.background.card,
-        padding: 4,
-        borderRadius: BORDER_RADIUS.lg,
-        marginBottom: SPACING.md,
+        borderRadius: BORDER_RADIUS.md,
+        padding: SPACING.xs,
+        marginBottom: SPACING.lg,
+        gap: SPACING.xs,
     },
-    tabItem: {
+    tab: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 10,
-        borderRadius: BORDER_RADIUS.md,
-        gap: 6,
+        gap: SPACING.xs,
+        paddingVertical: SPACING.md,
+        paddingHorizontal: SPACING.sm,
+        borderRadius: BORDER_RADIUS.sm,
     },
-    activeTabItem: {
+    tabActive: {
         backgroundColor: COLORS.primary.accent,
     },
-    tabText: {
+    tabLabel: {
         fontSize: FONT_SIZES.sm,
         fontWeight: '600',
         color: COLORS.text.secondary,
     },
-    activeTabText: {
+    tabLabelActive: {
         color: COLORS.text.primary,
     },
-    contentContainer: {
+
+    // Tab content
+    tabContent: {
         gap: SPACING.md,
     },
-    sectionCard: {
+
+    // Narrative card
+    narrativeCard: {
+        backgroundColor: COLORS.background.card,
+        borderRadius: BORDER_RADIUS.lg,
         padding: SPACING.lg,
-        marginBottom: SPACING.md,
     },
-    cardHeader: {
+    narrativeHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 8,
-        borderRadius: 8,
-        alignSelf: 'flex-start',
-        gap: 6,
-        marginBottom: 12,
+        gap: SPACING.sm,
+        marginBottom: SPACING.md,
     },
-    cardTitle: {
-        fontSize: FONT_SIZES.md,
+    narrativeTitle: {
+        fontSize: FONT_SIZES.lg,
         fontWeight: '600',
         color: COLORS.text.primary,
     },
-    bodyText: {
+    narrativeText: {
         fontSize: FONT_SIZES.md,
         color: COLORS.text.primary,
-        lineHeight: 24,
+        lineHeight: 22,
     },
-    grid: {
+
+    // Insight cards
+    insightCard: {
+        flexDirection: 'row',
+        backgroundColor: COLORS.background.card,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: SPACING.lg,
+        borderWidth: 2,
         gap: SPACING.md,
     },
-    insightItem: {
-        padding: SPACING.md,
+    insightIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: COLORS.background.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    insightContent: {
+        flex: 1,
     },
     insightMessage: {
         fontSize: FONT_SIZES.sm,
         fontWeight: '500',
         color: COLORS.text.primary,
-        marginBottom: 4,
+        marginBottom: SPACING.sm,
     },
-    insightMetric: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: 'bold',
+    metricContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.md,
+    },
+    metricValue: {
+        fontSize: FONT_SIZES.xxl,
+        fontWeight: '700',
         color: COLORS.text.primary,
     },
-    recCard: {
-        padding: SPACING.md,
+    metricChange: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.xs,
     },
-    recAction: {
+    metricChangeText: {
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '600',
+    },
+
+    // Recommendations
+    recommendationsHeader: {
+        backgroundColor: COLORS.background.card,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: SPACING.lg,
+        alignItems: 'center',
+    },
+    recommendationsTitle: {
+        fontSize: FONT_SIZES.xl,
+        fontWeight: '600',
+        color: COLORS.text.primary,
+        marginVertical: SPACING.xs,
+    },
+    recommendationsSubtitle: {
+        fontSize: FONT_SIZES.sm,
+        color: COLORS.text.secondary,
+    },
+    recommendationCard: {
+        backgroundColor: COLORS.background.card,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: SPACING.lg,
+        borderWidth: 2,
+        borderColor: COLORS.background.secondary,
+    },
+    recommendationHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: SPACING.md,
+    },
+    recommendationAction: {
+        flex: 1,
         fontSize: FONT_SIZES.md,
         fontWeight: '600',
         color: COLORS.text.primary,
-        flex: 1,
-        marginRight: 8,
     },
-    badge: {
-        backgroundColor: '#E0E7FF',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    badgeText: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: '#3730A3',
-        textTransform: 'uppercase',
-    },
-    recReason: {
-        fontSize: FONT_SIZES.sm,
-        color: COLORS.text.secondary,
-        marginBottom: 8,
-        lineHeight: 20,
-    },
-    impactBox: {
+    recommendationBadgeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        backgroundColor: '#F0FDF4',
-        padding: 8,
-        borderRadius: 8,
+        gap: SPACING.sm,
     },
-    impactLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#166534',
+    priorityBadge: {
+        paddingHorizontal: SPACING.sm,
+        paddingVertical: SPACING.xs,
+        borderRadius: BORDER_RADIUS.sm,
     },
-    impactText: {
-        fontSize: 12,
-        color: '#15803D',
-    },
-    smallText: {
+    priorityBadgeText: {
         fontSize: FONT_SIZES.xs,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+    },
+    recommendationDetails: {
+        marginTop: SPACING.md,
+        gap: SPACING.sm,
+    },
+    recommendationReason: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: SPACING.xs,
+    },
+    recommendationReasonText: {
+        flex: 1,
+        fontSize: FONT_SIZES.sm,
         color: COLORS.text.secondary,
     },
-    metricValue: {
-        fontSize: FONT_SIZES.xl,
-        fontWeight: 'bold',
+    impactContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        backgroundColor: COLORS.background.secondary,
+        borderRadius: BORDER_RADIUS.sm,
+        padding: SPACING.md,
+        gap: SPACING.xs,
+    },
+    impactLabel: {
+        fontSize: FONT_SIZES.xs,
+        fontWeight: '500',
+        color: COLORS.text.secondary,
+        marginBottom: 2,
+    },
+    impactText: {
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '600',
+        color: COLORS.success,
+    },
+
+    // Goal card
+    goalCard: {
+        flexDirection: 'row',
+        backgroundColor: '#D1FAE5',
+        borderColor: '#6EE7B7',
+        borderWidth: 2,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: SPACING.lg,
+        gap: SPACING.md,
+    },
+    goalIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: COLORS.background.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    goalContent: {
+        flex: 1,
+    },
+    goalLabel: {
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '500',
+        color: COLORS.success,
+        marginBottom: SPACING.xs,
+    },
+    goalText: {
+        fontSize: FONT_SIZES.lg,
+        fontWeight: '600',
+        color: COLORS.text.primary,
+        marginBottom: SPACING.md,
+    },
+    goalStats: {
+        flexDirection: 'row',
+        gap: SPACING.md,
+    },
+    goalStat: {
+        flex: 1,
+        backgroundColor: COLORS.background.card,
+        borderRadius: BORDER_RADIUS.sm,
+        padding: SPACING.md,
+    },
+    goalStatLabel: {
+        fontSize: FONT_SIZES.xs,
+        color: COLORS.text.secondary,
+        marginBottom: SPACING.xs,
+    },
+    goalStatValue: {
+        fontSize: FONT_SIZES.xxl,
+        fontWeight: '700',
         color: COLORS.text.primary,
     },
-    timeSlotBadge: {
-        backgroundColor: '#EFF6FF',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: 16,
+    goalStatUnit: {
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '400',
+        color: COLORS.text.secondary,
+    },
+
+    // Section cards
+    sectionCard: {
+        backgroundColor: COLORS.background.card,
+        borderRadius: BORDER_RADIUS.lg,
+        padding: SPACING.lg,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        marginBottom: SPACING.xs,
+    },
+    sectionTitle: {
+        fontSize: FONT_SIZES.lg,
+        fontWeight: '600',
+        color: COLORS.text.primary,
+    },
+    sectionSubtitle: {
+        fontSize: FONT_SIZES.sm,
+        color: COLORS.text.secondary,
+        marginBottom: SPACING.md,
+    },
+    timeSlots: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: SPACING.sm,
+    },
+    timeSlot: {
+        backgroundColor: COLORS.info + '20',
+        paddingHorizontal: SPACING.md,
+        paddingVertical: SPACING.sm,
+        borderRadius: BORDER_RADIUS.sm,
     },
     timeSlotText: {
         fontSize: FONT_SIZES.sm,
-        color: '#1D4ED8',
         fontWeight: '500',
+        color: COLORS.info,
+    },
+    focusAreas: {
+        gap: SPACING.xs,
+    },
+    focusArea: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primary.accent + '20',
+        padding: SPACING.md,
+        borderRadius: BORDER_RADIUS.sm,
+        gap: SPACING.sm,
+    },
+    focusAreaText: {
+        flex: 1,
+        fontSize: FONT_SIZES.sm,
+        fontWeight: '500',
+        color: COLORS.text.primary,
+    },
+
+    // Footer
+    footer: {
+        alignItems: 'center',
+        paddingVertical: SPACING.lg,
+    },
+    footerText: {
+        fontSize: FONT_SIZES.xs,
+        color: COLORS.text.muted,
     },
 });

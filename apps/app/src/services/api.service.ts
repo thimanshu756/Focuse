@@ -21,7 +21,7 @@ class ApiService {
 
     this.aiApi = axios.create({
       baseURL: config.apiUrl,
-      timeout: API_TIMEOUT,
+      timeout: 60000, // 60 seconds for AI processing
       headers: {
         'Content-Type': 'application/json',
       },

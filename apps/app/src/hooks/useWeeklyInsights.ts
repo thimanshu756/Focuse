@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { api } from '@/services/api.service';
+import { aiApi } from '@/services/api.service';
 import { WeeklyInsightResponse, GenerateInsightsRequest } from '@/types/weekly-insights.types';
 import { Alert } from 'react-native';
 
@@ -24,7 +24,7 @@ export function useWeeklyInsights(): UseWeeklyInsightsReturn {
         setError(null);
 
         try {
-            const response = await api.get('/insights', {
+            const response = await aiApi.get('/insights', {
                 params: {
                     page: 1,
                     limit: 1,
@@ -61,7 +61,7 @@ export function useWeeklyInsights(): UseWeeklyInsightsReturn {
             setError(null);
 
             try {
-                const response = await api.post('/insights/generate', options || {});
+                const response = await aiApi.post('/insights/generate', options || {});
                 const { data } = response;
 
                 if (data.success && data.data) {
@@ -97,7 +97,7 @@ export function useWeeklyInsights(): UseWeeklyInsightsReturn {
         if (!insight || insight.isRead) return;
 
         try {
-            await api.patch(`/insights/${insight.id}/read`);
+            await aiApi.patch(`/insights/${insight.id}/read`);
             setInsight((prev) =>
                 prev
                     ? { ...prev, isRead: true, readAt: new Date().toISOString() }
