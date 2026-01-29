@@ -15,7 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/theme';
 import { authService } from '@/services/auth.service';
-import { AxiosError } from 'axios';
 
 export default function Signup() {
   const router = useRouter();
@@ -34,12 +33,13 @@ export default function Signup() {
     try {
       await authService.register({ name, email, password });
       router.replace('/(tabs)');
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message: string }>;
-      Alert.alert(
-        'Signup Failed',
-        axiosError.response?.data?.message || 'Something went wrong'
-      );
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Something went wrong. Please try again.';
+
+      Alert.alert('Signup Failed', errorMessage);
     } finally {
       setIsLoading(false);
     }
