@@ -170,9 +170,11 @@ export class SubscriptionService {
   async createSubscription(
     userId: string,
     userEmail: string,
-    data: CreateSubscriptionInput
+    data: CreateSubscriptionInput,
+    userAgent?: string,
+    ipAddress?: string
   ): Promise<CreateSubscriptionResponse> {
-    const { planId } = data;
+    const { planId, source = 'web' } = data;
 
     logger.info('Creating subscription', { userId, planId });
 
@@ -345,6 +347,10 @@ export class SubscriptionService {
               planId: plan.planId,
               planName: plan.name,
               createdVia: 'API',
+              source, // 'web' or 'mobile' - for analytics and App Store compliance
+              userAgent: userAgent || 'unknown',
+              ipAddress: ipAddress || 'unknown',
+              createdAt: new Date().toISOString(),
             },
           },
         });
@@ -369,6 +375,10 @@ export class SubscriptionService {
       // STEP 9: Create subscription in Razorpay
       let razorpaySubscription: any;
       try {
+        logger.info('Creating subscription in (before) Razorpay', {
+          userId,
+          subscriptionId: dbSubscription.id,
+        });
         // Razorpay subscription create parameters
         const subscriptionParams: any = {
           plan_id: plan.razorpayPlanId,
@@ -396,6 +406,11 @@ export class SubscriptionService {
           razorpaySubscriptionId: razorpaySubscription?.id,
         });
       } catch (error) {
+        logger.error('Failed to create Razorpay subscription', {
+          userId,
+          subscriptionId: dbSubscription.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
         // Rollback: Delete database subscription if Razorpay fails
         logger.error('Failed to create Razorpay subscription, rolling back', {
           userId,
@@ -417,6 +432,11 @@ export class SubscriptionService {
           });
         }
 
+        logger.error('Failed to create subscription', {
+          userId,
+          dbSubscriptionId: dbSubscription.id,
+          error: error,
+        });
         throw new AppError(
           'Failed to create subscription. Please try again.',
           500,

@@ -9,6 +9,7 @@ interface PlanCardProps {
   isCurrentPlan: boolean;
   onSubscribe: (planId: string) => void;
   isSubscribing: boolean;
+  disabled?: boolean;
 }
 
 export function PlanCard({
@@ -16,6 +17,7 @@ export function PlanCard({
   isCurrentPlan,
   onSubscribe,
   isSubscribing,
+  disabled = false,
 }: PlanCardProps) {
   const price = plan.amount / 100; // Convert from paise to rupees
   const monthlyPrice = plan.billingPeriod === 'YEARLY' ? price / 12 : price;
@@ -95,7 +97,7 @@ export function PlanCard({
       {/* CTA Button */}
       <button
         onClick={() => onSubscribe(plan.planId)}
-        disabled={isCurrentPlan || isSubscribing}
+        disabled={isCurrentPlan || isSubscribing || disabled}
         className={`w-full py-3.5 rounded-full mt-20 font-semibold text-[15px] transition-all duration-200
           ${
             plan.isPopular
@@ -105,6 +107,7 @@ export function PlanCard({
           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
           focus:outline-none focus:ring-2 focus:ring-[#D7F50A] focus:ring-offset-2
         `}
+        aria-label={`Subscribe to ${plan.name} plan`}
       >
         {isSubscribing ? (
           <span className="flex items-center justify-center gap-2">
@@ -128,6 +131,8 @@ export function PlanCard({
           </span>
         ) : isCurrentPlan ? (
           'Current Plan'
+        ) : disabled ? (
+          'Active Subscription'
         ) : (
           'Subscribe Now'
         )}

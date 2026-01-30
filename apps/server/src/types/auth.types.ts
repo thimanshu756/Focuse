@@ -87,3 +87,15 @@ export interface GoogleUserInfo {
   avatar?: string;
   emailVerified: boolean;
 }
+
+export interface ValidateTokenResponse {
+  valid: boolean;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    subscriptionTier: string;
+    subscriptionStatus: string;
+  };
+  expiresIn: number; // seconds remaining until token expires
+}

@@ -188,12 +188,12 @@ export class AuthController {
 
   /**
    * Google OAuth Authentication
-   * 
+   *
    * Handles Google Sign-In by verifying the ID token and either:
    * - Creating a new user account
    * - Linking Google to an existing email/password account
    * - Logging in an existing Google user
-   * 
+   *
    * POST /api/auth/google
    * Body: { idToken: string, timezone?: string }
    */
@@ -221,6 +221,37 @@ export class AuthController {
           isLinked: result.isLinked,
         },
         message,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Validate Token (Mobile Payment Flow)
+   *
+   * Validates the access token and returns user information.
+   * Used by web pricing page to verify tokens passed from mobile app.
+   *
+   * Security:
+   * - Requires authentication (token verified by middleware)
+   * - Returns minimal user data (only what's needed for pricing page)
+   * - Calculates remaining token expiry for better UX
+   *
+   * GET /api/auth/validate-token
+   * Headers: Authorization: Bearer <token>
+   */
+  validateToken = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      // Extract raw token from Authorization header for expiry calculation
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.split(' ')[1] || '';
+
+      const result = await this.authService.validateToken(req.user!.id, token);
+
+      res.json({
+        success: true,
+        data: result,
       });
     } catch (error) {
       next(error);

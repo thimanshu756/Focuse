@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Sparkles } from 'lucide-react';
+import { Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useSubscriptionPlans } from '../../hooks/useSubscription';
 import { useRazorpayCheckout } from '../../components/subscription/RazorpayCheckout';
 import { PlanCard } from '../../components/subscription/PlanCard';
@@ -26,13 +27,109 @@ export default function PricingPage() {
   const [mounted, setMounted] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
+  // Mobile payment flow state
+  const [isMobileUser, setIsMobileUser] = useState(false);
+  const [isValidatingToken, setIsValidatingToken] = useState(false);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Fetch user profile if authenticated
+  // Mobile token validation and auto-login
   useEffect(() => {
     if (!mounted) return;
+
+    const handleMobileTokenValidation = async () => {
+      // Check URL params for mobile token
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      const source = params.get('source');
+
+      // Not a mobile user if no token or source
+      if (!token || source !== 'mobile') {
+        return;
+      }
+
+      console.log('[Mobile Payment] Detected mobile user, validating token');
+      setIsValidatingToken(true);
+
+      try {
+        // Validate token with backend
+        const response = await api.get('/auth/validate-token', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.data.success && response.data.data.valid) {
+          const { user, expiresIn } = response.data.data;
+
+          console.log('[Mobile Payment] Token validated successfully', {
+            userId: user.id,
+            expiresIn,
+          });
+
+          // Mark as mobile user
+          setIsMobileUser(true);
+
+          // Store token for this session
+          localStorage.setItem('accessToken', token);
+          localStorage.setItem('user', JSON.stringify(user));
+
+          // Set user profile
+          setUserProfile({
+            id: user.id,
+            name: user.name,
+            subscriptionTier: user.subscriptionTier,
+            avatar: null,
+          });
+
+          // Show welcome message
+          toast.success(`Welcome back, ${user.name}!`, {
+            icon: '👋',
+            duration: 3000,
+          });
+
+          // Log expiry warning if token expires soon (< 5 minutes)
+          if (expiresIn < 300) {
+            console.warn(
+              '[Mobile Payment] Token expires soon:',
+              expiresIn,
+              'seconds'
+            );
+          }
+        } else {
+          throw new Error('Invalid token');
+        }
+      } catch (error: any) {
+        console.error('[Mobile Payment] Token validation failed:', error);
+
+        const errorMessage =
+          error?.response?.data?.error?.message ||
+          'Session expired. Please try again from the app.';
+
+        toast.error(errorMessage);
+
+        // Redirect back to mobile app with error after 2 seconds
+        setTimeout(() => {
+          window.location.href =
+            'forest://payment-failure?reason=token_expired';
+        }, 2000);
+      } finally {
+        // Always remove token from URL for security
+        window.history.replaceState({}, document.title, '/pricing');
+        setIsValidatingToken(false);
+      }
+    };
+
+    handleMobileTokenValidation();
+  }, [mounted]);
+
+  // Fetch user profile if authenticated (regular web flow)
+  useEffect(() => {
+    if (!mounted) return;
+    if (isMobileUser) return; // Skip if mobile user (already set)
 
     if (!isAuthenticated()) {
       setUserProfile(null);
@@ -43,7 +140,6 @@ export default function PricingPage() {
       try {
         const response = await api.get('/auth/me');
         if (response.data.success && response.data.data) {
-          // Handle both response formats
           const user = response.data.data.user || response.data.data;
           setUserProfile({
             id: user.id,
@@ -53,20 +149,116 @@ export default function PricingPage() {
           });
         }
       } catch (error) {
-        // Silently fail - user might not be authenticated or token expired
         setUserProfile(null);
       }
     };
 
     fetchUserProfile();
-  }, [mounted]);
+  }, [mounted, isMobileUser]);
 
-  const handleSubscribe = (planId: string) => {
-    initiateCheckout(planId, () => {
-      router.push('/dashboard');
-      router.refresh();
-    });
-  };
+  // Check for active subscription (prevent duplicate payments)
+  useEffect(() => {
+    if (!mounted || !userProfile) return;
+
+    const checkActiveSubscription = async () => {
+      try {
+        const response = await api.get('/v1/subscription/current');
+
+        if (response.data.success && response.data.data.hasActiveSubscription) {
+          setHasActiveSubscription(true);
+
+          if (isMobileUser) {
+            console.log(
+              '[Mobile Payment] User already has active subscription'
+            );
+            toast.success('You already have an active PRO subscription!', {
+              icon: '✨',
+              duration: 4000,
+            });
+
+            // Redirect to mobile app after delay
+            setTimeout(() => {
+              window.location.href =
+                'forest://payment-failure?reason=already_subscribed';
+            }, 2000);
+          }
+        }
+      } catch (error) {
+        console.error('[Mobile Payment] Failed to check subscription:', error);
+        // Don't block the flow if check fails
+      }
+    };
+
+    checkActiveSubscription();
+  }, [mounted, userProfile, isMobileUser]);
+
+  // Handle subscription with mobile deep link support
+  const handleSubscribe = useCallback(
+    (planId: string) => {
+      // Track analytics for mobile users
+      if (isMobileUser) {
+        console.log('[Mobile Payment] Payment initiated', {
+          planId,
+          source: 'mobile',
+        });
+      }
+
+      initiateCheckout(
+        planId,
+        // onSuccess callback
+        () => {
+          if (isMobileUser) {
+            // Mobile user: redirect to deep link
+            console.log(
+              '[Mobile Payment] Payment successful, redirecting to app'
+            );
+            window.location.href = 'forest://payment-success';
+          } else {
+            // Regular web user: redirect to dashboard
+            router.push('/dashboard');
+            router.refresh();
+          }
+        },
+        // onError callback
+        (errorMessage: string) => {
+          if (isMobileUser) {
+            // Mobile user: redirect to deep link with error
+            console.error('[Mobile Payment] Payment failed:', errorMessage);
+            const reason = encodeURIComponent(errorMessage);
+            window.location.href = `forest://payment-failure?reason=${reason}`;
+          }
+          // Web users already get toast error from useRazorpayCheckout
+        }
+      );
+    },
+    [isMobileUser, initiateCheckout, router]
+  );
+
+  // Loading state for token validation
+  if (isValidatingToken) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#EAF2FF] to-[#E6FFE8] flex items-center justify-center p-5">
+        <motion.div
+          className="text-center space-y-6"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="w-16 h-16 mx-auto relative">
+            <Loader2 className="w-16 h-16 text-[#D7F50A] animate-spin" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold text-[#0F172A]">
+              Verifying your session...
+            </h2>
+            <p className="text-[#64748B] max-w-md mx-auto">
+              Please wait while we securely validate your credentials
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -104,7 +296,9 @@ export default function PricingPage() {
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full mb-6 shadow-sm">
             <Sparkles size={16} className="text-[#D7F50A]" />
             <span className="text-sm font-medium text-[#0F172A]">
-              Simple, Transparent Pricing
+              {isMobileUser
+                ? 'Complete your upgrade'
+                : 'Simple, Transparent Pricing'}
             </span>
           </div>
 
@@ -159,6 +353,7 @@ export default function PricingPage() {
                     isCurrentPlan={currentPlan?.planId === plan.planId}
                     onSubscribe={handleSubscribe}
                     isSubscribing={isSubscribing}
+                    disabled={hasActiveSubscription}
                   />
                 </motion.div>
               ))}
@@ -290,22 +485,6 @@ export default function PricingPage() {
             ))}
           </div>
         </motion.div>
-
-        {/* CTA Section */}
-        {/* <motion.div
-          className="mt-20 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-        >
-          <p className="text-[#64748B] mb-4">Have more questions?</p>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="text-[#0F172A] font-medium hover:underline"
-          >
-            Contact Support →
-          </button>
-        </motion.div> */}
       </div>
 
       <Footer />

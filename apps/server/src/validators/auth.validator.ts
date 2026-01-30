@@ -112,3 +112,10 @@ export const googleAuthSchema = z.object({
     timezone: timezoneOptionalSchema,
   }),
 });
+
+// Validate Token Schema
+// Token comes from Authorization header (validated by authenticate middleware)
+// No body validation needed, but schema required for consistency
+export const validateTokenSchema = z.object({
+  body: z.object({}).optional(),
+});
