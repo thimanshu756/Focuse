@@ -16,6 +16,7 @@ import { syncService } from '../src/services/sync.service';
 import { notificationService } from '../src/services/notification.service';
 import { useAuthStore } from '../src/stores/auth.store';
 import { DEEP_LINK_SCHEME } from '../src/constants/config';
+import { configureGoogleSignIn } from '../src/config/google-signin.config';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -55,7 +56,11 @@ function RootLayoutContent() {
         
         // 5. Initialize notifications
         await notificationService.initialize();
-        
+
+        // 6. Configure Google Sign-In
+        configureGoogleSignIn();
+        console.log('[App] Google Sign-In configured');
+
         console.log('[App] All services initialized successfully');
         setServicesInitialized(true);
       } catch (error) {

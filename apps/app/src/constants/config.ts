@@ -9,12 +9,12 @@ const ENV = {
     webUrl: process.env.EXPO_PUBLIC_WEB_URL || `http://${localhost}:3000`,
   },
   staging: {
-    apiUrl: 'https://staging-api.forest.app/api',
-    webUrl: 'https://staging.forest.app',
+    apiUrl: 'https://calm-angelita-focuse-67b74fb8.koyeb.app/api',
+    webUrl: 'https://focuse.rakriai.com/',
   },
   prod: {
-    apiUrl: 'https://api.forest.app/api',
-    webUrl: 'https://forest.app',
+    apiUrl: 'https://calm-angelita-focuse-67b74fb8.koyeb.app/api',
+    webUrl: 'https://focuse.rakriai.com',
   },
 };
 
