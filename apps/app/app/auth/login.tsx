@@ -14,8 +14,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/theme';
 import { authService } from '@/services/auth.service';
-import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
-import { AuthDivider } from '@/components/auth/AuthDivider';
 
 export default function Login() {
   const router = useRouter();
@@ -100,12 +98,6 @@ export default function Login() {
                 <Text style={styles.buttonText}>Sign In</Text>
               )}
             </TouchableOpacity>
-
-            {/* Divider */}
-            <AuthDivider />
-
-            {/* Google Sign-In */}
-            <GoogleSignInButton mode="signin" />
 
             <TouchableOpacity
               onPress={() => router.push('/auth/signup')}

@@ -18,7 +18,7 @@ export default function Index() {
       if (isAuthenticated) {
         router.replace('/(tabs)');
       } else {
-        router.replace('/auth/login');
+        router.replace('/auth/login' as any);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
