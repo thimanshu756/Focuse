@@ -20,6 +20,7 @@ interface UseForestDataReturn {
     allSessions: Session[];
     stats: ForestStats;
     isLoading: boolean;
+    isFiltering: boolean;
     error: string | null;
     dateFilter: DateFilterOption;
     treeTypeFilter: TreeTypeFilterOption;
@@ -32,6 +33,7 @@ export function useForestData(): UseForestDataReturn {
     const [allSessions, setAllSessions] = useState<Session[]>([]);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFiltering, setIsFiltering] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('week');
@@ -67,6 +69,17 @@ export function useForestData(): UseForestDataReturn {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    // Handle filter changes with smooth transition
+    useEffect(() => {
+        if (!isLoading && allSessions.length > 0) {
+            setIsFiltering(true);
+            const timer = setTimeout(() => {
+                setIsFiltering(false);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [dateFilter, treeTypeFilter, isLoading, allSessions.length]);
 
     const filteredSessions = useMemo(() => {
         let filtered = allSessions;
@@ -116,6 +129,7 @@ export function useForestData(): UseForestDataReturn {
         allSessions,
         stats,
         isLoading,
+        isFiltering,
         error,
         dateFilter,
         treeTypeFilter,

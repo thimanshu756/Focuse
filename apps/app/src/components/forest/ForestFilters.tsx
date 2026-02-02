@@ -1,7 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { COLORS, SPACING, FONT_SIZES, BORDER_RADIUS } from '@/constants/theme';
-import { DateFilterOption, TreeTypeFilterOption } from '@/hooks/useForestData';
+import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES } from '@/constants/theme';
+import { DateFilterOption } from '@/hooks/useForestData';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+} from 'react-native-reanimated';
 
 interface ForestFiltersProps {
     dateFilter: DateFilterOption;
@@ -15,6 +20,50 @@ const DATE_OPTIONS: { label: string; value: DateFilterOption }[] = [
     { label: 'All Time', value: 'all' },
 ];
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+interface FilterChipProps {
+    label: string;
+    isActive: boolean;
+    onPress: () => void;
+}
+
+const FilterChip = React.memo(({ label, isActive, onPress }: FilterChipProps) => {
+    const scale = useSharedValue(1);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+    }));
+
+    const handlePressIn = () => {
+        scale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
+    };
+
+    const handlePressOut = () => {
+        scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+    };
+
+    return (
+        <AnimatedPressable
+            style={[
+                styles.chip,
+                isActive && styles.activeChip,
+                animatedStyle,
+            ]}
+            onPress={onPress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+        >
+            <Text style={[
+                styles.chipText,
+                isActive && styles.activeChipText
+            ]}>
+                {label}
+            </Text>
+        </AnimatedPressable>
+    );
+});
+
 export function ForestFilters({ dateFilter, onDateFilterChange }: ForestFiltersProps) {
     return (
         <View style={styles.container}>
@@ -24,21 +73,12 @@ export function ForestFilters({ dateFilter, onDateFilterChange }: ForestFiltersP
                 contentContainerStyle={styles.content}
             >
                 {DATE_OPTIONS.map((option) => (
-                    <Pressable
+                    <FilterChip
                         key={option.value}
-                        style={[
-                            styles.chip,
-                            dateFilter === option.value && styles.activeChip,
-                        ]}
+                        label={option.label}
+                        isActive={dateFilter === option.value}
                         onPress={() => onDateFilterChange(option.value)}
-                    >
-                        <Text style={[
-                            styles.chipText,
-                            dateFilter === option.value && styles.activeChipText
-                        ]}>
-                            {option.label}
-                        </Text>
-                    </Pressable>
+                    />
                 ))}
             </ScrollView>
         </View>

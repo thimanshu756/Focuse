@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, Dimensions, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, SPACING, FONT_SIZES } from '@/constants/theme';
+import { COLORS, SPACING } from '@/constants/theme';
 import { useForestData } from '@/hooks/useForestData';
 import { ForestStats } from '@/components/forest/ForestStats';
 import { ForestFilters } from '@/components/forest/ForestFilters';
@@ -49,6 +49,7 @@ export default function Forest() {
     sessions,
     stats,
     isLoading,
+    isFiltering,
     dateFilter,
     setDateFilter,
     refetch
@@ -56,6 +57,40 @@ export default function Forest() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [animationTrigger, setAnimationTrigger] = useState(0);
+
+  // Trigger tree animations when filtering completes
+  useEffect(() => {
+    if (!isFiltering && !isLoading) {
+      setAnimationTrigger(prev => prev + 1);
+    }
+  }, [isFiltering, isLoading]);
+
+  // Animation for smooth filter transitions
+  const listOpacity = useSharedValue(1);
+  const listScale = useSharedValue(1);
+  const overlayOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (isFiltering) {
+      listOpacity.value = withTiming(0.3, { duration: 200, easing: Easing.ease });
+      listScale.value = withTiming(0.97, { duration: 200, easing: Easing.ease });
+      overlayOpacity.value = withTiming(1, { duration: 150, easing: Easing.ease });
+    } else {
+      listOpacity.value = withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) });
+      listScale.value = withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) });
+      overlayOpacity.value = withTiming(0, { duration: 150, easing: Easing.ease });
+    }
+  }, [isFiltering]);
+
+  const listAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: listOpacity.value,
+    transform: [{ scale: listScale.value }],
+  }));
+
+  const overlayAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -67,13 +102,15 @@ export default function Forest() {
     setSelectedSession(session);
   };
 
-  const renderTree = React.useCallback(({ item }: { item: Session }) => (
+  const renderTree = React.useCallback(({ item, index }: { item: Session; index: number }) => (
     <TreeItem
       session={item}
       onPress={handleTreePress}
       size={TREE_SIZE}
+      index={index}
+      animationTrigger={animationTrigger}
     />
-  ), [handleTreePress]);
+  ), [handleTreePress, animationTrigger]);
 
   return (
     <View style={styles.container}>
@@ -95,46 +132,59 @@ export default function Forest() {
         <ForestStats stats={stats} isLoading={isLoading} />
         <ForestFilters dateFilter={dateFilter} onDateFilterChange={setDateFilter} />
 
-        <FlatList
-          data={sessions}
-          renderItem={renderTree}
-          keyExtractor={(item) => item.id}
-          numColumns={COLUMN_COUNT}
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.columnWrapper}
-          showsVerticalScrollIndicator={false}
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={20}
-          initialNumToRender={20}
-          windowSize={5}
-          getItemLayout={(data, index) => ({
-            length: TREE_SIZE + 32,
-            offset: (TREE_SIZE + 32) * Math.floor(index / COLUMN_COUNT),
-            index,
-          })}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={COLORS.primary.accent}
-            />
-          }
-          ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.emptyContainer}>
-                <EmptyState
-                  icon="🌱"
-                  title="No trees found"
-                  description={
-                    dateFilter !== 'all'
-                      ? "Try changing the date filter to see more trees."
-                      : "Complete focus sessions to grow your forest!"
-                  }
-                />
-              </View>
-            ) : null
-          }
-        />
+        <Animated.View style={[{ flex: 1 }, listAnimatedStyle]}>
+          <FlatList
+            data={sessions}
+            renderItem={renderTree}
+            keyExtractor={(item) => item.id}
+            numColumns={COLUMN_COUNT}
+            contentContainerStyle={styles.listContent}
+            columnWrapperStyle={styles.columnWrapper}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={20}
+            initialNumToRender={20}
+            windowSize={5}
+            getItemLayout={(_, index) => ({
+              length: TREE_SIZE + 32,
+              offset: (TREE_SIZE + 32) * Math.floor(index / COLUMN_COUNT),
+              index,
+            })}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={COLORS.primary.accent}
+              />
+            }
+            ListEmptyComponent={
+              !isLoading ? (
+                <View style={styles.emptyContainer}>
+                  <EmptyState
+                    icon="🌱"
+                    title="No trees found"
+                    description={
+                      dateFilter !== 'all'
+                        ? "Try changing the date filter to see more trees."
+                        : "Complete focus sessions to grow your forest!"
+                    }
+                  />
+                </View>
+              ) : null
+            }
+          />
+        </Animated.View>
+
+        {/* Filtering Loading Overlay */}
+        <Animated.View
+          style={[styles.filteringOverlay, overlayAnimatedStyle]}
+          pointerEvents={isFiltering ? 'auto' : 'none'}
+        >
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary.accent} />
+            <Text style={styles.loadingText}>Filtering...</Text>
+          </View>
+        </Animated.View>
 
         <TreeDetailModal
           session={selectedSession}
@@ -179,5 +229,30 @@ const styles = StyleSheet.create({
   emptyContainer: {
     marginTop: SPACING.xxl,
     alignItems: 'center',
+  },
+  filteringOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  loadingContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    borderRadius: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
   },
 });

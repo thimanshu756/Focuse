@@ -3,6 +3,9 @@ import Constants from 'expo-constants';
 const debuggerHost = Constants.expoConfig?.hostUri;
 const localhost = debuggerHost?.split(':')[0] || 'localhost';
 
+console.log('[CONFIG] DebuggerHost:', debuggerHost);
+console.log('[CONFIG] Localhost:', localhost);
+
 const ENV = {
   dev: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL || `http://${localhost}:8080/api`,
@@ -20,13 +23,18 @@ const ENV = {
 
 const getEnvVars = () => {
   const env = Constants.expoConfig?.extra?.EXPO_PUBLIC_ENV || 'dev';
+  console.log('[CONFIG] Environment:', env);
 
   if (env === 'prod') return ENV.prod;
   if (env === 'staging') return ENV.staging;
   return ENV.dev;
 };
 
-export default getEnvVars();
+const config = getEnvVars();
+console.log('[CONFIG] Final API URL:', config.apiUrl);
+console.log('[CONFIG] Final Web URL:', config.webUrl);
+
+export default config;
 
 export const API_TIMEOUT = 10000;
 export const APP_NAME = 'Forest Focus';
