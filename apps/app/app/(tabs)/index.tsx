@@ -14,10 +14,13 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { COLORS, SPACING, FONT_SIZES } from '@/constants/theme';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { TaskCard } from '@/components/dashboard/TaskCard';
+import { TaskCardSkeleton } from '@/components/dashboard/TaskCardSkeleton';
 import { QuickStartSession } from '@/components/dashboard/QuickStartSession';
+import { QuickStartSessionSkeleton } from '@/components/dashboard/QuickStartSessionSkeleton';
 import { WeeklyChart } from '@/components/dashboard/WeeklyChart';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { TaskModal } from '@/components/tasks/TaskModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useWeeklyStats } from '@/hooks/useWeeklyStats';
@@ -180,9 +183,13 @@ export default function Dashboard() {
         >
           {/* Greeting Section */}
           <View style={styles.greetingSection}>
-            <Text style={styles.greeting}>
-              {greeting.text}, {firstName}! {greeting.emoji}
-            </Text>
+            {dataLoading ? (
+              <Skeleton width="70%" height={28} />
+            ) : (
+              <Text style={styles.greeting}>
+                {greeting.text}, {firstName}! {greeting.emoji}
+              </Text>
+            )}
           </View>
 
           {/* Stats Cards */}
@@ -233,9 +240,7 @@ export default function Dashboard() {
 
             <View >
               {dataLoading ? (
-                <View style={styles.loadingContainer}>
-                  <Text style={styles.loadingText}>Loading tasks...</Text>
-                </View>
+                <TaskCardSkeleton count={3} />
               ) : dataError ? (
                 <View style={styles.errorContainer}>
                   <Ionicons name="alert-circle" size={48} color={COLORS.error} />
@@ -272,7 +277,11 @@ export default function Dashboard() {
 
           {/* Quick Start Session */}
           <View style={styles.section}>
-            <QuickStartSession tasks={tasks} activeSession={activeSession} />
+            {dataLoading || sessionLoading ? (
+              <QuickStartSessionSkeleton />
+            ) : (
+              <QuickStartSession tasks={tasks} activeSession={activeSession} />
+            )}
           </View>
 
           {/* Weekly Progress */}

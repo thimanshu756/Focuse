@@ -14,19 +14,31 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_ENVIRONMENT": "development",
-        "EXPO_APP_DIR": "apps/app"
+        "EXPO_PUBLIC_ENVIRONMENT": "development"
       },
       "android": {
         "buildType": "apk"
       },
       "channel": "development"
     },
+    "preview": {
+      "extends": "base",
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ENVIRONMENT": "staging"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "channel": "preview"
+    },
     "production": {
       "extends": "base",
       "env": {
-        "EXPO_PUBLIC_ENVIRONMENT": "production",
-        "EXPO_APP_DIR": "apps/app"
+        "EXPO_PUBLIC_ENVIRONMENT": "production"
       },
       "android": {
         "buildType": "app-bundle",

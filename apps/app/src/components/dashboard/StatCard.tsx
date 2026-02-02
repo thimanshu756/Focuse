@@ -46,7 +46,7 @@ export function StatCard({
                     <Skeleton width={48} height={48} borderRadius={BORDER_RADIUS.md} />
                 </View>
                 <Skeleton width={80} height={32} style={styles.valueSkeleton} />
-                <Skeleton width={120} height={16} />
+                <Skeleton width={80} height={16} />
             </Card>
         );
     }
