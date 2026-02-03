@@ -65,6 +65,11 @@ const FilterChip = React.memo(({ label, isActive, onPress }: FilterChipProps) =>
 });
 
 export function ForestFilters({ dateFilter, onDateFilterChange }: ForestFiltersProps) {
+
+    const handleOnPress = (value: DateFilterOption) => {
+    console.log("handleOnPress clicked", value);
+    onDateFilterChange(value);
+}
     return (
         <View style={styles.container}>
             <ScrollView
@@ -77,7 +82,7 @@ export function ForestFilters({ dateFilter, onDateFilterChange }: ForestFiltersP
                         key={option.value}
                         label={option.label}
                         isActive={dateFilter === option.value}
-                        onPress={() => onDateFilterChange(option.value)}
+                        onPress={() => handleOnPress(option.value)}
                     />
                 ))}
             </ScrollView>

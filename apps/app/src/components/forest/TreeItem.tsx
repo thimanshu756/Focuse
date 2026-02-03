@@ -22,27 +22,41 @@ interface TreeItemProps {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+// Only animate the first N trees for performance - beyond this threshold, trees appear instantly
+const ANIMATION_THRESHOLD = 16;
+
 export const TreeItem = React.memo(function TreeItem({ session, onPress, size = 80, index = 0, animationTrigger = 0 }: TreeItemProps) {
     const type = getTreeType(session.duration, session.status);
     const isDead = type === 'dead';
 
-    // Entrance animation
-    const opacity = useSharedValue(0);
-    const translateY = useSharedValue(20);
-    const scale = useSharedValue(0.8);
+    // Skip animation for items beyond threshold
+    const shouldAnimate = index < ANIMATION_THRESHOLD;
+
+    // Entrance animation - start at final values if not animating
+    const opacity = useSharedValue(shouldAnimate ? 0 : 1);
+    const translateY = useSharedValue(shouldAnimate ? 20 : 0);
+    const scale = useSharedValue(shouldAnimate ? 0.8 : 1);
 
     useEffect(() => {
+        // Skip animation for items beyond threshold
+        if (!shouldAnimate) {
+            opacity.value = 1;
+            translateY.value = 0;
+            scale.value = 1;
+            return;
+        }
+
         // Reset animation
         opacity.value = 0;
         translateY.value = 20;
         scale.value = 0.8;
 
-        // Trigger entrance with stagger
-        const delay = Math.min(index * 30, 400); // Max 400ms delay for stagger
+        // Trigger entrance with stagger (only for visible items)
+        const delay = index * 30;
         opacity.value = withDelay(delay, withSpring(1, { damping: 15, stiffness: 100 }));
         translateY.value = withDelay(delay, withSpring(0, { damping: 15, stiffness: 100 }));
         scale.value = withDelay(delay, withSpring(1, { damping: 15, stiffness: 100 }));
-    }, [index, animationTrigger]);
+    }, [index, animationTrigger, shouldAnimate]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         opacity: opacity.value,

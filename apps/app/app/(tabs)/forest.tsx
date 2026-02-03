@@ -66,32 +66,6 @@ export default function Forest() {
     }
   }, [isFiltering, isLoading]);
 
-  // Animation for smooth filter transitions
-  const listOpacity = useSharedValue(1);
-  const listScale = useSharedValue(1);
-  const overlayOpacity = useSharedValue(0);
-
-  useEffect(() => {
-    if (isFiltering) {
-      listOpacity.value = withTiming(0.3, { duration: 200, easing: Easing.ease });
-      listScale.value = withTiming(0.97, { duration: 200, easing: Easing.ease });
-      overlayOpacity.value = withTiming(1, { duration: 150, easing: Easing.ease });
-    } else {
-      listOpacity.value = withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) });
-      listScale.value = withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) });
-      overlayOpacity.value = withTiming(0, { duration: 150, easing: Easing.ease });
-    }
-  }, [isFiltering]);
-
-  const listAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: listOpacity.value,
-    transform: [{ scale: listScale.value }],
-  }));
-
-  const overlayAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: overlayOpacity.value,
-  }));
-
   const onRefresh = async () => {
     setRefreshing(true);
     await refetch();
@@ -132,7 +106,12 @@ export default function Forest() {
         <ForestStats stats={stats} isLoading={isLoading} />
         <ForestFilters dateFilter={dateFilter} onDateFilterChange={setDateFilter} />
 
-        <Animated.View style={[{ flex: 1 }, listAnimatedStyle]}>
+        {isFiltering ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary.accent} />
+            <Text style={styles.loadingText}>Loading trees...</Text>
+          </View>
+        ) : (
           <FlatList
             data={sessions}
             renderItem={renderTree}
@@ -173,18 +152,7 @@ export default function Forest() {
               ) : null
             }
           />
-        </Animated.View>
-
-        {/* Filtering Loading Overlay */}
-        <Animated.View
-          style={[styles.filteringOverlay, overlayAnimatedStyle]}
-          pointerEvents={isFiltering ? 'auto' : 'none'}
-        >
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary.accent} />
-            <Text style={styles.loadingText}>Filtering...</Text>
-          </View>
-        </Animated.View>
+        )}
 
         <TreeDetailModal
           session={selectedSession}
@@ -230,29 +198,15 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xxl,
     alignItems: 'center',
   },
-  filteringOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
-  },
-  loadingContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingVertical: 24,
-    paddingHorizontal: 32,
-    borderRadius: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
   },
 });
