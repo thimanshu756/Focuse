@@ -34,10 +34,18 @@ export function GoogleSignInButton({
       await GoogleSignin.hasPlayServices();
 
       // Trigger Google Sign-In
-      const userInfo = await GoogleSignin.signIn();
+      const response = await GoogleSignin.signIn();
+
+      if (response.type === 'cancelled') {
+        const error = new Error('Google sign-in was cancelled');
+        (error as any).code = statusCodes.SIGN_IN_CANCELLED;
+        throw error;
+      }
+
+      const userInfo = response.data;
 
       // Get the ID token
-      const idToken = userInfo.idToken;
+      const idToken = userInfo?.idToken;
 
       if (!idToken) {
         throw new Error('No ID token received from Google');
@@ -57,7 +65,7 @@ export function GoogleSignInButton({
       // Show success message
       let message = 'Successfully signed in with Google!';
       if (result.isNewUser) {
-        message = 'Welcome to Forest! Account created successfully.';
+        message = 'Welcome to FOCUSE! Account created successfully.';
       } else if (result.isLinked) {
         message = 'Google account linked successfully!';
       }

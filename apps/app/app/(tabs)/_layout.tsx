@@ -56,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="forest"
         options={{
-          title: 'Forest',
+          title: 'Focuse',
           tabBarIcon: ({ color, size }) => <Trees size={size} color={color} />,
         }}
       />

@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Forest Focus",
-    "slug": "forest-focus",
+    "name": "FOCUSE",
+    "slug": "focuse",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/focuse-logo.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/images/focuse-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#EAF2FF"
     },
@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/images/focuse-logo.png",
         "backgroundColor": "#EAF2FF"
       },
       "package": "com.forest.focus",
@@ -36,7 +36,7 @@
       "usesCleartextTraffic": true
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/images/focuse-logo.png",
       "bundler": "metro"
     },
     "plugins": [

@@ -99,7 +99,7 @@ export default function Forest() {
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <Text style={styles.title}>My Forest</Text>
+          <Text style={styles.title}>My FOCUSE</Text>
           <Text style={styles.subtitle}>Your focus journey growing day by day</Text>
         </View>
 

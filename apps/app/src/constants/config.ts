@@ -37,6 +37,6 @@ console.log('[CONFIG] Final Web URL:', config.webUrl);
 export default config;
 
 export const API_TIMEOUT = 10000;
-export const APP_NAME = 'Forest Focus';
+export const APP_NAME = 'FOCUSE';
 export const APP_VERSION = '1.0.0';
 export const DEEP_LINK_SCHEME = 'forest://';

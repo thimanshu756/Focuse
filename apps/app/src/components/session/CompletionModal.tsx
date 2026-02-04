@@ -31,7 +31,7 @@ interface CompletionModalProps {
     treeTier: TreeType;
     sessionNumber?: number;
     streak?: number;
-    onViewForest: () => void;
+    onViewFocuse: () => void;
     onBackToDashboard: () => void;
 }
 
@@ -43,7 +43,7 @@ export function CompletionModal({
     treeTier,
     sessionNumber = 1,
     streak = 1,
-    onViewForest,
+    onViewFocuse,
     onBackToDashboard,
 }: CompletionModalProps) {
     // Animation values
@@ -155,11 +155,11 @@ export function CompletionModal({
                     <Animated.View style={[styles.buttonContainer, contentAnimatedStyle]}>
                         <TouchableOpacity
                             style={styles.primaryButton}
-                            onPress={onViewForest}
+                            onPress={onViewFocuse}
                             activeOpacity={0.8}
                         >
                             <TreeDeciduous size={20} color={COLORS.text.primary} />
-                            <Text style={styles.primaryButtonText}>View Forest</Text>
+                            <Text style={styles.primaryButtonText}>View FOCUSE</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
