@@ -22,10 +22,14 @@ const ENV = {
 };
 
 const getEnvVars = () => {
-  const env = Constants.expoConfig?.extra?.EXPO_PUBLIC_ENV || 'dev';
+  const env =
+    process.env.EXPO_PUBLIC_ENVIRONMENT ||
+    Constants.expoConfig?.extra?.environment ||
+    'dev';
+
   console.log('[CONFIG] Environment:', env);
 
-  if (env === 'prod') return ENV.prod;
+  if (env === 'production' || env === 'prod') return ENV.prod;
   if (env === 'staging') return ENV.staging;
   return ENV.dev;
 };
