@@ -9,9 +9,9 @@ import type {
   SyncSessionsInput,
   SyncTasksResponse,
   SyncSessionsResponse,
-  SyncOperation,
   ConflictItem,
 } from '../types/sync.types';
+import { SyncOperation } from '../types/sync.types';
 import { AppError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
@@ -41,11 +41,11 @@ export class SyncV2Service {
       await prisma.$transaction(async (tx) => {
         for (const op of input.operations) {
           try {
-            if (op.operation === 'CREATE') {
+            if (op.operation === SyncOperation.CREATE) {
               await this.handleTaskCreate(userId, op, synced, conflictDetails, mapping, tx);
-            } else if (op.operation === 'UPDATE') {
+            } else if (op.operation === SyncOperation.UPDATE) {
               await this.handleTaskUpdate(userId, op, synced, conflictDetails, tx);
-            } else if (op.operation === 'DELETE') {
+            } else if (op.operation === SyncOperation.DELETE) {
               await this.handleTaskDelete(userId, op, synced, conflictDetails, tx);
             }
           } catch (error) {
@@ -106,7 +106,7 @@ export class SyncV2Service {
   ) {
     // Validate required fields
     if (!op.data?.title) {
-      conflicts.push({ id: op.id, reason: 'Missing required field: title', operation: 'CREATE' });
+      conflicts.push({ id: op.id, reason: 'Missing required field: title', operation: SyncOperation.CREATE });
       return;
     }
 
@@ -116,7 +116,7 @@ export class SyncV2Service {
     });
 
     if (existing) {
-      conflicts.push({ id: op.id, reason: 'Duplicate clientId', operation: 'CREATE' });
+      conflicts.push({ id: op.id, reason: 'Duplicate clientId', operation: SyncOperation.CREATE });
       mapping[op.id] = existing.id; // Still provide mapping
       return;
     }
@@ -126,12 +126,12 @@ export class SyncV2Service {
     const priority = op.data.priority || 'MEDIUM';
 
     if (!Object.values(TaskStatus).includes(status as TaskStatus)) {
-      conflicts.push({ id: op.id, reason: 'Invalid task status', operation: 'CREATE' });
+      conflicts.push({ id: op.id, reason: 'Invalid task status', operation: SyncOperation.CREATE });
       return;
     }
 
     if (!Object.values(TaskPriority).includes(priority as TaskPriority)) {
-      conflicts.push({ id: op.id, reason: 'Invalid task priority', operation: 'CREATE' });
+      conflicts.push({ id: op.id, reason: 'Invalid task priority', operation: SyncOperation.CREATE });
       return;
     }
 
@@ -167,7 +167,7 @@ export class SyncV2Service {
     });
 
     if (!task) {
-      conflicts.push({ id: op.id, reason: 'Task not found', operation: 'UPDATE' });
+      conflicts.push({ id: op.id, reason: 'Task not found', operation: SyncOperation.UPDATE });
       return;
     }
 
@@ -176,19 +176,19 @@ export class SyncV2Service {
       conflicts.push({
         id: op.id,
         reason: 'Server version is newer',
-        operation: 'UPDATE',
+        operation: SyncOperation.UPDATE,
       });
       return;
     }
 
     // Validate status and priority if provided
     if (op.data.status && !Object.values(TaskStatus).includes(op.data.status as TaskStatus)) {
-      conflicts.push({ id: op.id, reason: 'Invalid task status', operation: 'UPDATE' });
+      conflicts.push({ id: op.id, reason: 'Invalid task status', operation: SyncOperation.UPDATE });
       return;
     }
 
     if (op.data.priority && !Object.values(TaskPriority).includes(op.data.priority as TaskPriority)) {
-      conflicts.push({ id: op.id, reason: 'Invalid task priority', operation: 'UPDATE' });
+      conflicts.push({ id: op.id, reason: 'Invalid task priority', operation: SyncOperation.UPDATE });
       return;
     }
 
@@ -282,11 +282,11 @@ export class SyncV2Service {
       await prisma.$transaction(async (tx) => {
         for (const op of input.operations) {
           try {
-            if (op.operation === 'CREATE') {
+            if (op.operation === SyncOperation.CREATE) {
               await this.handleSessionCreate(userId, op, synced, conflictDetails, mapping, tx);
-            } else if (op.operation === 'UPDATE') {
+            } else if (op.operation === SyncOperation.UPDATE) {
               await this.handleSessionUpdate(userId, op, synced, conflictDetails, tx);
-            } else if (op.operation === 'DELETE') {
+            } else if (op.operation === SyncOperation.DELETE) {
               await this.handleSessionDelete(userId, op, synced, conflictDetails, tx);
             }
           } catch (error) {
@@ -346,7 +346,7 @@ export class SyncV2Service {
   ) {
     // Validate required fields
     if (!op.data?.duration || !op.data?.startTime || !op.data?.endTime) {
-      conflicts.push({ id: op.id, reason: 'Missing required fields', operation: 'CREATE' });
+      conflicts.push({ id: op.id, reason: 'Missing required fields', operation: SyncOperation.CREATE });
       return;
     }
 
@@ -356,7 +356,7 @@ export class SyncV2Service {
     });
 
     if (existing) {
-      conflicts.push({ id: op.id, reason: 'Duplicate clientId', operation: 'CREATE' });
+      conflicts.push({ id: op.id, reason: 'Duplicate clientId', operation: SyncOperation.CREATE });
       mapping[op.id] = existing.id;
       return;
     }
@@ -364,7 +364,7 @@ export class SyncV2Service {
     // Validate status
     const status = op.data.status || 'RUNNING';
     if (!Object.values(SessionStatus).includes(status as SessionStatus)) {
-      conflicts.push({ id: op.id, reason: 'Invalid session status', operation: 'CREATE' });
+      conflicts.push({ id: op.id, reason: 'Invalid session status', operation: SyncOperation.CREATE });
       return;
     }
 
@@ -374,7 +374,7 @@ export class SyncV2Service {
         where: { id: op.data.taskId, userId, deletedAt: null },
       });
       if (!task) {
-        conflicts.push({ id: op.id, reason: 'Task not found', operation: 'CREATE' });
+        conflicts.push({ id: op.id, reason: 'Task not found', operation: SyncOperation.CREATE });
         return;
       }
     }
@@ -413,7 +413,7 @@ export class SyncV2Service {
     });
 
     if (!session) {
-      conflicts.push({ id: op.id, reason: 'Session not found', operation: 'UPDATE' });
+      conflicts.push({ id: op.id, reason: 'Session not found', operation: SyncOperation.UPDATE });
       return;
     }
 
@@ -422,7 +422,7 @@ export class SyncV2Service {
       conflicts.push({
         id: op.id,
         reason: 'Server version is newer',
-        operation: 'UPDATE',
+        operation: SyncOperation.UPDATE,
       });
       return;
     }
