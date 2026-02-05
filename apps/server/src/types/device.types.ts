@@ -20,9 +20,9 @@ export interface DeviceResponse {
   id: string;
   deviceId: string;
   platform: string;
-  osVersion?: string;
+  osVersion?: string | null;
   appVersion: string;
-  pushToken?: string;
+  pushToken?: string | null;
   lastSeenAt: Date;
   createdAt: Date;
   updatedAt: Date;
