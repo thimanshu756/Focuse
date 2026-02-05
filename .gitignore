@@ -43,7 +43,7 @@ apps/*/.vercel
 next-env.d.ts
 
 # pnpm
-pnpm-lock.yaml
+
 
 # React Native / Android / iOS
 **/*.jsbundle
