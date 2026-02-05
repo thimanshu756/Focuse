@@ -29,14 +29,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        working-directory: ${{ env.SERVER_PATH }}
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Validate Prisma schema
         working-directory: ${{ env.SERVER_PATH }}
@@ -48,15 +53,15 @@ jobs:
 
       - name: Type check
         working-directory: ${{ env.SERVER_PATH }}
-        run: npm run type-check
+        run: pnpm run type-check
 
       - name: Lint code
         working-directory: ${{ env.SERVER_PATH }}
-        run: npm run lint || true # Continue even if lint has warnings
+        run: pnpm run lint || true # Continue even if lint has warnings
 
       - name: Build TypeScript
         working-directory: ${{ env.SERVER_PATH }}
-        run: npm run build
+        run: pnpm run build
 
       - name: Check critical env vars
         run: |
@@ -142,14 +147,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        working-directory: ${{ env.SERVER_PATH }}
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
         working-directory: ${{ env.SERVER_PATH }}

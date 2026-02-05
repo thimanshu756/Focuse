@@ -4,7 +4,7 @@
     "slug": "focuse",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/focuse-logo.png",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -23,8 +23,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/focuse-logo.png",
-        "backgroundColor": "#EAF2FF"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#f6f9fd"
       },
       "package": "com.forest.focus",
       "versionCode": 1,
@@ -36,7 +36,7 @@
       "usesCleartextTraffic": true
     },
     "web": {
-      "favicon": "./assets/images/focuse-logo.png",
+      "favicon": "./assets/images/icon.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -46,6 +46,13 @@
         {
           "backgroundColor": "#EAF2FF",
           "imageWidth": 200
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "webzenithsolutions",
+          "project": "forest-focus"
         }
       ]
     ],
