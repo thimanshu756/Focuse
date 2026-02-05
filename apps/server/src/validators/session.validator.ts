@@ -113,7 +113,7 @@ export const forestSessionsSchema = z.object({
       .string()
       .regex(/^\d+$/)
       .transform(Number)
-      .pipe(z.number().int().min(1).max(100))
+      .pipe(z.number().int().min(1).max(1000))
       .optional()
       .default('50'),
   }),

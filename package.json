@@ -18,6 +18,15 @@
     "lint:app": "pnpm --filter app lint",
     "app:ios": "pnpm --filter app ios",
     "app:android": "pnpm --filter app android",
+    "app:build:dev:android": "cd apps/app && eas build --profile development --platform android",
+    "app:build:dev:ios": "cd apps/app && eas build --profile development --platform ios",
+    "app:build:preview:android": "cd apps/app && eas build --profile preview --platform android",
+    "app:build:preview:ios": "cd apps/app && eas build --profile preview --platform ios",
+    "app:build:android": "cd apps/app && eas build --profile production --platform android",
+    "app:build:ios": "cd apps/app && eas build --profile production --platform ios",
+    "app:build:all": "cd apps/app && eas build --profile production --platform all",
+    "app:submit:android": "cd apps/app && eas submit --platform android",
+    "app:submit:ios": "cd apps/app && eas submit --platform ios",
     "prepare": "husky"
   },
   "devDependencies": {

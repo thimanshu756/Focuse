@@ -15,6 +15,7 @@ import {
   updateProfileSchema,
   changePasswordSchema,
   googleAuthSchema,
+  validateTokenSchema,
 } from '../validators/auth.validator.js';
 
 const router: Router = Router();
@@ -112,6 +113,16 @@ router.post(
   rateLimiters.standard,
   validateRequest(changePasswordSchema),
   controller.changePassword
+);
+
+// GET /api/auth/validate-token
+// Mobile Payment Flow: Web pricing page validates token from mobile app
+router.get(
+  '/validate-token',
+  authenticate,
+  rateLimiters.standard,
+  validateRequest(validateTokenSchema),
+  controller.validateToken
 );
 
 export default router;

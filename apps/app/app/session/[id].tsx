@@ -463,7 +463,7 @@ export default function FocusSession() {
           visible={showCompletionModal}
           duration={session.duration}
           treeTier={treeType}
-          onViewForest={() => {
+          onViewFocuse={() => {
             setShowCompletionModal(false);
             router.replace('/(tabs)/forest');
           }}

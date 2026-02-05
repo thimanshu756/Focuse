@@ -18,7 +18,7 @@ export default function Index() {
       if (isAuthenticated) {
         router.replace('/(tabs)');
       } else {
-        router.replace('/auth/login');
+        router.replace('/auth/login' as any);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -26,9 +26,9 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Forest Focus</Text>
+      <Text style={styles.title}>FOCUSE</Text>
       <ActivityIndicator size="large" color={COLORS.primary.accent} />
-      
+
       {/* Development: Quick access to Phase 1 testing */}
       {__DEV__ && (
         <TouchableOpacity

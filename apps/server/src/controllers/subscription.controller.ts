@@ -51,10 +51,16 @@ export class SubscriptionController {
 
       const data: CreateSubscriptionInput = req.body;
 
+      // Extract user agent and IP for analytics and compliance
+      const userAgent = req.headers['user-agent'];
+      const ipAddress = req.ip || req.socket.remoteAddress;
+
       const result = await this.subscriptionService.createSubscription(
         req.user.id,
         req.user.email,
-        data
+        data,
+        userAgent,
+        ipAddress
       );
 
       res.status(201).json({

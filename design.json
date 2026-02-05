@@ -1,0 +1,153 @@
+{
+  "meta": {
+    "designStyle": "Modern soft productivity UI",
+    "platformFocus": "Mobile-first (iOS-inspired)",
+    "personality": "Friendly, calm, focused, premium",
+    "visualDensity": "Low",
+    "motionExpectation": "High (micro-interactions encouraged)"
+  },
+
+  "colorSystem": {
+    "primary": {
+      "accent": "#D7F50A",
+      "accentSoft": "#E9FF6A"
+    },
+    "backgrounds": {
+      "appGradient": "linear-gradient(180deg, #EAF2FF 0%, #E6FFE8 100%)",
+      "cardLight": "#F6F9FF",
+      "cardBlue": "#E9F0FF",
+      "cardDark": "#111111"
+    },
+    "text": {
+      "primary": "#0F172A",
+      "secondary": "#64748B",
+      "muted": "#94A3B8",
+      "onDark": "#FFFFFF"
+    },
+    "states": {
+      "success": "#22C55E",
+      "active": "#D7F50A",
+      "disabled": "#CBD5E1"
+    }
+  },
+
+  "typography": {
+    "fontFamily": {
+      "primary": "Inter, SF Pro, system-ui, sans-serif"
+    },
+    "scale": {
+      "display": {
+        "size": 32,
+        "weight": 600,
+        "lineHeight": 1.2
+      },
+      "heading": {
+        "size": 22,
+        "weight": 600,
+        "lineHeight": 1.3
+      },
+      "body": {
+        "size": 16,
+        "weight": 400,
+        "lineHeight": 1.5
+      },
+      "caption": {
+        "size": 13,
+        "weight": 400,
+        "lineHeight": 1.4
+      },
+      "numeric": {
+        "size": 28,
+        "weight": 600,
+        "letterSpacing": -0.5
+      }
+    }
+  },
+
+  "spacing": {
+    "grid": 8,
+    "screenPadding": 20,
+    "cardPadding": 16,
+    "sectionSpacing": 24,
+    "componentGap": 12
+  },
+
+  "radius": {
+    "small": 12,
+    "medium": 16,
+    "large": 24,
+    "pill": 999
+  },
+
+  "shadows": {
+    "card": "0 8px 24px rgba(15, 23, 42, 0.08)",
+    "floating": "0 12px 32px rgba(15, 23, 42, 0.12)"
+  },
+
+  "components": {
+    "button": {
+      "shape": "pill",
+      "height": 52,
+      "fontWeight": 600,
+      "primary": {
+        "background": "primary.accent",
+        "text": "#0F172A"
+      },
+      "secondary": {
+        "background": "#FFFFFF",
+        "text": "text.primary"
+      }
+    },
+
+    "card": {
+      "background": "backgrounds.cardLight",
+      "radius": "large",
+      "shadow": "shadows.card",
+      "border": "none"
+    },
+
+    "progressRing": {
+      "strokeWidth": 14,
+      "strokeLinecap": "round",
+      "backgroundStroke": "#E5ECF6",
+      "activeStroke": "primary.accent",
+      "animation": "smooth, easing-out"
+    },
+
+    "bottomNavigation": {
+      "style": "floating",
+      "background": "#FFFFFF",
+      "radius": "pill",
+      "shadow": "shadows.floating",
+      "iconSize": 22,
+      "activeIndicator": "primary.accent"
+    },
+
+    "timer": {
+      "font": "typography.numeric",
+      "alignment": "center",
+      "background": "backgrounds.cardBlue",
+      "radius": "large"
+    },
+
+    "listItem": {
+      "padding": 16,
+      "divider": "none",
+      "statusIndicator": {
+        "shape": "dot",
+        "size": 8,
+        "color": "states.active"
+      }
+    }
+  },
+
+  "designPrinciples": [
+    "Use color sparingly and intentionally",
+    "Prefer space over lines",
+    "Rounded shapes everywhere",
+    "Never use pure black",
+    "Data should be readable in under 2 seconds",
+    "Design should feel calm even when showing progress",
+    "Every screen should have one clear focal point"
+  ]
+}

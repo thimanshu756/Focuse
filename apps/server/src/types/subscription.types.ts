@@ -37,6 +37,7 @@ export interface PlansListResponse {
 // Create subscription input
 export interface CreateSubscriptionInput {
   planId: string; // "pro_monthly" or "pro_yearly"
+  source?: 'web' | 'mobile'; // Payment source for analytics and compliance
 }
 
 // Razorpay checkout options

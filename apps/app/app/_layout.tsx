@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Linking, Alert } from 'react-native';
 
 // Services
 import ErrorBoundary from '../src/components/shared/ErrorBoundary';
@@ -14,16 +14,21 @@ import { analyticsService } from '../src/services/analytics.service';
 import { databaseService } from '../src/services/database.service';
 import { syncService } from '../src/services/sync.service';
 import { notificationService } from '../src/services/notification.service';
+import { useAuthStore } from '../src/stores/auth.store';
+import { DEEP_LINK_SCHEME } from '../src/constants/config';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
+  const router = useRouter();
+  const { checkAuth } = useAuthStore();
+
   const [loaded, error] = useFonts({
     // Add custom fonts here if needed
     // 'Inter': require('../assets/fonts/Inter-Regular.ttf'),
   });
-  
+
   const [servicesInitialized, setServicesInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -50,7 +55,7 @@ function RootLayoutContent() {
         
         // 5. Initialize notifications
         await notificationService.initialize();
-        
+
         console.log('[App] All services initialized successfully');
         setServicesInitialized(true);
       } catch (error) {
@@ -82,6 +87,145 @@ function RootLayoutContent() {
     }
   }, [loaded, servicesInitialized]);
 
+  // Deep link event listener for payment callbacks
+  useEffect(() => {
+    if (!servicesInitialized) return;
+
+    const handleDeepLink = async (url: string) => {
+      console.log('[Deep Link] Received URL:', url);
+
+      try {
+        // Validate deep link scheme
+        if (!url.startsWith(DEEP_LINK_SCHEME)) {
+          console.warn('[Deep Link] Invalid scheme, ignoring:', url);
+          return;
+        }
+
+        // Parse URL and extract route
+        const route = url.replace(DEEP_LINK_SCHEME, '');
+        const [path, queryString] = route.split('?');
+
+        console.log('[Deep Link] Parsed route:', { path, queryString });
+
+        // Handle different deep link routes
+        switch (path) {
+          case 'payment-success':
+            await handlePaymentSuccess();
+            break;
+
+          case 'payment-failure':
+            await handlePaymentFailure(queryString);
+            break;
+
+          case 'home':
+            router.replace('/(tabs)');
+            break;
+
+          default:
+            console.warn('[Deep Link] Unknown route:', path);
+        }
+      } catch (error) {
+        console.error('[Deep Link] Error handling deep link:', error);
+        Alert.alert(
+          'Navigation Error',
+          'Unable to process the link. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    };
+
+    const handlePaymentSuccess = async () => {
+      console.log('[Deep Link] Payment successful, refreshing user data');
+
+      try {
+        // Refresh user data to get updated subscription status
+        await checkAuth();
+
+        Alert.alert(
+          'Payment Successful! 🎉',
+          'Your PRO subscription is now active. Enjoy unlimited focus sessions!',
+          [
+            {
+              text: 'View Profile',
+              onPress: () => router.replace('/(tabs)/profile'),
+            },
+            {
+              text: 'Start Focusing',
+              onPress: () => router.replace('/(tabs)'),
+            },
+          ]
+        );
+      } catch (error) {
+        console.error('[Deep Link] Failed to refresh user data:', error);
+        Alert.alert(
+          'Payment Successful',
+          'Your subscription is active! Please refresh the app to see your PRO features.',
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+        );
+      }
+    };
+
+    const handlePaymentFailure = async (queryString?: string) => {
+      console.log('[Deep Link] Payment failed');
+
+      // Parse query parameters to extract failure reason
+      let reason = 'Payment was not completed';
+
+      if (queryString) {
+        const params = new URLSearchParams(queryString);
+        const encodedReason = params.get('reason');
+
+        if (encodedReason) {
+          const decodedReason = decodeURIComponent(encodedReason);
+
+          // Map specific reasons to user-friendly messages
+          if (decodedReason === 'token_expired') {
+            reason = 'Your session expired. Please try again from the app.';
+          } else if (decodedReason === 'already_subscribed') {
+            reason = 'You already have an active PRO subscription!';
+          } else {
+            reason = decodedReason;
+          }
+        }
+      }
+
+      Alert.alert(
+        'Payment Not Completed',
+        reason,
+        [
+          {
+            text: 'Try Again',
+            onPress: () => router.replace('/(tabs)/profile'),
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => router.replace('/(tabs)'),
+          },
+        ]
+      );
+    };
+
+    // Handle initial URL (app opened from deep link when not running)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('[Deep Link] Initial URL:', url);
+        handleDeepLink(url);
+      }
+    });
+
+    // Handle URL events (app already running, receives deep link)
+    const subscription = Linking.addEventListener('url', (event) => {
+      console.log('[Deep Link] URL event:', event.url);
+      handleDeepLink(event.url);
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      subscription.remove();
+    };
+  }, [servicesInitialized, checkAuth, router]);
+
   // Show loading screen while initializing
   if (!loaded || !servicesInitialized) {
     return (
@@ -105,8 +249,7 @@ function RootLayoutContent() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="auth/login" />
-        <Stack.Screen name="auth/signup" />
+        <Stack.Screen name="auth" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="session/[id]"

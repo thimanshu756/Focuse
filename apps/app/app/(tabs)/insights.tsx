@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, FONT_SIZES } from '@/constants/theme';
@@ -7,15 +7,30 @@ import { useAuthStore } from '@/stores/auth.store';
 import { PeriodSelector } from '@/components/insights/PeriodSelector';
 import { InsightCard } from '@/components/insights/InsightCard';
 import { FocusTrendChart } from '@/components/insights/FocusTrendChart';
+import { FocusTimesHeatmap } from '@/components/insights/FocusTimesHeatmap';
+import { TopTasksChart } from '@/components/insights/TopTasksChart';
+import { TreeDistributionChart } from '@/components/insights/TreeDistributionChart';
 import { WeeklyAIInsights } from '@/components/insights/WeeklyAIInsights';
 import { formatHours } from '@/utils/date.utils';
 
 export default function Insights() {
   const [period, setPeriod] = useState<InsightPeriod>('week');
-  const { stats, isLoading, refetch } = useInsightsData(period);
+  const { stats, userProfile, sessions, isLoading, refetch, silentRefetch } = useInsightsData(period);
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuthStore();
-  const isPro = user?.subscriptionTier === 'PRO';
+  const isPro = user?.subscriptionTier === 'PRO' || userProfile?.subscriptionTier === 'PRO';
+
+  // Track previous timezone to detect changes
+  const prevTimezoneRef = useRef(user?.timezone);
+
+  // Silently refetch data when timezone changes
+  useEffect(() => {
+    if (user?.timezone && prevTimezoneRef.current && user.timezone !== prevTimezoneRef.current) {
+      console.log('[Insights] Timezone changed, silently refetching data...');
+      silentRefetch();
+    }
+    prevTimezoneRef.current = user?.timezone;
+  }, [user?.timezone, silentRefetch]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -92,6 +107,27 @@ export default function Insights() {
           <FocusTrendChart
             data={stats?.dailyBreakdown || []}
             period={period}
+            isLoading={isLoading}
+          />
+        </View>
+
+        {/* Focus Times Heatmap */}
+        <View style={styles.section}>
+          <FocusTimesHeatmap sessions={sessions} isLoading={isLoading} />
+        </View>
+
+        {/* Top Tasks Chart */}
+        <View style={styles.section}>
+          <TopTasksChart
+            taskBreakdown={stats?.taskBreakdown || []}
+            isLoading={isLoading}
+          />
+        </View>
+
+        {/* Tree Distribution Chart */}
+        <View style={styles.section}>
+          <TreeDistributionChart
+            sessions={sessions.filter((s) => s.status === 'COMPLETED')}
             isLoading={isLoading}
           />
         </View>

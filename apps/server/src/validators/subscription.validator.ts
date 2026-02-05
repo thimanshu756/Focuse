@@ -15,6 +15,10 @@ export const createSubscriptionSchema = z.object({
         /^pro_(monthly|yearly)$/,
         'Invalid plan ID. Must be "pro_monthly" or "pro_yearly"'
       ),
+    source: z
+      .enum(['web', 'mobile'])
+      .optional()
+      .default('web'), // Default to web for backwards compatibility
   }),
 });
 

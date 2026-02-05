@@ -13,20 +13,45 @@ interface DailyData {
 }
 
 interface WeeklyChartProps {
-    data: DailyData[];
+    data?: DailyData[];
     isLoading?: boolean;
 }
 
 const screenWidth = Dimensions.get('window').width;
 
 export function WeeklyChart({ data, isLoading = false }: WeeklyChartProps) {
-    if (isLoading) {
+    // Show skeleton if loading or if data is not available yet
+    if (isLoading || !data) {
         return (
             <Card style={styles.card}>
                 <View style={styles.header}>
-                    <Skeleton width={150} height={20} />
+                    <Skeleton width={200} height={22} />
                 </View>
-                <Skeleton width="100%" height={200} style={styles.chartSkeleton} />
+
+                {/* Chart bars skeleton */}
+                <View style={styles.chartContainer}>
+                    <View style={styles.barsContainer}>
+                        {[60, 80, 45, 90, 70, 55, 65].map((height, index) => (
+                            <View key={index} style={styles.barWrapper}>
+                                <Skeleton
+                                    width={24}
+                                    height={height}
+                                    borderRadius={4}
+                                    style={styles.barSkeleton}
+                                />
+                                <Skeleton width={20} height={12} style={styles.barLabelSkeleton} />
+                            </View>
+                        ))}
+                    </View>
+                </View>
+
+                {/* Legend skeleton */}
+                <View style={styles.legend}>
+                    <View style={styles.legendItem}>
+                        <Skeleton width={8} height={8} borderRadius={4} />
+                        <Skeleton width={90} height={14} style={styles.legendTextSkeleton} />
+                    </View>
+                </View>
             </Card>
         );
     }
@@ -106,6 +131,27 @@ const styles = StyleSheet.create({
     },
     chartSkeleton: {
         marginTop: SPACING.lg,
+    },
+    barsContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        height: 200,
+        gap: 24,
+        paddingHorizontal: SPACING.md,
+    },
+    barWrapper: {
+        alignItems: 'center',
+        gap: SPACING.xs,
+    },
+    barSkeleton: {
+        marginBottom: SPACING.xs,
+    },
+    barLabelSkeleton: {
+        marginTop: 4,
+    },
+    legendTextSkeleton: {
+        marginLeft: SPACING.xs,
     },
     header: {
         marginBottom: SPACING.sm,

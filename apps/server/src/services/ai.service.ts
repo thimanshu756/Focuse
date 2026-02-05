@@ -25,9 +25,6 @@ import type {
 import type {
   AIInsightsInput,
   AIInsightsOutput,
-  Insight,
-  Recommendation,
-  NextWeekPlan,
 } from '../types/insights.types.js';
 
 // Output schema for task breakdown

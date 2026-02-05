@@ -89,6 +89,58 @@ class AuthService {
         }
         return null;
     }
+
+    async forgotPassword(email: string): Promise<void> {
+        await api.post('/auth/forgot-password', { email: email.toLowerCase().trim() });
+    }
+
+    async resetPassword(token: string, newPassword: string): Promise<void> {
+        await api.post('/auth/reset-password', { token, newPassword });
+    }
+
+    /**
+     * Google OAuth Authentication
+     *
+     * Authenticates user with Google ID token.
+     * The backend will verify the token and either:
+     * - Create a new user account
+     * - Link Google to an existing email/password account
+     * - Log in an existing Google user
+     *
+     * @param idToken - Google ID token from Google Sign-In
+     * @param timezone - User's timezone (optional, defaults to device timezone)
+     * @returns User object and metadata (isNewUser, isLinked)
+     */
+    async googleAuth(idToken: string, timezone?: string): Promise<{
+        user: User;
+        isNewUser: boolean;
+        isLinked: boolean;
+    }> {
+        const { data: response } = await api.post<ApiResponse<{
+            user: User;
+            tokens: {
+                accessToken: string;
+                refreshToken: string;
+            };
+        }>>('/auth/google', {
+            idToken,
+            timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        });
+
+        const { user, tokens } = response.data;
+        const { isNewUser, isLinked } = (response as any).meta || {};
+
+        // Store tokens
+        await SecureStore.setItemAsync('accessToken', tokens.accessToken);
+        await SecureStore.setItemAsync('refreshToken', tokens.refreshToken);
+        await SecureStore.setItemAsync('user', JSON.stringify(user));
+
+        return {
+            user,
+            isNewUser: isNewUser || false,
+            isLinked: isLinked || false,
+        };
+    }
 }
 
 export const authService = new AuthService();

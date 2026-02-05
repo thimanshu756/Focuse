@@ -2,12 +2,13 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Forest Focus',
+  name: 'FOCUSE',
   slug: 'forest-focus',
   version: '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
+  scheme: 'forest',
   splash: {
     resizeMode: 'contain',
     backgroundColor: '#EAF2FF',
@@ -53,7 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Environment configuration
     environment: process.env.EXPO_PUBLIC_ENVIRONMENT || 'development',
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
-    
+
     // Observability
     sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
     postHogApiKey: process.env.EXPO_PUBLIC_POSTHOG_API_KEY,

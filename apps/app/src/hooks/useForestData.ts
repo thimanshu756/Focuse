@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useDeferredValue } from 'react';
 import { api } from '@/services/api.service';
 import { Session } from '@/types/api.types';
 import { getTreeType, TreeType } from '@/utils/tree.utils';
 import { isToday, isThisWeek, isThisMonth, isAfter, subDays, startOfDay } from 'date-fns';
 import { formatHours } from '@/utils/date.utils';
+import { InteractionManager } from 'react-native';
 
 export type DateFilterOption = 'today' | 'week' | 'month' | '30days' | 'all';
 export type TreeTypeFilterOption = 'all' | TreeType;
@@ -20,6 +21,7 @@ interface UseForestDataReturn {
     allSessions: Session[];
     stats: ForestStats;
     isLoading: boolean;
+    isFiltering: boolean;
     error: string | null;
     dateFilter: DateFilterOption;
     treeTypeFilter: TreeTypeFilterOption;
@@ -32,6 +34,7 @@ export function useForestData(): UseForestDataReturn {
     const [allSessions, setAllSessions] = useState<Session[]>([]);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFiltering, setIsFiltering] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [dateFilter, setDateFilter] = useState<DateFilterOption>('week');
@@ -43,7 +46,7 @@ export function useForestData(): UseForestDataReturn {
             setError(null);
 
             const [forestResponse, userResponse] = await Promise.all([
-                api.get('/sessions/forest', { params: { limit: 100 } }),
+                api.get('/sessions/forest', { params: { limit: 1000 } }),
                 api.get('/auth/me'),
             ]);
 
@@ -68,12 +71,29 @@ export function useForestData(): UseForestDataReturn {
         fetchData();
     }, [fetchData]);
 
+    // Handle filter changes with smooth transition - use InteractionManager for better responsiveness
+    const handleFilterChange = useCallback((filter: DateFilterOption) => {
+        setIsFiltering(true);
+        // Use InteractionManager to defer the state update until animations are complete
+        InteractionManager.runAfterInteractions(() => {
+            setDateFilter(filter);
+            // Give FlatList time to update before removing loading state
+            setTimeout(() => {
+                setIsFiltering(false);
+            }, 100);
+        });
+    }, []);
+
+    // Keep track of whether deferred sessions are stale
+    const deferredDateFilter = useDeferredValue(dateFilter);
+    const isPending = deferredDateFilter !== dateFilter;
+
     const filteredSessions = useMemo(() => {
         let filtered = allSessions;
         const now = new Date();
 
-        // Date Filter
-        switch (dateFilter) {
+        // Date Filter - use deferred value for smooth UI
+        switch (deferredDateFilter) {
             case 'today':
                 filtered = filtered.filter(s => isToday(new Date(s.startTime)));
                 break;
@@ -97,7 +117,7 @@ export function useForestData(): UseForestDataReturn {
         }
 
         return filtered;
-    }, [allSessions, dateFilter, treeTypeFilter]);
+    }, [allSessions, deferredDateFilter, treeTypeFilter]);
 
     const stats = useMemo((): ForestStats => {
         const completedSessions = filteredSessions.filter(s => s.status === 'COMPLETED');
@@ -116,10 +136,11 @@ export function useForestData(): UseForestDataReturn {
         allSessions,
         stats,
         isLoading,
+        isFiltering: isFiltering || isPending,
         error,
         dateFilter,
         treeTypeFilter,
-        setDateFilter,
+        setDateFilter: handleFilterChange,
         setTreeTypeFilter,
         refetch: fetchData,
     };

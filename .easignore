@@ -1,0 +1,69 @@
+# =====================================
+# ROOT .easignore for Monorepo
+# =====================================
+# This tells EAS Build what to exclude when building from the root
+
+# Exclude all apps EXCEPT the mobile app
+apps/web/
+apps/server/
+apps/android/
+
+# Exclude all shared packages (EAS will install dependencies)
+packages/
+
+# Exclude all node_modules (will be installed by EAS)
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Exclude build outputs
+dist/
+build/
+.next/
+.expo/
+*.apk
+*.aab
+*.ipa
+
+# Exclude development files
+.env*.local
+*.log
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+coverage/
+.nyc_output/
+
+# Exclude git
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Exclude documentation
+docs/
+*.md
+!README.md
+
+# Exclude tests
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Exclude cache
+.cache/
+temp/
+tmp/
+
+# IMPORTANT: Keep these workspace files
+!package.json
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!eas.json
+
+# Keep the mobile app directory
+!apps/app/

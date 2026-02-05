@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Alert, Text, Linking } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
+import config from '@/constants/config';
 import { COLORS, SPACING, FONT_SIZES } from '@/constants/theme';
 import { authService } from '@/services/auth.service';
 import { User } from '@/types/api.types';
@@ -41,7 +43,12 @@ export default function ProfileScreen() {
         setLoading(true);
         try {
             const updatedUser = await authService.updateProfile(data);
-            setUser(updatedUser); // Update global store
+            // setUser(updatedUser); // Update global store
+
+            // If timezone was updated, silently refresh user data from server
+            if (data.timezone) {
+                await checkAuth(); // Silently refresh user data
+            }
         } catch (error) {
             throw error;
         } finally {
@@ -60,6 +67,51 @@ export default function ProfileScreen() {
         }
     };
 
+    const handleUpgrade = async () => {
+        try {
+            setLoading(true);
+
+            // Get current access token from SecureStore
+            const token = await SecureStore.getItemAsync('accessToken');
+
+            if (!token) {
+                Alert.alert(
+                    'Authentication Error',
+                    'Please log in again to upgrade your subscription.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
+
+            // Construct pricing URL with token and source parameters
+            const pricingUrl = `${config.webUrl}/pricing?token=${encodeURIComponent(token)}&source=mobile`;
+
+            console.log('[Mobile Payment] Opening web pricing page:', pricingUrl);
+
+            // Check if URL can be opened
+            const canOpen = await Linking.canOpenURL(pricingUrl);
+
+            if (!canOpen) {
+                throw new Error('Cannot open web browser');
+            }
+
+            // Open pricing page in browser
+            await Linking.openURL(pricingUrl);
+
+            console.log('[Mobile Payment] Successfully opened pricing page');
+        } catch (error: any) {
+            console.error('[Mobile Payment] Failed to open pricing page:', error);
+
+            Alert.alert(
+                'Unable to Open Browser',
+                'Please ensure you have a default browser app installed and try again.',
+                [{ text: 'OK' }]
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleLogout = async () => {
         Alert.alert('Logout', 'Are you sure you want to logout?', [
             { text: 'Cancel', style: 'cancel' },
@@ -69,24 +121,6 @@ export default function ProfileScreen() {
                 onPress: async () => {
                     await authService.logout();
                     router.replace('/auth/login');
-                }
-            }
-        ]);
-    };
-
-    const handleDeleteAccount = async () => {
-        Alert.alert('Delete Account', 'This action is irreversible. Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Delete',
-                style: 'destructive',
-                onPress: async () => {
-                    try {
-                        await authService.deleteAccount();
-                        router.replace('/auth/login');
-                    } catch (e) {
-                        Alert.alert("Error", "Failed to delete account");
-                    }
                 }
             }
         ]);
@@ -123,7 +157,7 @@ export default function ProfileScreen() {
 
                     <SubscriptionCard
                         user={user}
-                        onUpgrade={() => Alert.alert('Coming Soon', 'In-app purchases coming soon!')}
+                        onUpgrade={handleUpgrade}
                     />
 
                     <SecuritySettings
