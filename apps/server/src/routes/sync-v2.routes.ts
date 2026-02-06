@@ -9,7 +9,7 @@ import { validateRequest } from '../middleware/validation.middleware';
 import { rateLimiters } from '../middleware/rate-limiter.middleware';
 import { syncTasksSchema, syncSessionsSchema } from '../validators/sync-v2.validator';
 
-const router = Router();
+const router: Router = Router();
 const controller = new SyncV2Controller();
 
 // All sync routes require authentication
