@@ -7,11 +7,13 @@ import {
   RazorpayWebhookPayload,
   WebhookProcessingResult,
 } from '../types/webhook.types.js';
-import {
-  SubscriptionTier,
-  SubscriptionStatus,
-  WebhookStatus,
-  RazorpayEventType,
+import pkg from '@prisma/client';
+const { SubscriptionTier, SubscriptionStatus, WebhookStatus, RazorpayEventType } = pkg;
+import type {
+  SubscriptionTier as SubscriptionTierType,
+  SubscriptionStatus as SubscriptionStatusType,
+  WebhookStatus as WebhookStatusType,
+  RazorpayEventType as RazorpayEventTypeType,
 } from '@prisma/client';
 
 export class WebhookService {
@@ -70,7 +72,7 @@ export class WebhookService {
       const existingEvent = await prisma.webhookEvent.findFirst({
         where: {
           razorpayEventId: eventId,
-          eventType: eventType as RazorpayEventType,
+          eventType: eventType as RazorpayEventTypeType,
         },
       });
 
@@ -103,11 +105,11 @@ export class WebhookService {
       const webhookEvent = await prisma.webhookEvent.create({
         data: {
           razorpayEventId: eventId,
-          eventType: eventType as RazorpayEventType,
+          eventType: eventType as RazorpayEventTypeType,
           payload: payload as any,
           signature,
           signatureVerified: true,
-          status: 'PENDING' as WebhookStatus,
+          status: 'PENDING' as WebhookStatusType,
           receivedAt: new Date(),
         },
       });
@@ -121,7 +123,7 @@ export class WebhookService {
       await prisma.webhookEvent.update({
         where: { id: webhookEvent.id },
         data: {
-          status: 'PROCESSING' as WebhookStatus,
+          status: 'PROCESSING' as WebhookStatusType,
         },
       });
 
@@ -140,7 +142,7 @@ export class WebhookService {
         await prisma.webhookEvent.update({
           where: { id: webhookEvent.id },
           data: {
-            status: 'FAILED' as WebhookStatus,
+            status: 'FAILED' as WebhookStatusType,
             errorMessage:
               error instanceof Error ? error.message : 'Unknown error',
             retryCount: { increment: 1 },
@@ -155,7 +157,7 @@ export class WebhookService {
       await prisma.webhookEvent.update({
         where: { id: webhookEvent.id },
         data: {
-          status: 'PROCESSED' as WebhookStatus,
+          status: 'PROCESSED' as WebhookStatusType,
           processedAt: new Date(),
         },
       });
@@ -287,7 +289,7 @@ export class WebhookService {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'ACTIVE' as SubscriptionStatus,
+          status: 'ACTIVE' as SubscriptionStatusType,
           activatedAt: new Date(),
           currentPeriodStart: new Date(subscriptionData.current_start * 1000),
           currentPeriodEnd: new Date(subscriptionData.current_end * 1000),
@@ -299,8 +301,8 @@ export class WebhookService {
       await tx.user.update({
         where: { id: subscription.userId },
         data: {
-          subscriptionTier: 'PRO' as SubscriptionTier,
-          subscriptionStatus: 'ACTIVE' as SubscriptionStatus,
+          subscriptionTier: 'PRO' as SubscriptionTierType,
+          subscriptionStatus: 'ACTIVE' as SubscriptionStatusType,
           subscriptionStartDate: new Date(),
           subscriptionEndDate: new Date(subscriptionData.current_end * 1000),
         },
@@ -388,7 +390,7 @@ export class WebhookService {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'ACTIVE' as SubscriptionStatus,
+          status: 'ACTIVE' as SubscriptionStatusType,
           lastPaymentDate: new Date(),
           currentPeriodStart: new Date(subscriptionData.current_start * 1000),
           currentPeriodEnd: new Date(subscriptionData.current_end * 1000),
@@ -402,8 +404,8 @@ export class WebhookService {
       await tx.user.update({
         where: { id: subscription.userId },
         data: {
-          subscriptionTier: 'PRO' as SubscriptionTier,
-          subscriptionStatus: 'ACTIVE' as SubscriptionStatus,
+          subscriptionTier: 'PRO' as SubscriptionTierType,
+          subscriptionStatus: 'ACTIVE' as SubscriptionStatusType,
           subscriptionEndDate: new Date(subscriptionData.current_end * 1000),
         },
       });
@@ -510,7 +512,7 @@ export class WebhookService {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'CANCELLED' as SubscriptionStatus,
+          status: 'CANCELLED' as SubscriptionStatusType,
           cancelledAt: new Date(),
           autoRenew: false,
           nextBillingDate: null,
@@ -582,7 +584,7 @@ export class WebhookService {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'EXPIRED' as SubscriptionStatus,
+          status: 'EXPIRED' as SubscriptionStatusType,
           expiresAt: new Date(),
           autoRenew: false,
           nextBillingDate: null,
@@ -593,8 +595,8 @@ export class WebhookService {
       await tx.user.update({
         where: { id: subscription.userId },
         data: {
-          subscriptionTier: 'FREE' as SubscriptionTier,
-          subscriptionStatus: 'INACTIVE' as SubscriptionStatus,
+          subscriptionTier: 'FREE' as SubscriptionTierType,
+          subscriptionStatus: 'INACTIVE' as SubscriptionStatusType,
         },
       });
 
@@ -682,7 +684,7 @@ export class WebhookService {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'INACTIVE' as SubscriptionStatus,
+          status: 'INACTIVE' as SubscriptionStatusType,
           autoRenew: false,
         },
       });
@@ -745,7 +747,7 @@ export class WebhookService {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'ACTIVE' as SubscriptionStatus,
+          status: 'ACTIVE' as SubscriptionStatusType,
           autoRenew: true,
           cancelledAt: null,
         },
@@ -755,8 +757,8 @@ export class WebhookService {
       await tx.user.update({
         where: { id: subscription.userId },
         data: {
-          subscriptionTier: 'PRO' as SubscriptionTier,
-          subscriptionStatus: 'ACTIVE' as SubscriptionStatus,
+          subscriptionTier: 'PRO' as SubscriptionTierType,
+          subscriptionStatus: 'ACTIVE' as SubscriptionStatusType,
         },
       });
 
@@ -818,7 +820,7 @@ export class WebhookService {
       await tx.subscription.update({
         where: { id: subscription.id },
         data: {
-          status: 'INACTIVE' as SubscriptionStatus,
+          status: 'INACTIVE' as SubscriptionStatusType,
           pausedAt: new Date(),
           autoRenew: false,
         },

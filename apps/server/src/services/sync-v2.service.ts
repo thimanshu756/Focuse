@@ -3,7 +3,8 @@
  * Implements proper CREATE/UPDATE/DELETE sync with server-timestamp-wins strategy
  */
 
-import { PrismaClient, TaskStatus, TaskPriority, SessionStatus } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient, TaskStatus, TaskPriority, SessionStatus } = pkg;
 import type {
   SyncTasksInput,
   SyncSessionsInput,
@@ -12,6 +13,11 @@ import type {
   ConflictItem,
 } from '../types/sync.types';
 import { SyncOperation } from '../types/sync.types';
+import type {
+  TaskStatus as TaskStatusType,
+  TaskPriority as TaskPriorityType,
+  SessionStatus as SessionStatusType
+} from '@prisma/client';
 import { AppError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
@@ -125,12 +131,12 @@ export class SyncV2Service {
     const status = op.data.status || 'TODO';
     const priority = op.data.priority || 'MEDIUM';
 
-    if (!Object.values(TaskStatus).includes(status as TaskStatus)) {
+    if (!Object.values(TaskStatus).includes(status as TaskStatusType)) {
       conflicts.push({ id: op.id, reason: 'Invalid task status', operation: SyncOperation.CREATE });
       return;
     }
 
-    if (!Object.values(TaskPriority).includes(priority as TaskPriority)) {
+    if (!Object.values(TaskPriority).includes(priority as TaskPriorityType)) {
       conflicts.push({ id: op.id, reason: 'Invalid task priority', operation: SyncOperation.CREATE });
       return;
     }
@@ -141,8 +147,8 @@ export class SyncV2Service {
         userId,
         title: op.data.title,
         description: op.data.description,
-        status: status as TaskStatus,
-        priority: priority as TaskPriority,
+        status: status as TaskStatusType,
+        priority: priority as TaskPriorityType,
         dueDate: op.data.dueDate ? new Date(op.data.dueDate) : null,
         estimatedMinutes: op.data.estimatedMinutes,
         tagIds: op.data.tagIds || [],
@@ -182,12 +188,12 @@ export class SyncV2Service {
     }
 
     // Validate status and priority if provided
-    if (op.data.status && !Object.values(TaskStatus).includes(op.data.status as TaskStatus)) {
+    if (op.data.status && !Object.values(TaskStatus).includes(op.data.status as TaskStatusType)) {
       conflicts.push({ id: op.id, reason: 'Invalid task status', operation: SyncOperation.UPDATE });
       return;
     }
 
-    if (op.data.priority && !Object.values(TaskPriority).includes(op.data.priority as TaskPriority)) {
+    if (op.data.priority && !Object.values(TaskPriority).includes(op.data.priority as TaskPriorityType)) {
       conflicts.push({ id: op.id, reason: 'Invalid task priority', operation: SyncOperation.UPDATE });
       return;
     }
@@ -363,7 +369,7 @@ export class SyncV2Service {
 
     // Validate status
     const status = op.data.status || 'RUNNING';
-    if (!Object.values(SessionStatus).includes(status as SessionStatus)) {
+    if (!Object.values(SessionStatus).includes(status as SessionStatusType)) {
       conflicts.push({ id: op.id, reason: 'Invalid session status', operation: SyncOperation.CREATE });
       return;
     }
@@ -387,7 +393,7 @@ export class SyncV2Service {
         duration: op.data.duration,
         startTime: new Date(op.data.startTime),
         endTime: new Date(op.data.endTime),
-        status: status as SessionStatus,
+        status: status as SessionStatusType,
         progress: op.data.progress || 0,
         timeElapsed: op.data.timeElapsed || 0,
         pauseDuration: op.data.pauseDuration || 0,

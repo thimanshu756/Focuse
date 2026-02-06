@@ -10,6 +10,7 @@
     "dev:all": "pnpm --parallel --filter web --filter server dev",
     "build": "pnpm --filter web build",
     "build:server": "pnpm --filter server build",
+    "db:generate": "pnpm --filter server db:generate",
     "start": "pnpm --filter web start",
     "start:server": "pnpm --filter server start",
     "start:app": "pnpm --filter app start",

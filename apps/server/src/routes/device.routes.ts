@@ -9,7 +9,7 @@ import { validateRequest } from '../middleware/validation.middleware';
 import { rateLimiters } from '../middleware/rate-limiter.middleware';
 import { registerDeviceSchema, updateDeviceSchema, deleteDeviceSchema } from '../validators/device.validator';
 
-const router = Router();
+const router: Router = Router();
 const controller = new DeviceController();
 
 // All device routes require authentication

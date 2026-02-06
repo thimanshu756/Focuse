@@ -16,7 +16,12 @@ import {
   CancelSubscriptionResponse,
   ResumeSubscriptionResponse,
 } from '../types/subscription.types.js';
-import { SubscriptionTier, SubscriptionStatus } from '@prisma/client';
+import pkg from '@prisma/client';
+const { SubscriptionTier, SubscriptionStatus } = pkg;
+import type {
+  SubscriptionTier as SubscriptionTierType,
+  SubscriptionStatus as SubscriptionStatusType,
+} from '@prisma/client';
 
 // Type-safe Prisma model access (until Prisma client is regenerated)
 const prismaModels = {
@@ -38,7 +43,7 @@ export class SubscriptionService {
         where: {
           isActive: true,
           // Check if plan is available (within date range if specified)
-         
+
         },
         orderBy: [
           { displayOrder: 'asc' }, // Popular plans first
@@ -101,7 +106,7 @@ export class SubscriptionService {
             where: {
               userId,
               status: {
-                in: ['ACTIVE', 'TRIAL'] as SubscriptionStatus[],
+                in: ['ACTIVE', 'TRIAL'] as SubscriptionStatusType[],
               },
             },
             orderBy: { createdAt: 'desc' },
@@ -216,7 +221,7 @@ export class SubscriptionService {
         where: {
           userId,
           status: {
-            in: ['ACTIVE', 'TRIAL'] as SubscriptionStatus[],
+            in: ['ACTIVE', 'TRIAL'] as SubscriptionStatusType[],
           },
         },
       });
@@ -236,12 +241,12 @@ export class SubscriptionService {
       // STEP 5: Check for pending subscriptions (created but not paid in last 30 minutes)
       // const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
-      const timeoutMinutes = env.NODE_ENV === 'development' ? 5 :  30;
+      const timeoutMinutes = env.NODE_ENV === 'development' ? 5 : 30;
       const timeoutAgo = new Date(Date.now() - timeoutMinutes * 60 * 1000);
       const pendingSubscription = await prismaModels.subscription.findFirst({
         where: {
           userId,
-          status: 'INACTIVE' as SubscriptionStatus,
+          status: 'INACTIVE' as SubscriptionStatusType,
           createdAt: { gte: timeoutAgo },
         },
       });
@@ -259,7 +264,7 @@ export class SubscriptionService {
           userId,
           pendingSubscriptionId: pendingSubscription.id,
         });
-       
+
       }
 
       // STEP 6: Get or create Razorpay customer ID
@@ -341,7 +346,7 @@ export class SubscriptionService {
             billingCycle: plan.billingPeriod === 'MONTHLY' ? 1 : 12,
             currentPeriodStart: new Date(), // Temporary, will be updated by webhook
             currentPeriodEnd: new Date(), // Temporary, will be updated by webhook
-            status: 'INACTIVE' as SubscriptionStatus,
+            status: 'INACTIVE' as SubscriptionStatusType,
             autoRenew: true,
             metadata: {
               planId: plan.planId,
@@ -587,7 +592,7 @@ export class SubscriptionService {
     try {
       // STEP 1: Verify signature if provided (for subscription payments, signature might be missing)
       let signatureVerified = false;
-      
+
       if (razorpaySignature && razorpaySignature.trim() !== '') {
         const isSignatureValid = verifyPaymentSignature(
           razorpayPaymentId,
@@ -826,7 +831,7 @@ export class SubscriptionService {
           const updated = await (tx as any).subscription.update({
             where: { id: subscription.id },
             data: {
-              status: 'ACTIVE' as SubscriptionStatus,
+              status: 'ACTIVE' as SubscriptionStatusType,
               activatedAt: new Date(),
               lastPaymentDate: new Date(),
               totalBillingCycles: { increment: 1 },
@@ -846,8 +851,8 @@ export class SubscriptionService {
           await tx.user.update({
             where: { id: userId },
             data: {
-              subscriptionTier: 'PRO' as SubscriptionTier,
-              subscriptionStatus: 'ACTIVE' as SubscriptionStatus,
+              subscriptionTier: 'PRO' as SubscriptionTierType,
+              subscriptionStatus: 'ACTIVE' as SubscriptionStatusType,
               subscriptionStartDate: updated.activatedAt,
               subscriptionEndDate: updated.currentPeriodEnd,
             },
@@ -1035,8 +1040,8 @@ export class SubscriptionService {
           hasActiveSubscription: false,
           subscription: null,
           user: {
-            subscriptionTier: (user.subscriptionTier as unknown as SubscriptionTier),
-            subscriptionStatus: (user.subscriptionStatus as unknown as SubscriptionStatus),
+            subscriptionTier: (user.subscriptionTier as unknown as SubscriptionTierType),
+            subscriptionStatus: (user.subscriptionStatus as unknown as SubscriptionStatusType),
           },
         };
       }
@@ -1093,8 +1098,8 @@ export class SubscriptionService {
             await tx.user.update({
               where: { id: userId },
               data: {
-                subscriptionTier: 'FREE' as SubscriptionTier,
-                subscriptionStatus: 'INACTIVE' as SubscriptionStatus,
+                subscriptionTier: 'FREE' as SubscriptionTierType,
+                subscriptionStatus: 'INACTIVE' as SubscriptionStatusType,
                 subscriptionEndDate: currentSubscription.currentPeriodEnd,
               },
             });
@@ -1163,7 +1168,7 @@ export class SubscriptionService {
             const updatedSubscription = await prismaModels.subscription.update({
               where: { id: currentSubscription.id },
               data: {
-                status: razorpayStatus as SubscriptionStatus,
+                status: razorpayStatus as SubscriptionStatusType,
                 ...(razorpaySubscription.current_start && {
                   currentPeriodStart: new Date(razorpaySubscription.current_start * 1000),
                 }),
@@ -1182,8 +1187,8 @@ export class SubscriptionService {
               await prisma.user.update({
                 where: { id: userId },
                 data: {
-                  subscriptionTier: 'PRO' as SubscriptionTier,
-                  subscriptionStatus: 'ACTIVE' as SubscriptionStatus,
+                  subscriptionTier: 'PRO' as SubscriptionTierType,
+                  subscriptionStatus: 'ACTIVE' as SubscriptionStatusType,
                 },
               });
               (user as any).subscriptionTier = 'PRO';
@@ -1192,8 +1197,8 @@ export class SubscriptionService {
               await prisma.user.update({
                 where: { id: userId },
                 data: {
-                  subscriptionTier: 'FREE' as SubscriptionTier,
-                  subscriptionStatus: 'INACTIVE' as SubscriptionStatus,
+                  subscriptionTier: 'FREE' as SubscriptionTierType,
+                  subscriptionStatus: 'INACTIVE' as SubscriptionStatusType,
                 },
               });
               (user as any).subscriptionTier = 'FREE';
@@ -1220,7 +1225,7 @@ export class SubscriptionService {
         0,
         Math.ceil(
           (currentSubscription.currentPeriodEnd.getTime() - now.getTime()) /
-            (1000 * 60 * 60 * 24)
+          (1000 * 60 * 60 * 24)
         )
       );
 
@@ -1262,8 +1267,8 @@ export class SubscriptionService {
           isExpired,
         },
         user: {
-          subscriptionTier: (user.subscriptionTier as unknown as SubscriptionTier),
-          subscriptionStatus: (user.subscriptionStatus as unknown as SubscriptionStatus),
+          subscriptionTier: (user.subscriptionTier as unknown as SubscriptionTierType),
+          subscriptionStatus: (user.subscriptionStatus as unknown as SubscriptionStatusType),
         },
       };
     } catch (error) {
@@ -1398,8 +1403,8 @@ export class SubscriptionService {
         });
       } catch (error: any) {
         // Check if already cancelled on Razorpay (idempotency)
-        if (error?.error?.code === 'BAD_REQUEST_ERROR' && 
-            error?.error?.description?.includes('already been cancelled')) {
+        if (error?.error?.code === 'BAD_REQUEST_ERROR' &&
+          error?.error?.description?.includes('already been cancelled')) {
           logger.warn('Subscription already cancelled on Razorpay', {
             userId,
             razorpaySubscriptionId: subscription.razorpaySubscriptionId,
@@ -1422,17 +1427,17 @@ export class SubscriptionService {
       }
 
       // STEP 3: Determine access end date and user tier
-      const accessUntil = cancelAtPeriodEnd 
-        ? subscription.currentPeriodEnd 
+      const accessUntil = cancelAtPeriodEnd
+        ? subscription.currentPeriodEnd
         : now;
 
-      const newUserTier = cancelAtPeriodEnd 
+      const newUserTier = cancelAtPeriodEnd
         ? subscription.user.subscriptionTier // Keep current tier until period ends
-        : 'FREE' as SubscriptionTier; // Downgrade immediately
+        : 'FREE' as SubscriptionTierType; // Downgrade immediately
 
-      const newUserStatus = cancelAtPeriodEnd 
+      const newUserStatus = cancelAtPeriodEnd
         ? subscription.user.subscriptionStatus // Keep current status until period ends
-        : 'INACTIVE' as SubscriptionStatus; // Set inactive immediately
+        : 'INACTIVE' as SubscriptionStatusType; // Set inactive immediately
 
       // STEP 4: Update database in a transaction
       let updatedSubscription;
@@ -1442,7 +1447,7 @@ export class SubscriptionService {
           const updated = await (tx as any).subscription.update({
             where: { id: subscription.id },
             data: {
-              status: 'CANCELLED' as SubscriptionStatus,
+              status: 'CANCELLED' as SubscriptionStatusType,
               cancelledAt: now,
               cancelAtPeriodEnd,
               cancelReason: reason || null,
@@ -1728,7 +1733,7 @@ export class SubscriptionService {
           const updated = await (tx as any).subscription.update({
             where: { id: subscription.id },
             data: {
-              status: 'ACTIVE' as SubscriptionStatus,
+              status: 'ACTIVE' as SubscriptionStatusType,
               cancelledAt: null, // Clear cancellation date
               cancelAtPeriodEnd: false, // Clear cancel flag
               cancelReason: null, // Clear cancel reason
@@ -1748,8 +1753,8 @@ export class SubscriptionService {
           await tx.user.update({
             where: { id: userId },
             data: {
-              subscriptionTier: 'PRO' as SubscriptionTier,
-              subscriptionStatus: 'ACTIVE' as SubscriptionStatus,
+              subscriptionTier: 'PRO' as SubscriptionTierType,
+              subscriptionStatus: 'ACTIVE' as SubscriptionStatusType,
               subscriptionStartDate: subscription.activatedAt || subscription.createdAt,
               subscriptionEndDate: updated.currentPeriodEnd,
             },
