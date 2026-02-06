@@ -8,9 +8,9 @@
 // Conditional Sentry import - only load if not in dev mode
 let Sentry: any = null;
 try {
-  if (!__DEV__) {
-    Sentry = require('@sentry/react-native');
-  }
+  // if (!__DEV__) {
+  Sentry = require('@sentry/react-native');
+  // }
 } catch (error) {
   console.warn('[Crashlytics] Sentry not available:', error);
 }
@@ -77,11 +77,18 @@ class CrashlyticsService {
         // Performance monitoring
         tracesSampleRate: __DEV__ ? 1.0 : 0.2, // 20% of transactions in production
 
-        // Integrations (optional - comment out if not available in your Sentry version)
-        // integrations: [],
+        // Session Replay
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1.0,
+
+        // Integrations
+        integrations: [
+          Sentry.mobileReplayIntegration(),
+          Sentry.feedbackIntegration(),
+        ],
 
         // Before send hook - filter sensitive data
-        beforeSend(event, hint) {
+        beforeSend(event: any, hint: any) {
           // Filter out sensitive data
           if (event.request?.headers) {
             delete event.request.headers['Authorization'];
@@ -231,13 +238,19 @@ class CrashlyticsService {
    * Start a transaction for performance monitoring
    * Note: This feature requires additional Sentry configuration
    */
-  startTransaction(name: string, operation: string): any {
-    if (!this.initialized) return null;
 
-    // Performance monitoring is available through Sentry.startTransaction
-    // but might require additional setup. Returning null for now.
-    console.log('[Crashlytics] Transaction:', name, operation);
-    return null;
+  startTransaction(name: string, operation: string): any {
+    if (!this.initialized || !Sentry) return null;
+    const transaction = Sentry.startTransaction({
+      name,
+      op: operation,
+    });
+
+    if (__DEV__) {
+      console.log('[Crashlytics] Transaction started:', name, operation);
+    }
+
+    return transaction;
   }
 
   /**

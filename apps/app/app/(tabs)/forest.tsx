@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, Dimensions, ActivityIndicator } from 'react-native';
+import { crashlyticsService } from '@/services/crashlytics.service';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING } from '@/constants/theme';
 import { useForestData } from '@/hooks/useForestData';
@@ -52,7 +53,8 @@ export default function Forest() {
     isFiltering,
     dateFilter,
     setDateFilter,
-    refetch
+    refetch,
+    error
   } = useForestData();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -66,13 +68,49 @@ export default function Forest() {
     }
   }, [isFiltering, isLoading]);
 
+  // Log component lifecycle
+  useEffect(() => {
+    crashlyticsService.addBreadcrumb('Forest page mounted', 'navigation');
+
+    // Start performance trace
+    const transaction = crashlyticsService.startTransaction('forest_page_load', 'ui.load');
+
+    return () => {
+      crashlyticsService.addBreadcrumb('Forest page unmounted', 'navigation');
+      if (transaction) transaction.finish();
+    };
+  }, []);
+
+  // Log data loading status
+  useEffect(() => {
+    if (!isLoading) {
+      crashlyticsService.addBreadcrumb('Forest data loaded', 'data', {
+        treeCount: sessions.length,
+        totalTrees: stats.totalTrees,
+        dateFilter
+      });
+    }
+  }, [isLoading, sessions.length, stats.totalTrees, dateFilter]);
+
+  // Log errors
+  useEffect(() => {
+    if (error) {
+      crashlyticsService.logError(new Error(error), {
+        component: 'Forest',
+        action: 'fetchData'
+      });
+    }
+  }, [error]);
+
   const onRefresh = async () => {
+    crashlyticsService.addBreadcrumb('Pull to refresh triggered', 'ui.action');
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
   };
 
   const handleTreePress = (session: Session) => {
+    crashlyticsService.addBreadcrumb('Tree selected', 'ui.action', { sessionId: session.id });
     setSelectedSession(session);
   };
 
