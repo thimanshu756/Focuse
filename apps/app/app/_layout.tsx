@@ -61,6 +61,14 @@ function RootLayoutContent() {
         // 5. Initialize notifications
         await notificationService.initialize();
 
+        // 6. Configure Google Sign-In (safe to fail in Expo Go)
+        try {
+          const { configureGoogleSignIn } = require('../src/config/google-signin.config');
+          configureGoogleSignIn();
+        } catch (e) {
+          console.log('[App] Google Sign-In not available in this environment');
+        }
+
         console.log('[App] All services initialized successfully');
         setServicesInitialized(true);
       } catch (error) {

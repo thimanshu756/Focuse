@@ -53,6 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         url: 'https://sentry.io/',
       },
     ],
+    '@react-native-google-signin/google-signin',
   ],
   experiments: {
     typedRoutes: true,
