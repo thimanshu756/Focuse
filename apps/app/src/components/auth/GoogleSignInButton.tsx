@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { COLORS, SPACING, FONT_SIZES } from '@/constants/theme';
 import { authService } from '@/services/auth.service';
+import { crashlyticsService } from '@/services/crashlytics.service';
 
 interface GoogleSignInButtonProps {
   mode?: 'signin' | 'signup';
@@ -91,6 +92,14 @@ export function GoogleSignInButton({
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         return;
       }
+
+      // Report to Sentry with context
+      crashlyticsService.logError(error instanceof Error ? error : new Error(String(error.message || error)), {
+        component: 'GoogleSignInButton',
+        mode,
+        errorCode: error.code,
+        httpStatus: error.response?.status,
+      });
 
       const errorMessage = getErrorMessage(error);
       Alert.alert('Sign In Failed', errorMessage);

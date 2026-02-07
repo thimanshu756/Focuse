@@ -127,6 +127,7 @@ class AuthService {
             timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         });
 
+        console.log('Google auth response:', response);
         const { user, tokens } = response.data;
         const { isNewUser, isLinked } = (response as any).meta || {};
 

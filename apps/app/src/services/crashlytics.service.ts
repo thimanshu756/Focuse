@@ -1,16 +1,13 @@
 /**
  * Crash Reporting Service (Sentry)
- * 
+ *
  * Wrapper around Sentry for crash reporting and error tracking.
  * Provides a unified interface for error logging across the app.
  */
 
-// Conditional Sentry import - only load if not in dev mode
 let Sentry: any = null;
 try {
-  // if (!__DEV__) {
   Sentry = require('@sentry/react-native');
-  // }
 } catch (error) {
   console.warn('[Crashlytics] Sentry not available:', error);
 }
@@ -33,19 +30,15 @@ class CrashlyticsService {
   private initialized = false;
 
   /**
-   * Initialize Sentry crash reporting
-   * Call this in app entry point (_layout.tsx)
+   * Initialize Sentry crash reporting.
+   * Call this in app entry point (_layout.tsx).
+   *
+   * In __DEV__ mode, Sentry initializes with debug:true so you can
+   * verify events are being sent, but with a 100% sample rate.
    */
   initialize(): void {
     if (this.initialized) {
       console.warn('[Crashlytics] Already initialized');
-      return;
-    }
-
-    // Only initialize in non-development environments
-    if (__DEV__) {
-      console.log('[Crashlytics] Skipping initialization in development mode');
-      this.initialized = true;
       return;
     }
 
@@ -55,51 +48,56 @@ class CrashlyticsService {
       return;
     }
 
-    const dsn = Constants.expoConfig?.extra?.sentryDsn;
+    // Try multiple sources for DSN — env var is most reliable in production builds
+    const dsn =
+      process.env.EXPO_PUBLIC_SENTRY_DSN ||
+      Constants.expoConfig?.extra?.sentryDsn;
 
     if (!dsn) {
       console.warn('[Crashlytics] Sentry DSN not found. Crash reporting disabled.');
+      console.warn('[Crashlytics] Check EXPO_PUBLIC_SENTRY_DSN env variable.');
+      this.initialized = true;
       return;
     }
+
+    const environment =
+      process.env.EXPO_PUBLIC_ENVIRONMENT ||
+      Constants.expoConfig?.extra?.environment ||
+      'production';
 
     try {
       Sentry.init({
         dsn,
-        debug: false, // Set to true for debugging
-        environment: Constants.expoConfig?.extra?.environment || 'production',
+        debug: __DEV__, // Show Sentry debug logs in dev so you can verify it works
+        environment,
         enableAutoSessionTracking: true,
-        sessionTrackingIntervalMillis: 30000, // 30 seconds
+        sessionTrackingIntervalMillis: 30000,
 
         // Release versioning
         release: `${Application.applicationId}@${Application.nativeApplicationVersion}`,
         dist: Application.nativeBuildVersion || undefined,
 
         // Performance monitoring
-        tracesSampleRate: __DEV__ ? 1.0 : 0.2, // 20% of transactions in production
+        tracesSampleRate: __DEV__ ? 1.0 : 0.2,
 
         // Session Replay
-        replaysSessionSampleRate: 0.1,
+        replaysSessionSampleRate: __DEV__ ? 0 : 0.1,
         replaysOnErrorSampleRate: 1.0,
 
-        // Integrations
-        integrations: [
-          Sentry.mobileReplayIntegration(),
-          Sentry.feedbackIntegration(),
-        ],
+        // Integrations — only add replay in production (heavy on perf)
+        integrations: __DEV__
+          ? []
+          : [
+              Sentry.mobileReplayIntegration(),
+              Sentry.feedbackIntegration(),
+            ],
 
         // Before send hook - filter sensitive data
-        beforeSend(event: any, hint: any) {
-          // Filter out sensitive data
+        beforeSend(event: any) {
           if (event.request?.headers) {
             delete event.request.headers['Authorization'];
             delete event.request.headers['Cookie'];
           }
-
-          // Log in dev for debugging
-          if (__DEV__) {
-            console.log('[Crashlytics] Event:', event);
-          }
-
           return event;
         },
       });
@@ -108,15 +106,13 @@ class CrashlyticsService {
       this.setDeviceContext();
 
       this.initialized = true;
-      console.log('[Crashlytics] Initialized successfully');
+      console.log(`[Crashlytics] Initialized successfully (env: ${environment}, dev: ${__DEV__})`);
     } catch (error) {
       console.error('[Crashlytics] Initialization failed:', error);
+      this.initialized = true;
     }
   }
 
-  /**
-   * Set device context for better debugging
-   */
   private setDeviceContext(): void {
     if (!Sentry) return;
     Sentry.setContext('device', {
@@ -130,9 +126,6 @@ class CrashlyticsService {
     });
   }
 
-  /**
-   * Set user context (call after login)
-   */
   setUser(user: UserContext): void {
     if (!this.initialized || !Sentry) return;
 
@@ -145,9 +138,6 @@ class CrashlyticsService {
     console.log('[Crashlytics] User context set:', user.id);
   }
 
-  /**
-   * Clear user context (call after logout)
-   */
   clearUser(): void {
     if (!this.initialized || !Sentry) return;
 
@@ -155,50 +145,31 @@ class CrashlyticsService {
     console.log('[Crashlytics] User context cleared');
   }
 
-  /**
-   * Log a non-fatal error
-   */
   logError(error: Error, metadata?: ErrorMetadata): void {
-    if (!this.initialized || !Sentry) {
-      console.error('[Crashlytics] Not initialized. Error:', error, metadata);
-      return;
-    }
+    console.error('[Crashlytics] Error:', error.message, metadata);
+
+    if (!this.initialized || !Sentry) return;
 
     Sentry.captureException(error, {
       extra: metadata,
     });
-
-    if (__DEV__) {
-      console.error('[Crashlytics] Error logged:', error, metadata);
-    }
   }
 
-  /**
-   * Log a message (info, warning, error)
-   */
   logMessage(
     message: string,
     level: 'info' | 'warning' | 'error' = 'info',
     metadata?: ErrorMetadata
   ): void {
-    if (!this.initialized || !Sentry) {
-      console.log(`[Crashlytics] Not initialized. ${level.toUpperCase()}: ${message}`, metadata);
-      return;
-    }
+    console.log(`[Crashlytics] ${level.toUpperCase()}: ${message}`, metadata);
+
+    if (!this.initialized || !Sentry) return;
 
     Sentry.captureMessage(message, {
       level,
       extra: metadata,
     });
-
-    if (__DEV__) {
-      console.log(`[Crashlytics] Message logged [${level}]:`, message, metadata);
-    }
   }
 
-  /**
-   * Add breadcrumb for debugging
-   */
   addBreadcrumb(message: string, category: string, data?: Record<string, any>): void {
     if (!this.initialized || !Sentry) return;
 
@@ -209,23 +180,13 @@ class CrashlyticsService {
       level: 'info',
       timestamp: Date.now() / 1000,
     });
-
-    if (__DEV__) {
-      console.log('[Crashlytics] Breadcrumb:', category, message, data);
-    }
   }
 
-  /**
-   * Test crash reporting (use for testing only)
-   */
   testCrash(): void {
     console.warn('[Crashlytics] Triggering test crash');
     throw new Error('[TEST] Crashlytics test crash');
   }
 
-  /**
-   * Test error logging (use for testing only)
-   */
   testError(): void {
     console.warn('[Crashlytics] Triggering test error');
     this.logError(new Error('[TEST] Crashlytics test error'), {
@@ -234,35 +195,19 @@ class CrashlyticsService {
     });
   }
 
-  /**
-   * Start a transaction for performance monitoring
-   * Note: This feature requires additional Sentry configuration
-   */
-
   startTransaction(name: string, operation: string): any {
     if (!this.initialized || !Sentry) return null;
     const transaction = Sentry.startTransaction({
       name,
       op: operation,
     });
-
-    if (__DEV__) {
-      console.log('[Crashlytics] Transaction started:', name, operation);
-    }
-
     return transaction;
   }
 
-  /**
-   * Check if initialized
-   */
   isInitialized(): boolean {
     return this.initialized;
   }
 }
 
-// Export singleton instance
 export const crashlyticsService = new CrashlyticsService();
-
-// Export class for testing
 export default CrashlyticsService;
