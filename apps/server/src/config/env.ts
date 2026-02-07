@@ -17,6 +17,7 @@ const envSchema = z.object({
   // Google OAuth Configuration
   GOOGLE_CLIENT_ID: z.string().min(1, 'Google Client ID is required'),
   GOOGLE_CLIENT_SECRET: z.string().min(1, 'Google Client Secret is required'),
+  GOOGLE_ANDROID_CLIENT_ID: z.string().optional(),
   // Razorpay Configuration
   RAZORPAY_KEY_ID: z.string().min(1, 'Razorpay Key ID is required'),
   RAZORPAY_KEY_SECRET: z.string().min(1, 'Razorpay Key Secret is required'),

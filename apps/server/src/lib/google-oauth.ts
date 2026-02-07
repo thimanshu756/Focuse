@@ -26,10 +26,16 @@ export async function verifyGoogleToken(
   idToken: string
 ): Promise<GoogleUserInfo> {
   try {
+    // Accept tokens from both web and Android clients
+    const allowedAudiences = [env.GOOGLE_CLIENT_ID];
+    if (env.GOOGLE_ANDROID_CLIENT_ID) {
+      allowedAudiences.push(env.GOOGLE_ANDROID_CLIENT_ID);
+    }
+
     // Verify the token with Google's servers
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: env.GOOGLE_CLIENT_ID,
+      audience: allowedAudiences,
     });
 
     const payload = ticket.getPayload();
