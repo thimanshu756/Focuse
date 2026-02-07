@@ -4,6 +4,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { crashlyticsService } from './crashlytics.service';
 import config, { API_TIMEOUT } from '@/constants/config';
 
 class ApiService {
@@ -76,6 +77,16 @@ class ApiService {
         if (error.response?.data) {
           console.log('[API] Error Data:', error.response.data);
         }
+      }
+
+      // Log relevant errors to Sentry (skip 401s as they are handled by refresh logic)
+      if (error.response?.status !== 401) {
+        crashlyticsService.logError(error, {
+          url: error.config?.url,
+          method: error.config?.method,
+          status: error.response?.status,
+          apiError: true,
+        });
       }
 
       // Handle 401 Unauthorized - Try to refresh token

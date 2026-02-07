@@ -43,6 +43,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     // Log error to Crashlytics
+    console.log('[ErrorBoundary] Caught error:', error);
     crashlyticsService.logError(error, {
       componentStack: errorInfo.componentStack,
       errorBoundary: 'ErrorBoundary',

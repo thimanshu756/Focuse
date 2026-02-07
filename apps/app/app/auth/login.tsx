@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/theme';
 import { authService } from '@/services/auth.service';
+import { GoogleSignInWrapper } from '@/components/auth/GoogleSignInWrapper';
 
 export default function Login() {
   const router = useRouter();
@@ -109,6 +110,11 @@ export default function Login() {
                 <Text style={styles.linkTextBold}>Sign Up</Text>
               </Text>
             </TouchableOpacity>
+
+            {/* Google Sign In */}
+            <View style={{ marginTop: 8 }}>
+              <GoogleSignInWrapper mode="signin" />
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>

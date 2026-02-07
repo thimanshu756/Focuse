@@ -16,6 +16,13 @@ import { syncService } from '../src/services/sync.service';
 import { notificationService } from '../src/services/notification.service';
 import { useAuthStore } from '../src/stores/auth.store';
 import { DEEP_LINK_SCHEME } from '../src/constants/config';
+import * as Sentry from '@sentry/react-native';
+
+
+
+
+// Initialize Sentry immediately for performance monitoring
+crashlyticsService.initialize();
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -37,31 +44,37 @@ function RootLayoutContent() {
     async function initializeServices() {
       try {
         console.log('[App] Initializing services...');
-        
+
         // 0. Validate environment variables
         envService.validate();
-        
-        // 1. Initialize crash reporting (first, so we can track errors)
-        crashlyticsService.initialize();
-        
+
+
         // 2. Initialize analytics
         await analyticsService.initialize();
-        
+
         // 3. Initialize database
         await databaseService.initialize();
-        
+
         // 4. Initialize sync service (depends on database)
         await syncService.initialize();
-        
+
         // 5. Initialize notifications
         await notificationService.initialize();
+
+        // 6. Configure Google Sign-In (safe to fail in Expo Go)
+        try {
+          const { configureGoogleSignIn } = require('../src/config/google-signin.config');
+          configureGoogleSignIn();
+        } catch (e) {
+          console.log('[App] Google Sign-In not available in this environment');
+        }
 
         console.log('[App] All services initialized successfully');
         setServicesInitialized(true);
       } catch (error) {
         console.error('[App] Service initialization failed:', error);
         setInitError((error as Error).message);
-        
+
         // Still set as initialized to allow app to run
         // (some features may not work, but app shouldn't crash)
         setServicesInitialized(true);
@@ -270,13 +283,13 @@ function RootLayoutContent() {
   );
 }
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   return (
     <ErrorBoundary>
       <RootLayoutContent />
     </ErrorBoundary>
   );
-}
+});
 
 const styles = StyleSheet.create({
   loadingContainer: {

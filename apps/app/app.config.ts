@@ -5,6 +5,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'FOCUSE',
   slug: 'forest-focus',
   version: '1.0.0',
+  icon: './assets/images/icon.png',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
@@ -22,6 +23,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: 'com.forest.focus',
     versionCode: 1,
+    adaptiveIcon: {
+      foregroundImage: './assets/images/adaptive-icon.png',
+      backgroundColor: '#EAF2FF',
+    },
   },
   web: {
     bundler: 'metro',
@@ -38,6 +43,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-notifications',
       {
         color: '#D7F50A',
+      },
+    ],
+    [
+      '@sentry/react-native/expo',
+      {
+        organization: 'webzenith-jr',
+        project: 'focuse-test',
+        url: 'https://sentry.io/',
       },
     ],
   ],
