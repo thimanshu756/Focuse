@@ -12,6 +12,9 @@ class ApiService {
   private aiApi: AxiosInstance;
 
   constructor() {
+    console.log('[API Service] Initializing with baseURL:', config.apiUrl);
+    console.log('[API Service] EXPO_PUBLIC_API_URL env:', process.env.EXPO_PUBLIC_API_URL);
+
     this.api = axios.create({
       baseURL: config.apiUrl,
       timeout: API_TIMEOUT,
@@ -74,6 +77,9 @@ class ApiService {
           `[API] Error ${error.response?.status} ${error.config?.url}:`,
           error.message
         );
+        console.error('[API] Full URL:', error.config?.baseURL, '+', error.config?.url);
+        console.error('[API] Error code:', error.code);
+        if (error.cause) console.error('[API] Error cause:', error.cause);
         if (error.response?.data) {
           console.log('[API] Error Data:', error.response.data);
         }
